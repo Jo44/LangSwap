@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "dBBS3M4pxl0=",
+  "success": true,
+  "projectFilePath": "D:\\Documents\\Dev\\C#\\ffxiv-lang-swap\\LangSwap\\LangSwap.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Jonathan\\.nuget\\packages\\dalamudpackager\\14.0.1\\dalamudpackager.14.0.1.nupkg.sha512",
+    "C:\\Users\\Jonathan\\.nuget\\packages\\dotnet.reproduciblebuilds\\1.2.39\\dotnet.reproduciblebuilds.1.2.39.nupkg.sha512"
+  ],
+  "logs": []
+}

@@ -1,56 +1,40 @@
 # LangSwap
 
-Un plugin Dalamud pour Final Fantasy XIV qui permet de changer temporairement la langue du HUD et des tooltips en maintenant un combo de touches.
+A Dalamud plugin for Final Fantasy XIV � temporarily switch the HUD/tooltips language while holding a keyboard shortcut.
 
-## Fonctionnalités
+## Features
+- Temporarily switch HUD and tooltip language while the configured key combination is held.
+- Configure options through a `Settings` window.
+- Slash command: `/langswap`.
 
-- **Changement de langue à la volée** : Maintenez un combo de touches pour basculer vers une langue cible configurée
-- **Restauration automatique** : Relâchez les touches pour revenir à votre langue d'origine
-- **Configuration simple** : Interface de configuration pour choisir la langue cible
+## Default values (first run)
+- Target language: English
+- Primary key: `Y`
+- Modifier: `Alt`
 
-## Installation
+## Usage
+1. Open the plugin manager in FFXIV.
+2. Click the `Settings` button to open the configuration window.
+3. Set the `Target Language`, modifier keys (`Ctrl`, `Alt`, `Shift`) and the `Primary Key`.
+4. Hold the configured combination to switch languages temporarily; release to restore the original language.
 
-1. Compilez le projet dans Visual Studio
-2. Ajoutez le chemin vers `LangSwap.dll` dans les paramètres de Dalamud (`/xlsettings` > Experimental > Dev Plugin Locations)
-3. Activez le plugin via `/xlplugins` > Dev Tools > Installed Dev Plugins
+You can also open/close the settings window via `/langswap`.
 
-## Utilisation
+## Development / build
+- Target: .NET 10
+- Open the project in Visual Studio / Rider, restore packages, build.
+- Deploy as a Dalamud plugin following the normal deployment instructions for Dalamud plugins.
 
-1. Ouvrez la configuration avec `/langswap` ou via le bouton dans le Plugin Installer
-2. Sélectionnez la langue cible que vous souhaitez utiliser lorsque vous maintenez le combo de touches
-3. Sélectionnez le choix du combo de touches à utiliser
-4. En jeu, maintenez le combo de touches pour basculer temporairement vers la langue cible
-5. Relâchez les touches pour revenir à votre langue d'origine
+## Logs & debugging
+- Logs use Dalamud's `IPluginLog`; filter by plugin to view messages.
+- If modifier detection behaves unexpectedly, enable Debug/Verbose logs in `Plugin.cs` to inspect values returned by `IKeyState.GetRawValue(...)`.
 
-## Langues supportées
+## Customization / tips
+- To show only the `Settings` button in the plugin installer, subscribe to `UiBuilder.OpenConfigUi`.  
+  Note: Dalamud warns if no `OpenMainUi` callback is registered. Options:
+  - Ignore the warning and register only `OpenConfigUi` (results in only the `Settings` button).
+  - Also register `OpenMainUi` to remove the warning (this adds the `Open` entry back).
+- Default values can be changed in `Configuration.cs`.
 
-- Japonais (0)
-- Anglais (1)
-- Allemand (2)
-- Français (3)
-
-## Développement
-
-### Structure du projet
-
-```
-ffxiv-swap-lang/
-├── LangSwap.sln          # Solution Visual Studio
-└── LangSwap/
-    ├── LangSwap.csproj   # Fichier projet
-    ├── LangSwap.json     # Métadonnées du plugin
-    ├── Plugin.cs         # Classe principale du plugin
-    ├── Configuration.cs  # Gestion de la configuration
-    └── Windows/
-        └── ConfigWindow.cs # Fenêtre de configuration
-```
-
-### TODO
-
-- [ ] Implémenter la récupération de la langue actuelle du jeu
-- [ ] Implémenter le changement de langue via l'API du jeu
-- [ ] Tester la détection des touches du combo de touches
-
-## Notes
-
-Ce plugin nécessite l'implémentation de l'accès aux paramètres de langue du jeu via l'API Dalamud. Les méthodes `GetCurrentLanguage()` et `SetLanguage()` sont actuellement des placeholders et doivent être complétées avec l'API appropriée.
+## Contribution
+Forks & PRs welcome. See the `main` branch of the repository.

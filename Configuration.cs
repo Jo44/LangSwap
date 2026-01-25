@@ -1,18 +1,26 @@
 using Dalamud.Configuration;
+using Dalamud.Game.ClientState.Keys;
 using System;
 
 namespace LangSwap;
 
+// Plugin configuration
 [Serializable]
 public class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 0;
+    // Version
+    public int Version { get; set; } = 1;
 
-    /// <summary>
-    /// The target language to switch to when key combination is held.
-    /// Language codes: 0=Japanese, 1=English, 2=German, 3=French
-    /// </summary>
+    // Language code: 0=Japanese, 1=English, 2=German, 3=French
     public byte TargetLanguage { get; set; } = 1; // Default to English
+
+    // Primary key
+    public int PrimaryKey { get; set; } = (int)VirtualKey.Y; // Default to Y
+
+    // Modifier keys
+    public bool UseCtrl { get; set; } = false;
+    public bool UseAlt { get; set; } = false;
+    public bool UseShift { get; set; } = true; // Default to Shift
 
     // The below exists just to make saving less cumbersome
     public void Save()

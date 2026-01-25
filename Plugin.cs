@@ -5,139 +5,179 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using LangSwap.Windows;
 using Dalamud.Game.ClientState.Keys;
+using System;
 
 namespace LangSwap;
 
+// Plugin main
 public sealed class Plugin : IDalamudPlugin
 {
+    // Services
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
+    // References
     private const string CommandName = "/langswap";
-
     public Configuration Configuration { get; init; }
-
     public readonly WindowSystem WindowSystem = new("LangSwap");
     private ConfigWindow ConfigWindow { get; init; }
-
     private byte? originalLanguage = null;
     private bool isLanguageSwapped = false;
+    private bool previousComboPressed = false;
 
+    // Constructor
     public Plugin()
     {
+        // Load configuration
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
+        // Initialize windows
         ConfigWindow = new ConfigWindow(this);
         WindowSystem.AddWindow(ConfigWindow);
 
+        // Register command
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
             HelpMessage = "Opens the LangSwap configuration window"
         });
 
-        // Tell the UI system that we want our windows to be drawn through the window system
+        // Register UI callbacks
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
         PluginInterface.UiBuilder.Draw += OnDraw;
-
-        // This adds a button to the plugin installer entry of this plugin which allows
-        // toggling the display status of the configuration ui
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
 
-        Log.Information($"===LangSwap plugin loaded===");
+        // Log plugin load
+        Log.Information($"=== LangSwap plugin loaded ===");
+        Log.Debug($"Configuration loaded : TargetLanguage = {Configuration.TargetLanguage}, PrimaryKey = {Configuration.PrimaryKey}, UseCtrl = {Configuration.UseCtrl}, UseAlt = {Configuration.UseAlt}, UseShift = {Configuration.UseShift}");
     }
 
-    public void Dispose()
+    // OnDraw callback
+    private void OnDraw()
     {
-        // Restore original language if swapped
-        if (isLanguageSwapped && originalLanguage.HasValue)
+        // Check primary key
+        bool primaryOk = Configuration.PrimaryKey < 0 || IsKeyDown(Configuration.PrimaryKey);
+
+        // Check modifier keys
+        bool ctrlOk  = !Configuration.UseCtrl  || IsKeyDown((int)VirtualKey.LCONTROL) || IsKeyDown((int)VirtualKey.RCONTROL) || IsKeyDown((int)VirtualKey.CONTROL);
+        bool altOk   = !Configuration.UseAlt   || IsKeyDown((int)VirtualKey.LMENU)    || IsKeyDown((int)VirtualKey.RMENU)    || IsKeyDown((int)VirtualKey.MENU);
+        bool shiftOk = !Configuration.UseShift || IsKeyDown((int)VirtualKey.LSHIFT)   || IsKeyDown((int)VirtualKey.RSHIFT)   || IsKeyDown((int)VirtualKey.SHIFT);
+
+        // Determine if combo is held
+        bool comboHeld = primaryOk && ctrlOk && altOk && shiftOk;
+
+        // Handle language swap/restore
+        if (comboHeld && !previousComboPressed)
         {
-            RestoreLanguage();
+            if (!isLanguageSwapped) SwapLanguage();
+        }
+        else if (!comboHeld && previousComboPressed)
+        {
+            if (isLanguageSwapped) RestoreLanguage();
         }
 
-        // Unregister all actions to not leak anything during disposal of plugin
+        // Update previous state
+        previousComboPressed = comboHeld;
+    }
+
+    // Get current language
+    private byte GetCurrentLanguage()
+    {
+        // TODO: Implement language retrieval logic
+        return 0;
+    }
+
+    // Set language
+    private void SetLanguage(byte language)
+    {
+        // TODO: Implement language setting logic
+    }
+
+    // Dispose
+    public void Dispose()
+    {
+        // Restore language if swapped
+        if (isLanguageSwapped && originalLanguage.HasValue) RestoreLanguage();
+
+        // Unregister UI callbacks
         PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
         PluginInterface.UiBuilder.Draw -= OnDraw;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
-        
+
+        // Dispose windows
         WindowSystem.RemoveAllWindows();
         ConfigWindow.Dispose();
 
+        // Unregister command
         CommandManager.RemoveHandler(CommandName);
     }
 
-    private void OnCommand(string command, string args)
-    {
-        // In response to the slash command, toggle the display status of our config ui
-        ConfigWindow.Toggle();
-    }
-    
+    // Command handler
+    private void OnCommand(string command, string args) => ConfigWindow.Toggle();
+
+    // Toggle config UI
     public void ToggleConfigUi() => ConfigWindow.Toggle();
 
-    private void OnDraw()
+    // Check key down
+    private static bool IsKeyDown(int vkCode)
     {
-
-        // Check if Ctrl+Alt is being held
-        bool ctrlPressed = KeyState[VirtualKey.CONTROL];
-        bool altPressed = KeyState[VirtualKey.MENU]; // ALT key is MENU in VirtualKey enum
-
-        if (ctrlPressed && altPressed)
+        if (KeyState is null) return false;
+        try
         {
-            if (!isLanguageSwapped)
+            // Get underlying type of VirtualKey enum
+            Type underlying = Enum.GetUnderlyingType(typeof(VirtualKey));
+            object converted;
+            try
             {
-                SwapLanguage();
+                converted = Convert.ChangeType(vkCode, underlying);
             }
+            catch
+            {
+                var rawFallback = KeyState.GetRawValue(vkCode);
+                return rawFallback != 0;
+            }
+
+            // Check if converted value is defined in VirtualKey enum
+            if (Enum.IsDefined(typeof(VirtualKey), converted))
+            {
+                var vk = (VirtualKey)Enum.ToObject(typeof(VirtualKey), converted);
+                if (KeyState.IsVirtualKeyValid(vk))
+                {
+                    var raw = KeyState.GetRawValue(vk);
+                    return raw != 0;
+                }
+            }
+
+            // Final fallback to int overload
+            var rawInt = KeyState.GetRawValue(vkCode);
+            return rawInt != 0;
         }
-        else
+        catch (Exception)
         {
-            if (isLanguageSwapped)
-            {
-                RestoreLanguage();
-            }
+            return false;
         }
     }
 
+    // Swap language
     private void SwapLanguage()
     {
-        if (isLanguageSwapped)
-            return;
-
-        // Get current language and store it
-        // Note: This will need to be implemented based on Dalamud's API for language settings
-        // For now, this is a placeholder structure
+        if (isLanguageSwapped) return;
         originalLanguage = GetCurrentLanguage();
-        
-        // Set target language
         SetLanguage(Configuration.TargetLanguage);
-        
         isLanguageSwapped = true;
-        Log.Debug($"Language swapped to {Configuration.TargetLanguage}");
+        Log.Information($"Language swapped to {Configuration.TargetLanguage}");
     }
 
+    // Restore language
     private void RestoreLanguage()
     {
-        if (!isLanguageSwapped || !originalLanguage.HasValue)
-            return;
-
+        if (!isLanguageSwapped || !originalLanguage.HasValue) return;
         SetLanguage(originalLanguage.Value);
         isLanguageSwapped = false;
         originalLanguage = null;
-        Log.Debug("Language restored to original");
+        Log.Information("Language restored to original");
     }
 
-    private byte GetCurrentLanguage()
-    {
-        // TODO: Implement getting current language from game settings
-        // This will require accessing the game's configuration or Dalamud's language API
-        return 0; // Placeholder
-    }
-
-    private void SetLanguage(byte language)
-    {
-        // TODO: Implement setting language for HUD and tooltips
-        // This will require accessing the game's language settings API
-        // May need to use Dalamud's GameConfig or similar service
-    }
 }

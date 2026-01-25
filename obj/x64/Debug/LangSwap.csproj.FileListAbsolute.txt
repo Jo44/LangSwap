@@ -14,3 +14,4 @@ D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\x64\Debug\LangSwap.AssemblyInfo
 D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\x64\Debug\LangSwap.AssemblyInfo.cs
 D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\x64\Debug\LangSwap.csproj.CoreCompileInputs.cache
 D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\x64\Debug\LangSwap.dll
+D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\x64\Debug\LangSwap.sourcelink.json

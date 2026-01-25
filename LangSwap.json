@@ -1,8 +1,8 @@
 {
     "Author": "Snoof",
     "Name": "LangSwap",
-    "Punchline": "Change HUD and tooltip language on the fly with a key combination.",
-    "Description": "LangSwap allows you to temporarily change the language of the HUD and tooltips in FFXIV by holding a key combination. Release the keys to return to your original language.",
+    "Punchline": "Change HUD and tooltip language on the fly with a keyboard shortcut.",
+    "Description": "LangSwap allows you to temporarily change the language of the HUD and tooltips in FFXIV by holding a keyboard shortcut. Release the key(s) to return to your original language.",
     "ApplicableVersion": "any",
     "Tags": [
         "language",
@@ -10,5 +10,5 @@
         "tooltip",
         "utility"
     ],
-	"IconUrl": "icon.png"
+	"IconUrl": "https://raw.githubusercontent.com/Jo44/LangSwap/refs/heads/main/data/icon.png"
 }

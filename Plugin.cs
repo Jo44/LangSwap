@@ -1,10 +1,12 @@
+using Dalamud.Game;
 using Dalamud.Game.Command;
+using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
+using LangSwap.input;
+using LangSwap.translation;
 using LangSwap.Windows;
-using Dalamud.Game.ClientState.Keys;
 using System;
 
 namespace LangSwap;
@@ -14,19 +16,21 @@ public sealed class Plugin : IDalamudPlugin
 {
     // Services
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
-    [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
-    [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+    [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+    [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
+    [PluginService] internal static IChatGui? ChatGui { get; private set; }
 
     // References
     private const string CommandName = "/langswap";
     public Configuration Configuration { get; init; }
     public readonly WindowSystem WindowSystem = new("LangSwap");
     private ConfigWindow ConfigWindow { get; init; }
-    private byte? originalLanguage = null;
     private bool isLanguageSwapped = false;
     private bool previousComboPressed = false;
+
+    private readonly ComboDetector comboDetector;
 
     // Constructor
     public Plugin()
@@ -37,6 +41,9 @@ public sealed class Plugin : IDalamudPlugin
         // Initialize windows
         ConfigWindow = new ConfigWindow(this);
         WindowSystem.AddWindow(ConfigWindow);
+
+        // Initialize combo detector
+        comboDetector = new ComboDetector(KeyState, Configuration, Log);
 
         // Register command
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
@@ -49,24 +56,19 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += OnDraw;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
 
+        // Get client language
+        GetClientLanguage();
+
         // Log plugin load
         Log.Information($"=== LangSwap plugin loaded ===");
-        Log.Debug($"Configuration loaded : TargetLanguage = {Configuration.TargetLanguage}, PrimaryKey = {Configuration.PrimaryKey}, UseCtrl = {Configuration.UseCtrl}, UseAlt = {Configuration.UseAlt}, UseShift = {Configuration.UseShift}");
+        Log.Debug($"Configuration loaded : ClientLanguage = {Configuration.ClientLanguage}, TargetLanguage = {Configuration.TargetLanguage}, PrimaryKey = {Configuration.PrimaryKey}, UseCtrl = {Configuration.UseCtrl}, UseAlt = {Configuration.UseAlt}, UseShift = {Configuration.UseShift}");
     }
 
     // OnDraw callback
     private void OnDraw()
     {
-        // Check primary key
-        bool primaryOk = Configuration.PrimaryKey < 0 || IsKeyDown(Configuration.PrimaryKey);
-
-        // Check modifier keys
-        bool ctrlOk  = !Configuration.UseCtrl  || IsKeyDown((int)VirtualKey.LCONTROL) || IsKeyDown((int)VirtualKey.RCONTROL) || IsKeyDown((int)VirtualKey.CONTROL);
-        bool altOk   = !Configuration.UseAlt   || IsKeyDown((int)VirtualKey.LMENU)    || IsKeyDown((int)VirtualKey.RMENU)    || IsKeyDown((int)VirtualKey.MENU);
-        bool shiftOk = !Configuration.UseShift || IsKeyDown((int)VirtualKey.LSHIFT)   || IsKeyDown((int)VirtualKey.RSHIFT)   || IsKeyDown((int)VirtualKey.SHIFT);
-
-        // Determine if combo is held
-        bool comboHeld = primaryOk && ctrlOk && altOk && shiftOk;
+        // Check combo shortcut
+        bool comboHeld = comboDetector.IsComboHeld();
 
         // Handle language swap/restore
         if (comboHeld && !previousComboPressed)
@@ -82,24 +84,82 @@ public sealed class Plugin : IDalamudPlugin
         previousComboPressed = comboHeld;
     }
 
-    // Get current language
-    private byte GetCurrentLanguage()
+    // Swap language
+    private void SwapLanguage()
     {
-        // TODO: Implement language retrieval logic
-        return 0;
+        if (isLanguageSwapped) return;
+        // Check if target language is the same as client language
+        if (Configuration.TargetLanguage == Configuration.ClientLanguage)
+        {
+            ChatGui?.Print("[LangSwap] Target language is the same as client language");
+            Log.Warning("Target language is the same as client language; swap aborted.");
+            return;
+        }
+        SetTargetLanguage();
+        isLanguageSwapped = true;
+        ChatGui?.Print($"[LangSwap] Swap to {Enum.GetName(typeof(LanguageEnum), Configuration.TargetLanguage)}");
+        Log.Information($"Language swapped to {Enum.GetName(typeof(LanguageEnum), Configuration.TargetLanguage)} ({Configuration.TargetLanguage})");
     }
 
-    // Set language
-    private void SetLanguage(byte language)
+    // Restore language
+    private void RestoreLanguage()
+    {
+        if (!isLanguageSwapped) return;
+        SetClientLanguage();
+        isLanguageSwapped = false;
+        ChatGui?.Print($"[LangSwap] Restored to {Enum.GetName(typeof(LanguageEnum), Configuration.ClientLanguage)}");
+        Log.Information($"Language restored to {Enum.GetName(typeof(LanguageEnum), Configuration.ClientLanguage)} ({Configuration.ClientLanguage})");
+    }
+
+    // Set client language
+    private void SetClientLanguage()
+    {
+        // TODO: Implement language retrieval logic
+    }
+
+    // Set target language
+    private void SetTargetLanguage()
     {
         // TODO: Implement language setting logic
     }
+
+    // Get client language
+    private void GetClientLanguage()
+    {
+        ClientLanguage clientLanguage = ClientState.ClientLanguage;
+        switch (clientLanguage)
+        {
+            case ClientLanguage.Japanese:
+                Configuration.ClientLanguage = 0;
+                break;
+            case ClientLanguage.English:
+                Configuration.ClientLanguage = 1;
+                break;
+            case ClientLanguage.German:
+                Configuration.ClientLanguage = 2;
+                break;
+            case ClientLanguage.French:
+                Configuration.ClientLanguage = 3;
+                break;
+            default:
+                Log.Warning($"Unrecognized client language: {clientLanguage} ==> english default");
+                Configuration.ClientLanguage = 1;
+                break;
+        }
+        Configuration.Save();
+    }
+
+    // Command handler
+    private void OnCommand(string command, string args) => ConfigWindow.Toggle();
+
+    // Toggle config UI
+    public void ToggleConfigUi() => ConfigWindow.Toggle();
 
     // Dispose
     public void Dispose()
     {
         // Restore language if swapped
-        if (isLanguageSwapped && originalLanguage.HasValue) RestoreLanguage();
+        if (isLanguageSwapped) RestoreLanguage();
 
         // Unregister UI callbacks
         PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
@@ -112,72 +172,6 @@ public sealed class Plugin : IDalamudPlugin
 
         // Unregister command
         CommandManager.RemoveHandler(CommandName);
-    }
-
-    // Command handler
-    private void OnCommand(string command, string args) => ConfigWindow.Toggle();
-
-    // Toggle config UI
-    public void ToggleConfigUi() => ConfigWindow.Toggle();
-
-    // Check key down
-    private static bool IsKeyDown(int vkCode)
-    {
-        if (KeyState is null) return false;
-        try
-        {
-            // Get underlying type of VirtualKey enum
-            Type underlying = Enum.GetUnderlyingType(typeof(VirtualKey));
-            object converted;
-            try
-            {
-                converted = Convert.ChangeType(vkCode, underlying);
-            }
-            catch
-            {
-                var rawFallback = KeyState.GetRawValue(vkCode);
-                return rawFallback != 0;
-            }
-
-            // Check if converted value is defined in VirtualKey enum
-            if (Enum.IsDefined(typeof(VirtualKey), converted))
-            {
-                var vk = (VirtualKey)Enum.ToObject(typeof(VirtualKey), converted);
-                if (KeyState.IsVirtualKeyValid(vk))
-                {
-                    var raw = KeyState.GetRawValue(vk);
-                    return raw != 0;
-                }
-            }
-
-            // Final fallback to int overload
-            var rawInt = KeyState.GetRawValue(vkCode);
-            return rawInt != 0;
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-    }
-
-    // Swap language
-    private void SwapLanguage()
-    {
-        if (isLanguageSwapped) return;
-        originalLanguage = GetCurrentLanguage();
-        SetLanguage(Configuration.TargetLanguage);
-        isLanguageSwapped = true;
-        Log.Information($"Language swapped to {Configuration.TargetLanguage}");
-    }
-
-    // Restore language
-    private void RestoreLanguage()
-    {
-        if (!isLanguageSwapped || !originalLanguage.HasValue) return;
-        SetLanguage(originalLanguage.Value);
-        isLanguageSwapped = false;
-        originalLanguage = null;
-        Log.Information("Language restored to original");
     }
 
 }

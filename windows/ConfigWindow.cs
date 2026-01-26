@@ -1,6 +1,7 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Interface.Windowing;
+using LangSwap.translation;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -13,7 +14,7 @@ public class ConfigWindow : Window, IDisposable
     // References
     private readonly Plugin plugin;
     private readonly Configuration configuration;
-    private readonly String[] languages = new[] { "Japanese", "English", "German", "French" };
+    private readonly string[] languages = Enum.GetNames(typeof(LanguageEnum));
     private readonly List<string> keyNames = new List<string> { "None" };
     private readonly List<int> keyValues = new List<int> { -1 };
 
@@ -29,15 +30,12 @@ public class ConfigWindow : Window, IDisposable
         SizeCondition = ImGuiCond.Always;
 
         // Initialize key names and values
-        initKeys(keyNames, keyValues);
+        InitKeys(keyNames, keyValues);
 
         // Store references
         this.plugin = plugin;
         this.configuration = plugin.Configuration;
     }
-
-    // Dispose
-    public void Dispose() { }
 
     // Draw
     public override void Draw()
@@ -95,7 +93,7 @@ public class ConfigWindow : Window, IDisposable
             configuration.Save();
         }
 
-        // Modifiers
+        // Modifier keys
         ImGui.SameLine(0, 20f);
         if (ImGui.Checkbox("Ctrl", ref useCtrl))
         {
@@ -121,8 +119,8 @@ public class ConfigWindow : Window, IDisposable
         
     }
 
-    // Initialize key names and values
-    private void initKeys(List<String> keyNames, List<int> keyValues)
+    // Initialize primary key names and values
+    private static void InitKeys(List<String> keyNames, List<int> keyValues)
     {
         // Letters A-Z
         int startA = (int)VirtualKey.A;
@@ -145,4 +143,8 @@ public class ConfigWindow : Window, IDisposable
             }
         }
     }
+
+    // Dispose
+    public void Dispose() { }
+
 }

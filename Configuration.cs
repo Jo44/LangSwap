@@ -12,6 +12,7 @@ public class Configuration : IPluginConfiguration
     public int Version { get; set; } = 1;
 
     // Language code: 0=Japanese, 1=English, 2=German, 3=French
+    public byte ClientLanguage { get; set; } = 1; // Default to English
     public byte TargetLanguage { get; set; } = 1; // Default to English
 
     // Primary key

@@ -23,14 +23,13 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IChatGui? ChatGui { get; private set; }
 
     // References
-    private const string CommandName = "/langswap";
     public Configuration Configuration { get; init; }
     public readonly WindowSystem WindowSystem = new("LangSwap");
     private ConfigWindow ConfigWindow { get; init; }
-    private bool isLanguageSwapped = false;
-    private bool previousComboPressed = false;
-
     private readonly ComboDetector comboDetector;
+    private bool previousComboPressed = false;
+    private bool isLanguageSwapped = false;
+    private const string CommandName = "/langswap";
 
     // Constructor
     public Plugin()

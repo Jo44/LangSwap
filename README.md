@@ -27,4 +27,3 @@ You can also open/close the settings window via `/langswap`.
 
 ## Logs & debugging
 - Logs use Dalamud's `IPluginLog`; filter by plugin to view messages.
-- If modifier detection behaves unexpectedly, enable Debug/Verbose logs in `Plugin.cs` to inspect values returned by `IKeyState.GetRawValue(...)`.

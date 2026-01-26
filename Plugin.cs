@@ -6,6 +6,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using LangSwap.input;
 using LangSwap.translation;
+using LangSwap.ui;
 using LangSwap.Windows;
 using System;
 
@@ -15,52 +16,71 @@ namespace LangSwap;
 public sealed class Plugin : IDalamudPlugin
 {
     // Services
-    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+    [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
-    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
+    [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
+    [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
-    [PluginService] internal static IChatGui? ChatGui { get; private set; }
+    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     // References
-    public Configuration Configuration { get; init; }
+    public required Configuration Configuration { get; init; }
+    public required ConfigWindow ConfigWindow { get; init; }
     public readonly WindowSystem WindowSystem = new("LangSwap");
-    private ConfigWindow ConfigWindow { get; init; }
-    private readonly ComboDetector comboDetector;
+    public required ComboDetector comboDetector;
+    public required ExcelProvider excelProvider;
+    public required TranslationCache translationCache;
+    public required TooltipHook tooltipHook;
+    private const string CommandName = "/langswap";
     private bool previousComboPressed = false;
     private bool isLanguageSwapped = false;
-    private const string CommandName = "/langswap";
 
     // Constructor
     public Plugin()
     {
-        // Load configuration
-        Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-
-        // Initialize windows
-        ConfigWindow = new ConfigWindow(this);
-        WindowSystem.AddWindow(ConfigWindow);
-
-        // Initialize combo detector
-        comboDetector = new ComboDetector(KeyState, Configuration, Log);
-
-        // Register command
-        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
+        try
         {
-            HelpMessage = "Opens the LangSwap configuration window"
-        });
+            // Load configuration
+            Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-        // Register UI callbacks
-        PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
-        PluginInterface.UiBuilder.Draw += OnDraw;
-        PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
+            // Initialize client language
+            InitClientLanguage();
 
-        // Get client language
-        GetClientLanguage();
+            // Initialize config window
+            ConfigWindow = new ConfigWindow(this, Log);
+            WindowSystem.AddWindow(ConfigWindow);
 
-        // Log plugin load
-        Log.Information($"=== LangSwap plugin loaded ===");
-        Log.Debug($"Configuration loaded : ClientLanguage = {Configuration.ClientLanguage}, TargetLanguage = {Configuration.TargetLanguage}, PrimaryKey = {Configuration.PrimaryKey}, UseCtrl = {Configuration.UseCtrl}, UseAlt = {Configuration.UseAlt}, UseShift = {Configuration.UseShift}");
+            // Initialize components
+            comboDetector = new ComboDetector(Configuration, KeyState, Log);
+            excelProvider = new ExcelProvider(DataManager, Log);
+            translationCache = new TranslationCache(excelProvider, Log);
+            tooltipHook = new TooltipHook(Configuration, GameGui, GameInterop, translationCache, Log);
+
+            // Enable tooltip hook
+            tooltipHook.Enable();
+
+            // Register command
+            CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
+            {
+                HelpMessage = "Opens the LangSwap configuration window"
+            });
+
+            // Register UI callbacks
+            PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
+            PluginInterface.UiBuilder.Draw += OnDraw;
+            PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
+
+            // Log plugin load
+            Log.Information($"=== LangSwap plugin loaded ===");
+            Log.Debug($"Configuration loaded : ClientLanguage = {Configuration.ClientLanguage}, TargetLanguage = {Configuration.TargetLanguage}, PrimaryKey = {Configuration.PrimaryKey}, UseCtrl = {Configuration.UseCtrl}, UseAlt = {Configuration.UseAlt}, UseShift = {Configuration.UseShift}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Exception during plugin initialization");
+        }
     }
 
     // OnDraw callback
@@ -87,16 +107,23 @@ public sealed class Plugin : IDalamudPlugin
     private void SwapLanguage()
     {
         if (isLanguageSwapped) return;
+
         // Check if target language is the same as client language
         if (Configuration.TargetLanguage == Configuration.ClientLanguage)
         {
-            ChatGui?.Print("[LangSwap] Target language is the same as client language");
+            // Notify user
+            ChatGui.Print("[LangSwap] Target language is the same as client language");
             Log.Warning("Target language is the same as client language; swap aborted.");
             return;
         }
-        SetTargetLanguage();
         isLanguageSwapped = true;
-        ChatGui?.Print($"[LangSwap] Swap to {Enum.GetName(typeof(LanguageEnum), Configuration.TargetLanguage)}");
+
+        // TODO : on est sur de vouloir faire ca ?
+        // Update tooltip hook with new language
+        tooltipHook.SetLanguageSwapped(true);
+
+        // Notify user
+        ChatGui.Print($"[LangSwap] Swap to {Enum.GetName(typeof(LanguageEnum), Configuration.TargetLanguage)}");
         Log.Information($"Language swapped to {Enum.GetName(typeof(LanguageEnum), Configuration.TargetLanguage)} ({Configuration.TargetLanguage})");
     }
 
@@ -104,29 +131,22 @@ public sealed class Plugin : IDalamudPlugin
     private void RestoreLanguage()
     {
         if (!isLanguageSwapped) return;
-        SetClientLanguage();
         isLanguageSwapped = false;
-        ChatGui?.Print($"[LangSwap] Restored to {Enum.GetName(typeof(LanguageEnum), Configuration.ClientLanguage)}");
+
+        // TODO : on est sur de vouloir faire ca ?
+        // Update tooltip hook to restore original language
+        tooltipHook.SetLanguageSwapped(false);
+
+        // Notify user
+        ChatGui.Print($"[LangSwap] Restored to {Enum.GetName(typeof(LanguageEnum), Configuration.ClientLanguage)}");
         Log.Information($"Language restored to {Enum.GetName(typeof(LanguageEnum), Configuration.ClientLanguage)} ({Configuration.ClientLanguage})");
     }
 
-    // Set client language
-    private void SetClientLanguage()
+    // Initialize client language
+    private void InitClientLanguage()
     {
-        // TODO: Implement language retrieval logic
-    }
-
-    // Set target language
-    private void SetTargetLanguage()
-    {
-        // TODO: Implement language setting logic
-    }
-
-    // Get client language
-    private void GetClientLanguage()
-    {
-        ClientLanguage clientLanguage = ClientState.ClientLanguage;
-        switch (clientLanguage)
+        ClientLanguage language = ClientState.ClientLanguage;
+        switch (language)
         {
             case ClientLanguage.Japanese:
                 Configuration.ClientLanguage = 0;
@@ -141,7 +161,7 @@ public sealed class Plugin : IDalamudPlugin
                 Configuration.ClientLanguage = 3;
                 break;
             default:
-                Log.Warning($"Unrecognized client language: {clientLanguage} ==> english default");
+                Log.Warning($"Unrecognized client language: {language} ==> english default");
                 Configuration.ClientLanguage = 1;
                 break;
         }
@@ -161,16 +181,19 @@ public sealed class Plugin : IDalamudPlugin
         if (isLanguageSwapped) RestoreLanguage();
 
         // Unregister UI callbacks
-        PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
-        PluginInterface.UiBuilder.Draw -= OnDraw;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
-
-        // Dispose windows
-        WindowSystem.RemoveAllWindows();
-        ConfigWindow.Dispose();
+        PluginInterface.UiBuilder.Draw -= OnDraw;
+        PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
 
         // Unregister command
         CommandManager.RemoveHandler(CommandName);
+
+        // Dispose tooltip hook
+        tooltipHook?.Dispose();
+
+        // Cleanup windows
+        WindowSystem.RemoveAllWindows();
+        ConfigWindow.Dispose();
     }
 
 }

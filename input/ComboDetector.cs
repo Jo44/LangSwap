@@ -5,11 +5,11 @@ using Dalamud.Plugin.Services;
 namespace LangSwap.input;
 
 // Combo detector
-public class ComboDetector(IKeyState keyState, Configuration config, IPluginLog log)
+public class ComboDetector(Configuration config, IKeyState keyState, IPluginLog log)
 {
     // References
-    private readonly IKeyState keyState = keyState;
     private readonly Configuration config = config;
+    private readonly IKeyState keyState = keyState;
     private readonly IPluginLog log = log;
 
     // Check if the configured combo is currently held down
@@ -38,7 +38,7 @@ public class ComboDetector(IKeyState keyState, Configuration config, IPluginLog 
         try
         {
             // Attempt to convert vkCode to VirtualKey enum
-            var underlying = Enum.GetUnderlyingType(typeof(VirtualKey));
+            Type underlying = Enum.GetUnderlyingType(typeof(VirtualKey));
             object converted;
             try
             {
@@ -46,29 +46,29 @@ public class ComboDetector(IKeyState keyState, Configuration config, IPluginLog 
             }
             catch
             {
-                var rawFallback = keyState.GetRawValue(vkCode);
+                int rawFallback = keyState.GetRawValue(vkCode);
                 return rawFallback != 0;
             }
 
             // Check if the converted value is a defined VirtualKey
             if (Enum.IsDefined(typeof(VirtualKey), converted))
             {
-                var vk = (VirtualKey)Enum.ToObject(typeof(VirtualKey), converted);
+                VirtualKey vk = (VirtualKey)Enum.ToObject(typeof(VirtualKey), converted);
                 if (keyState.IsVirtualKeyValid(vk))
                 {
-                    var raw = keyState.GetRawValue(vk);
+                    int raw = keyState.GetRawValue(vk);
                     return raw != 0;
                 }
             }
 
             // Fallback to raw value check
-            var rawInt = keyState.GetRawValue(vkCode);
+            int rawInt = keyState.GetRawValue(vkCode);
             return rawInt != 0;
         }
         catch (Exception ex)
         {
             // Log exception and return false
-            log?.Warning($"ComboDetector.IsKeyDown exception for vk={vkCode}: {ex.Message}");
+            log.Warning($"ComboDetector.IsKeyDown exception for vk={vkCode}: {ex.Message}");
             return false;
         }
     }

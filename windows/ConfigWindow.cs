@@ -1,6 +1,7 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Interface.Windowing;
+using Dalamud.Plugin.Services;
 using LangSwap.translation;
 using System;
 using System.Collections.Generic;
@@ -8,18 +9,18 @@ using System.Numerics;
 
 namespace LangSwap.Windows;
 
-// Window configuration
+// Configuration window
 public class ConfigWindow : Window, IDisposable
 {
     // References
     private readonly Plugin plugin;
     private readonly Configuration configuration;
-    private readonly string[] languages = Enum.GetNames(typeof(LanguageEnum));
-    private readonly List<string> keyNames = new List<string> { "None" };
-    private readonly List<int> keyValues = new List<int> { -1 };
+    private readonly IPluginLog log;
+    private readonly List<string> keyNames = ["None"];
+    private readonly List<int> keyValues = [-1];
 
     // Constructor
-    public ConfigWindow(Plugin plugin) : base("LangSwap Configuration###LangSwapConfig")
+    public ConfigWindow(Plugin plugin, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
     {
         // Window settings
         Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
@@ -34,7 +35,8 @@ public class ConfigWindow : Window, IDisposable
 
         // Store references
         this.plugin = plugin;
-        this.configuration = plugin.Configuration;
+        this.configuration = this.plugin.Configuration;
+        this.log = log;
     }
 
     // Draw
@@ -43,7 +45,8 @@ public class ConfigWindow : Window, IDisposable
         /// Settings UI
 
         // Language
-        var currentLang = (int)configuration.TargetLanguage;
+        string[] languages = Enum.GetNames<LanguageEnum>();
+        int currentLang = (int)configuration.TargetLanguage;
 
         // Primary Key
         int selIndex = keyValues.IndexOf(configuration.PrimaryKey);
@@ -69,7 +72,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SetNextItemWidth(100f);
         if (ImGui.Combo("##Language", ref currentLang, languages, languages.Length))
         {
-            Plugin.Log.Information($"Setting target language to {languages[currentLang]} ({currentLang})");
+            log.Information($"Setting target language to {languages[currentLang]} ({currentLang})");
             configuration.TargetLanguage = (byte)currentLang;
             configuration.Save();
         }
@@ -88,7 +91,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SetNextItemWidth(100f);
         if (ImGui.Combo("##PrimaryKey", ref selIndex, keyNames.ToArray(), keyNames.Count))
         {
-            Plugin.Log.Information($"Setting primary key to {keyNames[selIndex]} ({keyValues[selIndex]})");
+            log.Information($"Setting primary key to {keyNames[selIndex]} ({keyValues[selIndex]})");
             configuration.PrimaryKey = keyValues[selIndex];
             configuration.Save();
         }
@@ -97,21 +100,21 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 20f);
         if (ImGui.Checkbox("Ctrl", ref useCtrl))
         {
-            Plugin.Log.Information($"Setting UseCtrl to {useCtrl}");
+            log.Information($"Setting UseCtrl to {useCtrl}");
             configuration.UseCtrl = useCtrl;
             configuration.Save();
         }
         ImGui.SameLine();
         if (ImGui.Checkbox("Alt", ref useAlt))
         {
-            Plugin.Log.Information($"Setting UseAlt to {useAlt}");
+            log.Information($"Setting UseAlt to {useAlt}");
             configuration.UseAlt = useAlt;
             configuration.Save();
         }
         ImGui.SameLine();
         if (ImGui.Checkbox("Shift", ref useShift))
         {
-            Plugin.Log.Information($"Setting UseShift to {useShift}");
+            log.Information($"Setting UseShift to {useShift}");
             configuration.UseShift = useShift;
             configuration.Save();
         }

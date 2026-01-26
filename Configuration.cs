@@ -23,7 +23,7 @@ public class Configuration : IPluginConfiguration
     public bool UseAlt { get; set; } = false;
     public bool UseShift { get; set; } = true; // Default to Shift
 
-    // The below exists just to make saving less cumbersome
+    // Save configuration
     public void Save()
     {
         Plugin.PluginInterface.SavePluginConfig(this);

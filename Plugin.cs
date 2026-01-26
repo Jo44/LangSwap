@@ -118,9 +118,8 @@ public sealed class Plugin : IDalamudPlugin
         }
         isLanguageSwapped = true;
 
-        // TODO : on est sur de vouloir faire ca ?
         // Update tooltip hook with new language
-        tooltipHook.SetLanguageSwapped(true);
+        tooltipHook.SwapLanguage();
 
         // Notify user
         ChatGui.Print($"[LangSwap] Swap to {Enum.GetName(typeof(LanguageEnum), Configuration.TargetLanguage)}");
@@ -133,9 +132,8 @@ public sealed class Plugin : IDalamudPlugin
         if (!isLanguageSwapped) return;
         isLanguageSwapped = false;
 
-        // TODO : on est sur de vouloir faire ca ?
         // Update tooltip hook to restore original language
-        tooltipHook.SetLanguageSwapped(false);
+        tooltipHook.RestoreLanguage();
 
         // Notify user
         ChatGui.Print($"[LangSwap] Restored to {Enum.GetName(typeof(LanguageEnum), Configuration.ClientLanguage)}");
@@ -172,7 +170,7 @@ public sealed class Plugin : IDalamudPlugin
     private void OnCommand(string command, string args) => ConfigWindow.Toggle();
 
     // Toggle config UI
-    public void ToggleConfigUi() => ConfigWindow.Toggle();
+    private void ToggleConfigUi() => ConfigWindow.Toggle();
 
     // Dispose
     public void Dispose()

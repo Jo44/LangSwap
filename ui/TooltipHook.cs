@@ -58,37 +58,22 @@ public class TooltipHook(
         }
     }
 
-    // Disable the hook
-    public void Disable()
+    // Swap language
+    public void SwapLanguage()
     {
-        if (!isEnabled) return;
-
-        try
-        {
-            tooltipHook?.Disable();
-            isEnabled = false;
-            log.Debug("Tooltip hook disabled");
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, "Failed to disable tooltip hook");
-        }
+        // TODO
     }
 
-    // Set language swap state
-    public void SetLanguageSwapped(bool swapped)
+    // Restore language
+    public void RestoreLanguage()
     {
-        isLanguageSwapped = swapped;
-        // TODO : on est sur de vouloir faire ca ?
-        // if (swapped)
-            // targetLanguage = (LanguageEnum)configuration.TargetLanguage;
-        // else
-            // targetLanguage = (LanguageEnum)configuration.ClientLanguage;
+        // TODO
     }
 
     // Hooked function that intercepts tooltip updates
     private void UpdateItemTooltipDetour(IntPtr tooltip, uint itemId, bool isHq, IntPtr data)
     {
+        // TODO
         try
         {
             // Call original function first to populate the tooltip
@@ -118,6 +103,7 @@ public class TooltipHook(
     // Modify the tooltip text (unsafe implementation)
     private unsafe void ModifyTooltipTextUnsafe(IntPtr tooltipPtr, string newText)
     {
+        // TODO : Implement the actual modification of the tooltip text
         // This requires FFXIVClientStructs or similar to access the tooltip structure
         // For now, this is a placeholder that shows the structure needed
         // 
@@ -125,7 +111,7 @@ public class TooltipHook(
         // - AtkUnitBase* tooltip
         // - Text nodes containing item name (usually node ID 2 or 3)
         // - Need to find the correct text node and replace its content
-        
+
         try
         {
             // Placeholder: Actual implementation requires:
@@ -143,16 +129,35 @@ public class TooltipHook(
     }
 
     // Get item ID from tooltip (helper method)
-    public uint? GetItemIdFromTooltip(IntPtr tooltipPtr)
+    private uint? GetItemIdFromTooltip(IntPtr tooltipPtr)
     {
+        // TODO : utile ?
         // This would require parsing the tooltip structure
         // For now, the item ID is passed directly to the hook function
         return null;
     }
 
+    // Dispose
     public void Dispose()
     {
         Disable();
         tooltipHook?.Dispose();
+    }
+
+    // Disable the hook
+    private void Disable()
+    {
+        if (!isEnabled) return;
+
+        try
+        {
+            tooltipHook?.Disable();
+            isEnabled = false;
+            log.Debug("Tooltip hook disabled");
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, "Failed to disable tooltip hook");
+        }
     }
 }

@@ -1,54 +1,66 @@
-using System.Collections.Generic;
 using Dalamud.Plugin.Services;
+using System.Collections.Generic;
 
 namespace LangSwap.translation;
 
-// Cache for storing item translations
+// Cache for translated item names and descriptions
 public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
 {
     // References
-    private readonly Dictionary<uint, Dictionary<LanguageEnum, string?>> cache = [];
     private readonly ExcelProvider excelProvider = excelProvider;
     private readonly IPluginLog log = log;
+    private readonly Dictionary<(uint, LanguageEnum), string?> nameCache = [];
+    private readonly Dictionary<(uint, LanguageEnum), string?> descriptionCache = [];
 
-    // Get item name in target language, using cache if available
-    public string? GetItemName(uint itemId, LanguageEnum targetLanguage)
+    // Get item name
+    public string? GetItemName(uint itemId, LanguageEnum language)
     {
-        // Check cache first
-        if (cache.TryGetValue(itemId, out Dictionary<LanguageEnum, string?>? languageCache))
+        var key = (itemId, language);
+        
+        if (nameCache.TryGetValue(key, out var cachedName))
         {
-            if (languageCache.TryGetValue(targetLanguage, out string? cachedName))
-            {
-                return cachedName;
-            }
+            return cachedName;
         }
 
-        // Get from Excel provider
-        string? name = excelProvider.GetItemName(itemId, targetLanguage);
-
-        // Initialize language cache (if not present)
-        if (!cache.TryGetValue(itemId, out Dictionary<LanguageEnum, string?>? value))
+        // Fetch from excel provider
+        var name = excelProvider.GetItemName(itemId, language);
+        nameCache[key] = name;
+        
+        if (name != null)
         {
-            value = [];
-            cache[itemId] = value;
+            log.Verbose($"Cached item name {itemId} ({language}): {name}");
         }
-
-        // Update the cache with the new translation
-        value[targetLanguage] = name;
-
+        
         return name;
+    }
+
+    // Get item description
+    public string? GetItemDescription(uint itemId, LanguageEnum language)
+    {
+        var key = (itemId, language);
+        
+        if (descriptionCache.TryGetValue(key, out var cachedDesc))
+        {
+            return cachedDesc;
+        }
+
+        // Fetch from excel provider
+        var description = excelProvider.GetItemDescription(itemId, language);
+        descriptionCache[key] = description;
+        
+        if (description != null)
+        {
+            log.Verbose($"Cached item description {itemId} ({language}): {description}");
+        }
+        
+        return description;
     }
 
     // Clear the cache
     public void Clear()
     {
-        cache.Clear();
+        nameCache.Clear();
+        descriptionCache.Clear();
         log.Debug("Translation cache cleared");
-    }
-
-    // Get cache statistics
-    public int GetCacheSize()
-    {
-        return cache.Count;
     }
 }

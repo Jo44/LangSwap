@@ -24,6 +24,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
     [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
+    [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     // References
@@ -55,9 +56,9 @@ public sealed class Plugin : IDalamudPlugin
 
             // Initialize components
             comboDetector = new ComboDetector(Configuration, KeyState, Log);
-            excelProvider = new ExcelProvider(DataManager, Log);
+            excelProvider = new ExcelProvider(Configuration, DataManager, Log);
             translationCache = new TranslationCache(excelProvider, Log);
-            tooltipHook = new TooltipHook(Configuration, GameGui, GameInterop, translationCache, Log);
+            tooltipHook = new TooltipHook(Configuration, GameInterop, SigScanner, translationCache, Log);
 
             // Enable tooltip hook
             tooltipHook.Enable();

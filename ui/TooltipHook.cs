@@ -9,14 +9,15 @@ using System;
 namespace LangSwap.ui;
 
 /// <summary>
-/// Hook for intercepting and modifying item tooltips based on SimpleTweaksPlugin approach.
+/// Hook for intercepting and modifying item and action tooltips
 /// </summary>
 public unsafe class TooltipHook(
     Configuration configuration,
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
-    IPluginLog log) : IDisposable
+    IPluginLog log,
+    IGameGui gameGui) : IDisposable
 {
     // References
     private readonly Configuration configuration = configuration;
@@ -24,13 +25,16 @@ public unsafe class TooltipHook(
     private readonly ISigScanner sigScanner = sigScanner;
     private readonly TranslationCache translationCache = translationCache;
     private readonly IPluginLog log = log;
+    private readonly IGameGui gameGui = gameGui;
 
     // Delegates
     private delegate void* GenerateItemTooltipDelegate(AtkUnitBase* addonItemDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
+    private delegate void* GenerateActionTooltipDelegate(AtkUnitBase* addonActionDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
     private delegate byte ItemHoveredDelegate(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7);
 
     // Hooks
     private Hook<GenerateItemTooltipDelegate>? generateItemTooltipHook;
+    private Hook<GenerateActionTooltipDelegate>? generateActionTooltipHook;
     private Hook<ItemHoveredDelegate>? itemHoveredHook;
 
     // State
@@ -38,24 +42,28 @@ public unsafe class TooltipHook(
     private bool isLanguageSwapped = false;
     private uint currentItemId = 0;
     private uint currentGlamourId = 0;
+    private uint currentActionId = 0;
 
-    // Item tooltip field indices (from SimpleTweaksPlugin)
+    // Tooltip field indices
     private const int ItemNameField = 0;
     private const int GlamourNameField = 1;
     private const int ItemDescriptionField = 13;
+    
+    private const int ActionNameField = 0;
+    private const int ActionDescriptionField = 13;
 
-    /// <summary>
-    /// Enable tooltip hooks
-    /// </summary>
+    // Addon names for tooltips
+    private const string ItemDetailAddonName = "ItemDetail";
+    private const string ActionDetailAddonName = "ActionDetail";
+
     public void Enable()
     {
         if (isEnabled) return;
 
         try
         {
-            // Hook 1: ItemHovered - captures the actual item being hovered
-            var itemHoveredSig = configuration.ItemHoveredSig;
-            var itemHoveredAddr = sigScanner.ScanText(itemHoveredSig);
+            // Hook 1: ItemHovered
+            var itemHoveredAddr = sigScanner.ScanText(configuration.ItemHoveredSig);
             if (itemHoveredAddr != IntPtr.Zero)
             {
                 itemHoveredHook = gameInterop.HookFromAddress<ItemHoveredDelegate>(itemHoveredAddr, ItemHoveredDetour);
@@ -67,18 +75,30 @@ public unsafe class TooltipHook(
                 log.Warning("ItemHovered signature not found");
             }
 
-            // Hook 2: GenerateItemTooltip - modifies tooltip content
-            var generateTooltipSig = configuration.GenerateTooltipSig;
-            var generateTooltipAddr = sigScanner.ScanText(generateTooltipSig);
-            if (generateTooltipAddr != IntPtr.Zero)
+            // Hook 2: GenerateItemTooltip
+            var generateItemTooltipAddr = sigScanner.ScanText(configuration.GenerateItemTooltipSig);
+            if (generateItemTooltipAddr != IntPtr.Zero)
             {
-                generateItemTooltipHook = gameInterop.HookFromAddress<GenerateItemTooltipDelegate>(generateTooltipAddr, GenerateItemTooltipDetour);
+                generateItemTooltipHook = gameInterop.HookFromAddress<GenerateItemTooltipDelegate>(generateItemTooltipAddr, GenerateItemTooltipDetour);
                 generateItemTooltipHook.Enable();
-                log.Information($"GenerateItemTooltip hook enabled at 0x{generateTooltipAddr:X}");
+                log.Information($"GenerateItemTooltip hook enabled at 0x{generateItemTooltipAddr:X}");
             }
             else
             {
                 log.Warning("GenerateItemTooltip signature not found");
+            }
+
+            // Hook 3: GenerateActionTooltip
+            var generateActionTooltipAddr = sigScanner.ScanText(configuration.GenerateActionTooltipSig);
+            if (generateActionTooltipAddr != IntPtr.Zero)
+            {
+                generateActionTooltipHook = gameInterop.HookFromAddress<GenerateActionTooltipDelegate>(generateActionTooltipAddr, GenerateActionTooltipDetour);
+                generateActionTooltipHook.Enable();
+                log.Information($"GenerateActionTooltip hook enabled at 0x{generateActionTooltipAddr:X}");
+            }
+            else
+            {
+                log.Warning("GenerateActionTooltip signature not found");
             }
 
             isEnabled = true;
@@ -91,9 +111,6 @@ public unsafe class TooltipHook(
         }
     }
 
-    /// <summary>
-    /// Swap to target language
-    /// </summary>
     public void SwapLanguage()
     {
         if (isLanguageSwapped)
@@ -104,11 +121,11 @@ public unsafe class TooltipHook(
         
         isLanguageSwapped = true;
         log.Information("Tooltip language swap enabled");
+        
+        // Force refresh of currently visible tooltips
+        RefreshVisibleTooltips();
     }
 
-    /// <summary>
-    /// Restore to original language
-    /// </summary>
     public void RestoreLanguage()
     {
         if (!isLanguageSwapped)
@@ -120,35 +137,75 @@ public unsafe class TooltipHook(
         isLanguageSwapped = false;
         currentItemId = 0;
         currentGlamourId = 0;
+        currentActionId = 0;
         log.Information("Tooltip language swap disabled");
+        
+        // Force refresh of currently visible tooltips
+        RefreshVisibleTooltips();
     }
 
     /// <summary>
-    /// Detour for ItemHovered - captures the item ID and glamour ID from inventory
+    /// Force refresh of visible tooltips by hiding and reshowing them
     /// </summary>
+    private void RefreshVisibleTooltips()
+    {
+        try
+        {
+            // Try to refresh ItemDetail addon
+            var itemDetailPtr = gameGui.GetAddonByName(ItemDetailAddonName);
+            if (itemDetailPtr != IntPtr.Zero)
+            {
+                var itemDetail = (AtkUnitBase*)itemDetailPtr.Address;
+                if (itemDetail != null && itemDetail->IsVisible)
+                {
+                    log.Debug("Refreshing ItemDetail tooltip");
+                    // Hide and show to trigger regeneration
+                    itemDetail->Hide(true, false, 0);
+                    itemDetail->Show(true, 0);
+                }
+            }
+
+            // Try to refresh ActionDetail addon
+            var actionDetailPtr = gameGui.GetAddonByName(ActionDetailAddonName);
+            if (actionDetailPtr != IntPtr.Zero)
+            {
+                var actionDetail = (AtkUnitBase*)actionDetailPtr.Address;
+                if (actionDetail != null && actionDetail->IsVisible)
+                {
+                    log.Debug("Refreshing ActionDetail tooltip");
+                    // Hide and show to trigger regeneration
+                    actionDetail->Hide(true, false, 0);
+                    actionDetail->Show(true, 0);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, "Failed to refresh visible tooltips");
+        }
+    }
+
+    // ========== ITEM HOOKS ==========
+
     private byte ItemHoveredDetour(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7)
     {
         var returnValue = itemHoveredHook!.Original(a1, a2, containerId, slotId, a5, slotIdInt, a7);
         
         try
         {
-            // Extract item from inventory data (a7 contains InventoryItem struct)
             var inventoryItem = *(InventoryItem*)a7;
             currentItemId = inventoryItem.ItemId;
             
-            // Extract glamour ID (may be named GlamourId, GlamourItemId, or similar)
-            // Try to access the glamour field - adjust property name if needed
             try
             {
                 currentGlamourId = inventoryItem.GlamourId;
             }
             catch
             {
-                // If GlamourId property doesn't exist, try alternative names or set to 0
                 currentGlamourId = 0;
             }
             
-            log.Debug($"ItemHovered: ItemId={currentItemId}, GlamourId={currentGlamourId}, Container={*containerId}, Slot={*slotId}");
+            log.Debug($"ItemHovered: ItemId={currentItemId}, GlamourId={currentGlamourId}");
         }
         catch (Exception ex)
         {
@@ -158,74 +215,43 @@ public unsafe class TooltipHook(
         return returnValue;
     }
 
-    /// <summary>
-    /// Detour for GenerateItemTooltip - modifies tooltip strings
-    /// </summary>
     private void* GenerateItemTooltipDetour(AtkUnitBase* addonItemDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {
         try
         {
-            // If we don't have an item ID from ItemHovered, try to extract from NumberArrayData
             if (currentItemId == 0 || currentItemId > configuration.MaxValidItemId)
             {
-                // NumberArrayData typically contains item ID at index 0 or 1
                 if (numberArrayData != null && numberArrayData->AtkArrayData.Size > 0)
                 {
                     var potentialItemId = (uint)numberArrayData->IntArray[0];
                     if (potentialItemId > 0 && potentialItemId < configuration.MaxValidItemId)
                     {
                         currentItemId = potentialItemId;
-                        log.Debug($"Extracted ItemId from NumberArrayData: {currentItemId}");
                     }
                 }
             }
 
-            log.Verbose($"GenerateItemTooltip - isSwapped={isLanguageSwapped}, itemId={currentItemId}, glamourId={currentGlamourId}");
-
-            // If language is swapped and we have a valid item ID, translate
             if (isLanguageSwapped && currentItemId > 0 && currentItemId < configuration.MaxValidItemId)
             {
                 var targetLang = (LanguageEnum)configuration.TargetLanguage;
                 
-                // Get current fields for comparison
-                var currentName = GetTooltipString(stringArrayData, ItemNameField);
-                var currentGlamourName = GetTooltipString(stringArrayData, GlamourNameField);
-                var currentDescription = GetTooltipString(stringArrayData, ItemDescriptionField);
-                
-                var descPreview = currentDescription?.Length > 50 
-                    ? string.Concat(currentDescription.AsSpan(0, 50), "...")
-                    : currentDescription ?? "null";
-                log.Debug($"Current tooltip - Name: '{currentName}', GlamourName: '{currentGlamourName}', Desc: '{descPreview}'");
-
                 // Translate item name
                 var translatedName = translationCache.GetItemName(currentItemId, targetLang);
                 if (!string.IsNullOrWhiteSpace(translatedName))
                 {
                     SetTooltipString(stringArrayData, ItemNameField, translatedName);
-                    log.Information($"Translated item {currentItemId} name: '{currentName}' -> '{translatedName}'");
-                }
-                else
-                {
-                    log.Warning($"No translation found for item {currentItemId} name ('{currentName}') in language {targetLang}");
+                    log.Information($"Translated item {currentItemId} name to {targetLang}");
                 }
 
-                // Translate glamour name if a glamour is applied
+                // Translate glamour name
                 if (currentGlamourId > 0 && currentGlamourId < configuration.MaxValidItemId)
                 {
                     var translatedGlamourName = translationCache.GetItemName(currentGlamourId, targetLang);
                     if (!string.IsNullOrWhiteSpace(translatedGlamourName))
                     {
                         SetTooltipString(stringArrayData, GlamourNameField, translatedGlamourName);
-                        log.Information($"Translated glamour {currentGlamourId} name: '{currentGlamourName}' -> '{translatedGlamourName}'");
+                        log.Information($"Translated glamour {currentGlamourId} name to {targetLang}");
                     }
-                    else
-                    {
-                        log.Warning($"No translation found for glamour {currentGlamourId} in language {targetLang}");
-                    }
-                }
-                else if (!string.IsNullOrWhiteSpace(currentGlamourName))
-                {
-                    log.Debug($"Glamour name present but no glamourId tracked: '{currentGlamourName}'");
                 }
 
                 // Translate item description
@@ -233,11 +259,7 @@ public unsafe class TooltipHook(
                 if (!string.IsNullOrWhiteSpace(translatedDescription))
                 {
                     SetTooltipString(stringArrayData, ItemDescriptionField, translatedDescription);
-                    log.Information($"Translated item {currentItemId} description");
-                }
-                else
-                {
-                    log.Debug($"No description translation found for item {currentItemId} in language {targetLang}");
+                    log.Information($"Translated item {currentItemId} description to {targetLang}");
                 }
             }
         }
@@ -246,36 +268,65 @@ public unsafe class TooltipHook(
             log.Error(ex, $"Exception in GenerateItemTooltip for item {currentItemId}");
         }
 
-        // Call original to complete tooltip generation
         return generateItemTooltipHook!.Original(addonItemDetail, numberArrayData, stringArrayData);
     }
 
-    /// <summary>
-    /// Helper: Set a tooltip string field
-    /// </summary>
+    // ========== ACTION HOOKS ==========
+
+    private void* GenerateActionTooltipDetour(AtkUnitBase* addonActionDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
+    {
+        try
+        {
+            // Extract action ID from NumberArrayData
+            if (numberArrayData != null && numberArrayData->AtkArrayData.Size > 0)
+            {
+                var potentialActionId = (uint)numberArrayData->IntArray[0];
+                if (potentialActionId > 0 && potentialActionId < configuration.MaxValidActionId)
+                {
+                    currentActionId = potentialActionId;
+                }
+            }
+
+            log.Verbose($"GenerateActionTooltip - isSwapped={isLanguageSwapped}, actionId={currentActionId}");
+
+            if (isLanguageSwapped && currentActionId > 0 && currentActionId < configuration.MaxValidActionId)
+            {
+                var targetLang = (LanguageEnum)configuration.TargetLanguage;
+                
+                var currentName = GetTooltipString(stringArrayData, ActionNameField);
+                log.Debug($"Current action name: {currentName}");
+
+                // Translate action name
+                var translatedName = translationCache.GetActionName(currentActionId, targetLang);
+                if (!string.IsNullOrWhiteSpace(translatedName))
+                {
+                    SetTooltipString(stringArrayData, ActionNameField, translatedName);
+                    log.Information($"Translated action {currentActionId} name: '{currentName}' -> '{translatedName}'");
+                }
+
+                // Note: Action descriptions are not currently supported
+                // They are constructed dynamically from multiple fields
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Exception in GenerateActionTooltip for action {currentActionId}");
+        }
+
+        return generateActionTooltipHook!.Original(addonActionDetail, numberArrayData, stringArrayData);
+    }
+
+    // ========== HELPERS ==========
+
     private void SetTooltipString(StringArrayData* stringArrayData, int field, string text)
     {
         try
         {
-            if (stringArrayData == null)
-            {
-                log.Warning("StringArrayData is null");
+            if (stringArrayData == null || stringArrayData->AtkArrayData.Size <= field)
                 return;
-            }
 
-            if (stringArrayData->AtkArrayData.Size <= field)
-            {
-                log.Warning($"Field index {field} is out of range (size: {stringArrayData->AtkArrayData.Size})");
-                return;
-            }
-
-            // Encode string as null-terminated UTF-8 bytes
             var bytes = System.Text.Encoding.UTF8.GetBytes(text + "\0");
-            
-            // Use FFXIVClientStructs SetValue method
             stringArrayData->SetValue(field, bytes, false, true, false);
-            
-            log.Verbose($"Set tooltip field {field} to: {text}");
         }
         catch (Exception ex)
         {
@@ -283,9 +334,6 @@ public unsafe class TooltipHook(
         }
     }
 
-    /// <summary>
-    /// Helper: Get a tooltip string field
-    /// </summary>
     private string? GetTooltipString(StringArrayData* stringArrayData, int field)
     {
         try
@@ -306,9 +354,6 @@ public unsafe class TooltipHook(
         }
     }
 
-    /// <summary>
-    /// Disable hooks
-    /// </summary>
     public void Disable()
     {
         if (!isEnabled) return;
@@ -317,6 +362,7 @@ public unsafe class TooltipHook(
         {
             itemHoveredHook?.Disable();
             generateItemTooltipHook?.Disable();
+            generateActionTooltipHook?.Disable();
             isEnabled = false;
             log.Information("Tooltip hooks disabled");
         }
@@ -326,13 +372,11 @@ public unsafe class TooltipHook(
         }
     }
 
-    /// <summary>
-    /// Dispose hooks
-    /// </summary>
     public void Dispose()
     {
         Disable();
         itemHoveredHook?.Dispose();
         generateItemTooltipHook?.Dispose();
+        generateActionTooltipHook?.Dispose();
     }
 }

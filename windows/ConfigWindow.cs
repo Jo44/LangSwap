@@ -60,7 +60,7 @@ public class ConfigWindow : Window, IDisposable
         /// Draw UI
 
         // Instructions
-        ImGui.TextWrapped("Hold keyboard shortcut to temporarily switch language.\nRelease to restore original language.");
+        ImGui.TextWrapped("Press the keyboard shortcut to toogle language swap.\nPress again to restore original language.");
         ImGui.Spacing();
         ImGui.Separator();
 

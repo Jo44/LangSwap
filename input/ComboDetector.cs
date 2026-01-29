@@ -12,8 +12,8 @@ public class ComboDetector(Configuration config, IKeyState keyState, IPluginLog 
     private readonly IKeyState keyState = keyState;
     private readonly IPluginLog log = log;
 
-    // Check if the configured combo is currently held down
-    public bool IsComboHeld()
+    // Check if the configured combo is currently pressed
+    public bool IsComboPressed()
     {
         if (keyState is null) return false;
 

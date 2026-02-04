@@ -1,12 +1,13 @@
 {
     "Author": "Snoof",
     "Name": "LangSwap",
-    "Punchline": "Change HUD and tooltip language on the fly with a keyboard shortcut.",
-    "Description": "LangSwap allows you to temporarily change the language of the HUD and tooltips in FFXIV by holding a keyboard shortcut. Release the key(s) to return to your original language.",
+    "Punchline": "Change castbars and tooltips language on the fly with a keyboard shortcut.",
+    "Description": "LangSwap allows you to temporarily change the language of castbars and tooltips in FFXIV by pressing a keyboard shortcut. Press again the key(s) to return to your original language.",
     "ApplicableVersion": "any",
     "Tags": [
         "language",
         "hud",
+		"castbar",
         "tooltip",
         "utility"
     ],

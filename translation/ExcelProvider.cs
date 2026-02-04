@@ -6,18 +6,18 @@ using System;
 
 namespace LangSwap.translation;
 
+// ----------------------------
 // Excel data provider for accessing game data via Lumina
-public class ExcelProvider(Configuration configuration, IDataManager dataManager, IPluginLog log)
+// ----------------------------
+public class ExcelProvider(Configuration config, IDataManager dataManager, IPluginLog log)
 {
-    // References
-    private readonly IDataManager dataManager = dataManager;
-    private readonly IPluginLog log = log;
-    private readonly Configuration configuration = configuration;
-
+    // ----------------------------
     // Convert LanguageEnum to ClientLanguage
-    private static ClientLanguage LanguageEnumToClientLanguage(LanguageEnum language)
+    // ----------------------------
+    private static ClientLanguage EnumToClientLang(LanguageEnum lang)
     {
-        return language switch
+        // Map LanguageEnum to ClientLanguage
+        return lang switch
         {
             LanguageEnum.Japanese => ClientLanguage.Japanese,
             LanguageEnum.English => ClientLanguage.English,
@@ -27,206 +27,198 @@ public class ExcelProvider(Configuration configuration, IDataManager dataManager
         };
     }
 
+    //
     // ========== ITEMS ==========
+    //
 
-    public Item? GetItem(uint itemId, LanguageEnum language)
+    // ----------------------------
+    // Get item data from Excel sheet
+    // ----------------------------
+    public Item? GetItem(uint itemId, LanguageEnum lang)
     {
         try
         {
-            if (itemId < 1 || itemId > configuration.MaxValidItemId)
+            // Validate item ID range
+            if (itemId < 1 || itemId > config.MaxValidItemId)
             {
-                log.Verbose($"Item ID {itemId} is out of valid range (1-{configuration.MaxValidItemId})");
+                log.Warning($"Item ID {itemId} is out of valid range (1-{config.MaxValidItemId})");
                 return null;
             }
 
-            var clientLanguage = LanguageEnumToClientLanguage(language);
-            var itemSheet = dataManager.GetExcelSheet<Item>(clientLanguage);
+            // Access the Item sheet for the specified language
+            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(lang));
             if (itemSheet == null)
             {
-                log.Warning($"Item sheet is not available for language {language}");
+                log.Warning($"Item sheet is not available for language {lang}");
                 return null;
             }
 
-            if (!itemSheet.TryGetRow(itemId, out var item))
+            // Try to get the item row
+            if (!itemSheet.TryGetRow(itemId, out Item item))
             {
-                log.Verbose($"Item {itemId} not found in sheet for language {language}");
+                log.Warning($"Item {itemId} not found in sheet for language {lang}");
                 return null;
             }
 
+            // Return the found item
             return item;
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception while getting item {itemId} in language {language}");
+            log.Error(ex, $"Exception while getting item {itemId} in language {lang}");
             return null;
         }
     }
 
-    public string? GetItemName(uint itemId, LanguageEnum language)
+    // ----------------------------
+    // Get item name
+    // ----------------------------
+    public string? GetItemName(uint itemId, LanguageEnum lang)
     {
         try
         {
-            var item = GetItem(itemId, language);
+            // Get the item
+            Item? item = GetItem(itemId, lang);
             if (item == null) return null;
 
-            string? itemName = null;
+            // Extract the item name
+            string? name = null;
             try
             {
-                itemName = item.Value.Singular.ToString();
+                name = item.Value.Name.ToString();
             }
             catch
             {
-                try
-                {
-                    itemName = item.Value.Name.ToString();
-                }
-                catch
-                {
-                    log.Verbose($"Could not extract name for item {itemId}");
-                    return null;
-                }
-            }
-
-            return string.IsNullOrWhiteSpace(itemName) ? null : itemName;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"Exception while getting item name for {itemId} in language {language}");
-            return null;
-        }
-    }
-
-    public string? GetItemDescription(uint itemId, LanguageEnum language)
-    {
-        try
-        {
-            var item = GetItem(itemId, language);
-            if (item == null) return null;
-
-            string? itemDescription = null;
-            try
-            {
-                itemDescription = item.Value.Description.ToString();
-            }
-            catch
-            {
-                log.Verbose($"Could not extract description for item {itemId}");
+                log.Warning($"Could not extract name for item {itemId}");
                 return null;
             }
 
-            return string.IsNullOrWhiteSpace(itemDescription) ? null : itemDescription;
+            // Return the item name if valid
+            return string.IsNullOrWhiteSpace(name) ? null : name;
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception while getting item description for {itemId} in language {language}");
+            log.Error(ex, $"Exception while getting item name for {itemId} in language {lang}");
             return null;
         }
     }
 
+    // ----------------------------
+    // Get item description
+    // ----------------------------
+    public string? GetItemDescription(uint itemId, LanguageEnum lang)
+    {
+        try
+        {
+            // Get the item
+            Item? item = GetItem(itemId, lang);
+            if (item == null) return null;
+
+            // Extract the item description
+            string? description = null;
+            try
+            {
+                description = item.Value.Description.ToString();
+            }
+            catch
+            {
+                log.Warning($"Could not extract description for item {itemId}");
+                return null;
+            }
+
+            // Return the item description if valid
+            return string.IsNullOrWhiteSpace(description) ? null : description;
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Exception while getting item description for {itemId} in language {lang}");
+            return null;
+        }
+    }
+
+    //
     // ========== ACTIONS ==========
+    //
 
-    public Lumina.Excel.Sheets.Action? GetAction(uint actionId, LanguageEnum language)
+    // ----------------------------
+    // Get action data from Excel sheet
+    // ----------------------------
+    public Lumina.Excel.Sheets.Action? GetAction(uint actionId, LanguageEnum lang)
     {
         try
         {
-            if (actionId < 1 || actionId > configuration.MaxValidActionId)
+            // Validate action ID range
+            if (actionId < 1 || actionId > config.MaxValidActionId)
             {
-                log.Verbose($"Action ID {actionId} is out of valid range (1-{configuration.MaxValidActionId})");
+                log.Warning($"Action ID {actionId} is out of valid range (1-{config.MaxValidActionId})");
                 return null;
             }
 
-            var clientLanguage = LanguageEnumToClientLanguage(language);
-            var actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(clientLanguage);
+            // Access the Action sheet for the specified language
+            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(lang));
             if (actionSheet == null)
             {
-                log.Warning($"Action sheet is not available for language {language}");
+                log.Warning($"Action sheet is not available for language {lang}");
                 return null;
             }
 
-            if (!actionSheet.TryGetRow(actionId, out var action))
+            // Try to get the action row
+            if (!actionSheet.TryGetRow(actionId, out Lumina.Excel.Sheets.Action action))
             {
-                log.Verbose($"Action {actionId} not found in sheet for language {language}");
+                log.Warning($"Action {actionId} not found in sheet for language {lang}");
                 return null;
             }
 
+            // Return the found action
             return action;
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception while getting action {actionId} in language {language}");
+            log.Error(ex, $"Exception while getting action {actionId} in language {lang}");
             return null;
         }
     }
 
-    public string? GetActionName(uint actionId, LanguageEnum language)
+    // ----------------------------
+    // Get action name
+    // ----------------------------
+    public string? GetActionName(uint actionId, LanguageEnum lang)
     {
         try
         {
-            var action = GetAction(actionId, language);
+            // Get the action
+            Lumina.Excel.Sheets.Action? action = GetAction(actionId, lang);
             if (action == null) return null;
 
+            // Extract the action name
             string? actionName = null;
             try
             {
                 actionName = action.Value.Name.ToString();
             }
-            catch (Exception ex)
+            catch
             {
-                log.Verbose($"Could not extract name for action {actionId}: {ex.Message}");
+                log.Warning($"Could not extract name for action {actionId}");
                 return null;
             }
 
+            // Return the action name if valid
             return string.IsNullOrWhiteSpace(actionName) ? null : actionName;
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception while getting action name for {actionId} in language {language}");
+            log.Error(ex, $"Exception while getting action name for {actionId} in language {lang}");
             return null;
         }
     }
 
-    // Get action description in a specific language
+    // ----------------------------
+    // Get action description
+    // ----------------------------
     public string? GetActionDescription(uint actionId, LanguageEnum language)
     {
-        try
-        {
-            // ActionTransient is a direct row type, not a RowRef wrapper
-            var clientLanguage = LanguageEnumToClientLanguage(language);
-            var actionTransientSheet = dataManager.GetExcelSheet<ActionTransient>(clientLanguage);
-            
-            if (actionTransientSheet == null)
-            {
-                log.Debug($"ActionTransient sheet is not available for language {language}");
-                return null;
-            }
-
-            if (!actionTransientSheet.TryGetRow(actionId, out var actionTransient))
-            {
-                log.Verbose($"ActionTransient {actionId} not found in sheet for language {language}");
-                return null;
-            }
-
-            try
-            {
-                // ActionTransient doesn't have .Value - access Description directly
-                var description = actionTransient.Description.ToString();
-                if (!string.IsNullOrWhiteSpace(description))
-                {
-                    return description;
-                }
-            }
-            catch (Exception ex)
-            {
-                log.Debug($"Could not extract Description from ActionTransient for action {actionId}: {ex.Message}");
-            }
-
-            log.Verbose($"No description found for action {actionId}");
-            return null;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"Exception while getting action description for {actionId} in language {language}");
-            return null;
-        }
+        // TODO: Implement action description retrieval
+        return "<DESCRIPTION>";
     }
+
 }

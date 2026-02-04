@@ -4,35 +4,37 @@ using Dalamud.Plugin.Services;
 
 namespace LangSwap.input;
 
-// Combo detector
-public class ComboDetector(Configuration config, IKeyState keyState, IPluginLog log)
+// ----------------------------
+// Shortcut Detector
+// ----------------------------
+public class ShortcutDetector(Configuration config, IKeyState keyState, IPluginLog log)
 {
-    // References
-    private readonly Configuration config = config;
-    private readonly IKeyState keyState = keyState;
-    private readonly IPluginLog log = log;
-
-    // Check if the configured combo is currently pressed
-    public bool IsComboPressed()
+    // ----------------------------
+    // Check if the configured shortcut is currently pressed
+    // ----------------------------
+    public bool IsPressed()
     {
         if (keyState is null) return false;
 
         // Primary key
-        bool primaryOk = config.PrimaryKey < 0 || IsKeyDown(config.PrimaryKey);
+        bool primary = config.PrimaryKey < 0 || IsKeyDown(config.PrimaryKey);
 
         // Modifier keys
-        bool ctrlOk = !config.UseCtrl || IsKeyDown((int)VirtualKey.LCONTROL) || IsKeyDown((int)VirtualKey.RCONTROL) || IsKeyDown((int)VirtualKey.CONTROL);
-        bool altOk = !config.UseAlt || IsKeyDown((int)VirtualKey.LMENU) || IsKeyDown((int)VirtualKey.RMENU) || IsKeyDown((int)VirtualKey.MENU);
-        bool shiftOk = !config.UseShift || IsKeyDown((int)VirtualKey.LSHIFT) || IsKeyDown((int)VirtualKey.RSHIFT) || IsKeyDown((int)VirtualKey.SHIFT);
+        bool ctrl = !config.Ctrl || IsKeyDown((int)VirtualKey.LCONTROL) || IsKeyDown((int)VirtualKey.RCONTROL) || IsKeyDown((int)VirtualKey.CONTROL);
+        bool alt = !config.Alt || IsKeyDown((int)VirtualKey.LMENU) || IsKeyDown((int)VirtualKey.RMENU) || IsKeyDown((int)VirtualKey.MENU);
+        bool shift = !config.Shift || IsKeyDown((int)VirtualKey.LSHIFT) || IsKeyDown((int)VirtualKey.RSHIFT) || IsKeyDown((int)VirtualKey.SHIFT);
 
         // If no keys are configured, always return false
-        if (config.PrimaryKey == 0 && !config.UseCtrl && !config.UseAlt && !config.UseShift)
+        if (config.PrimaryKey == 0 && !config.Ctrl && !config.Alt && !config.Shift)
             return false;
 
-        return primaryOk && ctrlOk && altOk && shiftOk;
+        // Final evaluation
+        return primary && ctrl && alt && shift;
     }
 
+    // ----------------------------
     // Check if a specific virtual key is currently down
+    // ----------------------------
     private bool IsKeyDown(int vkCode)
     {
         try
@@ -68,7 +70,7 @@ public class ComboDetector(Configuration config, IKeyState keyState, IPluginLog 
         catch (Exception ex)
         {
             // Log exception and return false
-            log.Warning($"ComboDetector.IsKeyDown exception for vk={vkCode}: {ex.Message}");
+            log.Warning($"ShortcutDetector.IsKeyDown exception for vk={vkCode}: {ex.Message}");
             return false;
         }
     }

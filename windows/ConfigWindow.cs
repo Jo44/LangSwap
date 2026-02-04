@@ -9,58 +9,69 @@ using System.Numerics;
 
 namespace LangSwap.Windows;
 
-// Configuration window
+// ----------------------------
+// Configuration Window
+// ----------------------------
 public class ConfigWindow : Window, IDisposable
 {
-    // References
-    private readonly Plugin plugin;
-    private readonly Configuration configuration;
-    private readonly IPluginLog log;
-    private readonly List<string> keyNames = ["None"];
-    private readonly List<int> keyValues = [-1];
+    // Core components
+    private readonly Configuration _config;
+    private readonly TranslationCache _translationCache;
+    private readonly IPluginLog _log;
+    private readonly List<string> _keyNames = ["None"];
+    private readonly List<int> _keyValues = [-1];
 
-    // Constructor
-    public ConfigWindow(Plugin plugin, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
+    // ----------------------------
+    // Initialization
+    // ----------------------------
+    public ConfigWindow(Configuration config, TranslationCache translationCache, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
     {
         // Window settings
         Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
                 ImGuiWindowFlags.NoScrollWithMouse;
 
         // Initialize window size
-        Size = new Vector2(370, 190);
+        Size = new Vector2(410, 273);
         SizeCondition = ImGuiCond.Always;
 
         // Initialize key names and values
-        InitKeys(keyNames, keyValues);
+        InitKeys(_keyNames, _keyValues);
 
         // Store references
-        this.plugin = plugin;
-        this.configuration = this.plugin.Configuration;
-        this.log = log;
+        this._config = config;
+        this._translationCache = translationCache;
+        this._log = log;
     }
 
-    // Draw
+    // ----------------------------
+    // Config Window Draw
+    // ----------------------------
     public override void Draw()
     {
         /// Settings UI
 
         // Language
         string[] languages = Enum.GetNames<LanguageEnum>();
-        int currentLang = (int)configuration.TargetLanguage;
+        int currentLang = (int)_config.TargetLanguage;
 
         // Primary Key
-        int selIndex = keyValues.IndexOf(configuration.PrimaryKey);
+        int selIndex = _keyValues.IndexOf(_config.PrimaryKey);
         if (selIndex < 0) selIndex = 0;
 
         // Modifiers
-        bool useCtrl = configuration.UseCtrl;
-        bool useAlt = configuration.UseAlt;
-        bool useShift = configuration.UseShift;
+        bool ctrl = _config.Ctrl;
+        bool alt = _config.Alt;
+        bool shift = _config.Shift;
+
+        // Components
+        bool castbars = _config.Castbars;
+        bool itemDetails = _config.ItemDetails;
+        bool skillDetails = _config.SkillDetails;
 
         /// Draw UI
 
         // Instructions
-        ImGui.TextWrapped("Press the keyboard shortcut to toogle language swap.\nPress again to restore original language.");
+        ImGui.TextWrapped("Press the keyboard shortcut to toogle language swap\nPress again to restore original language");
         ImGui.Spacing();
         ImGui.Separator();
 
@@ -72,9 +83,9 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SetNextItemWidth(100f);
         if (ImGui.Combo("##Language", ref currentLang, languages, languages.Length))
         {
-            log.Information($"Setting target language to {languages[currentLang]} ({currentLang})");
-            configuration.TargetLanguage = (byte)currentLang;
-            configuration.Save();
+            _log.Information($"Setting target language to {languages[currentLang]} ({currentLang})");
+            _config.TargetLanguage = (byte)currentLang;
+            _config.Save();
         }
         ImGui.Spacing();
         ImGui.Spacing();
@@ -89,40 +100,81 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Text("Key :");
         ImGui.SameLine();
         ImGui.SetNextItemWidth(100f);
-        if (ImGui.Combo("##PrimaryKey", ref selIndex, keyNames.ToArray(), keyNames.Count))
+        if (ImGui.Combo("##PrimaryKey", ref selIndex, _keyNames.ToArray(), _keyNames.Count))
         {
-            log.Information($"Setting primary key to {keyNames[selIndex]} ({keyValues[selIndex]})");
-            configuration.PrimaryKey = keyValues[selIndex];
-            configuration.Save();
+            _log.Information($"Setting primary key to {_keyNames[selIndex]} ({_keyValues[selIndex]})");
+            _config.PrimaryKey = _keyValues[selIndex];
+            _config.Save();
         }
 
         // Modifier keys
         ImGui.SameLine(0, 20f);
-        if (ImGui.Checkbox("Ctrl", ref useCtrl))
+        if (ImGui.Checkbox("Ctrl", ref ctrl))
         {
-            log.Information($"Setting UseCtrl to {useCtrl}");
-            configuration.UseCtrl = useCtrl;
-            configuration.Save();
+            _log.Information($"Setting Ctrl to {ctrl}");
+            _config.Ctrl = ctrl;
+            _config.Save();
         }
         ImGui.SameLine();
-        if (ImGui.Checkbox("Alt", ref useAlt))
+        if (ImGui.Checkbox("Alt", ref alt))
         {
-            log.Information($"Setting UseAlt to {useAlt}");
-            configuration.UseAlt = useAlt;
-            configuration.Save();
+            _log.Information($"Setting Alt to {alt}");
+            _config.Alt = alt;
+            _config.Save();
         }
         ImGui.SameLine();
-        if (ImGui.Checkbox("Shift", ref useShift))
+        if (ImGui.Checkbox("Shift", ref shift))
         {
-            log.Information($"Setting UseShift to {useShift}");
-            configuration.UseShift = useShift;
-            configuration.Save();
+            _log.Information($"Setting Shift to {shift}");
+            _config.Shift = shift;
+            _config.Save();
         }
         ImGui.Spacing();
-        
+        ImGui.Spacing();
+        ImGui.Separator();
+
+        // Components
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.Text("Components :");
+        ImGui.SameLine(0, 10f);
+        if (ImGui.Checkbox("Castbars", ref castbars))
+        {
+            _log.Information($"Setting Castbars to {castbars}");
+            _config.Castbars = castbars;
+            _config.Save();
+        }
+        ImGui.SameLine();
+        if (ImGui.Checkbox("Item details", ref itemDetails))
+        {
+            _log.Information($"Setting ItemDetails to {itemDetails}");
+            _config.ItemDetails = itemDetails;
+            _config.Save();
+        }
+        ImGui.SameLine();
+        if (ImGui.Checkbox("Skill details", ref skillDetails))
+        {
+            _log.Information($"Setting SkillDetails to {skillDetails}");
+            _config.SkillDetails = skillDetails;
+            _config.Save();
+        }
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.Separator();
+
+        // Clear caches button
+        ImGui.Spacing();
+        ImGui.Spacing();
+        if (ImGui.Button("Clear all translation caches"))
+        {
+            _translationCache.Clear();
+            _log.Information("All translation caches cleared");
+        }
     }
 
+    // ----------------------------
     // Initialize primary key names and values
+    // ----------------------------
     private static void InitKeys(List<String> keyNames, List<int> keyValues)
     {
         // Letters A-Z
@@ -147,7 +199,9 @@ public class ConfigWindow : Window, IDisposable
         }
     }
 
+    // ----------------------------
     // Dispose
+    // ----------------------------
     public void Dispose() { }
 
 }

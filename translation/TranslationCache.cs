@@ -3,13 +3,11 @@ using System.Collections.Generic;
 
 namespace LangSwap.translation;
 
-// Cache for translated item names, descriptions and action data
+// ----------------------------
+// Cache for translated datas
+// ----------------------------
 public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
-{
-    // References
-    private readonly ExcelProvider excelProvider = excelProvider;
-    private readonly IPluginLog log = log;
-    
+{    
     // Item caches
     private readonly Dictionary<(uint, LanguageEnum), string?> itemNameCache = [];
     private readonly Dictionary<(uint, LanguageEnum), string?> itemDescriptionCache = [];
@@ -18,101 +16,135 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
     private readonly Dictionary<(uint, LanguageEnum), string?> actionNameCache = [];
     private readonly Dictionary<(uint, LanguageEnum), string?> actionDescriptionCache = [];
 
+    //
     // ========== ITEMS ==========
+    //
 
+    // ----------------------------
     // Get item name
-    public string? GetItemName(uint itemId, LanguageEnum language)
+    // ----------------------------
+    public string? GetItemName(uint itemId, LanguageEnum lang)
     {
-        var key = (itemId, language);
-        
-        if (itemNameCache.TryGetValue(key, out var cachedName))
+        // Create cache key
+        (uint, LanguageEnum) key = (itemId, lang);
+
+        // Check cache
+        if (itemNameCache.TryGetValue(key, out string? cachedName))
         {
             return cachedName;
         }
 
-        var name = excelProvider.GetItemName(itemId, language);
+        // Fetch from Excel and cache it
+        string? name = excelProvider.GetItemName(itemId, lang);
         itemNameCache[key] = name;
-        
+
+        // Log
         if (name != null)
         {
-            log.Verbose($"Cached item name {itemId} ({language}): {name}");
+            log.Debug($"Cached item name {itemId} ({lang}): {name}");
         }
-        
+
+        // Return name
         return name;
     }
 
+    // ----------------------------
     // Get item description
+    // ----------------------------
     public string? GetItemDescription(uint itemId, LanguageEnum language)
     {
-        var key = (itemId, language);
-        
-        if (itemDescriptionCache.TryGetValue(key, out var cachedDesc))
+        // Create cache key
+        (uint, LanguageEnum) key = (itemId, language);
+
+        // Check cache
+        if (itemDescriptionCache.TryGetValue(key, out string? cachedDesc))
         {
             return cachedDesc;
         }
 
-        var description = excelProvider.GetItemDescription(itemId, language);
+        // Fetch from Excel and cache it
+        string? description = excelProvider.GetItemDescription(itemId, language);
         itemDescriptionCache[key] = description;
-        
+
+        // Log
         if (description != null)
         {
-            log.Verbose($"Cached item description {itemId} ({language}): {description}");
+            log.Debug($"Cached item description {itemId} ({language}): {description}");
         }
-        
+
+        // Return description
         return description;
     }
 
+    //
     // ========== ACTIONS ==========
+    //
 
+    // ----------------------------
     // Get action name
+    // ----------------------------
     public string? GetActionName(uint actionId, LanguageEnum language)
     {
-        var key = (actionId, language);
-        
-        if (actionNameCache.TryGetValue(key, out var cachedName))
+        // Create cache key
+        (uint, LanguageEnum) key = (actionId, language);
+
+        // Check cache
+        if (actionNameCache.TryGetValue(key, out string? cachedName))
         {
             return cachedName;
         }
 
-        var name = excelProvider.GetActionName(actionId, language);
+        // Fetch from Excel and cache it
+        string? name = excelProvider.GetActionName(actionId, language);
         actionNameCache[key] = name;
-        
+
+        // Log
         if (name != null)
         {
-            log.Verbose($"Cached action name {actionId} ({language}): {name}");
+            log.Debug($"Cached action name {actionId} ({language}): {name}");
         }
-        
+
+        // Return name
         return name;
     }
 
+    // ----------------------------
     // Get action description
+    // ----------------------------
     public string? GetActionDescription(uint actionId, LanguageEnum language)
     {
-        var key = (actionId, language);
-        
-        if (actionDescriptionCache.TryGetValue(key, out var cachedDesc))
+        // Create cache key
+        (uint, LanguageEnum) key = (actionId, language);
+
+        // Check cache
+        if (actionDescriptionCache.TryGetValue(key, out string? cachedDesc))
         {
             return cachedDesc;
         }
 
-        var description = excelProvider.GetActionDescription(actionId, language);
+        // Fetch from Excel and cache it
+        string? description = excelProvider.GetActionDescription(actionId, language);
         actionDescriptionCache[key] = description;
-        
+
+        // Log
         if (description != null)
         {
-            log.Verbose($"Cached action description {actionId} ({language}): {description}");
+            log.Debug($"Cached action description {actionId} ({language}): {description}");
         }
-        
+
+        // Return description
         return description;
     }
 
+    // ----------------------------
     // Clear all caches
+    // ----------------------------
     public void Clear()
     {
         itemNameCache.Clear();
         itemDescriptionCache.Clear();
         actionNameCache.Clear();
         actionDescriptionCache.Clear();
-        log.Debug("Translation cache cleared");
     }
+
 }

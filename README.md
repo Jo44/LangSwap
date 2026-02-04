@@ -1,6 +1,6 @@
 # LangSwap
 
-A Dalamud plugin for Final Fantasy XIV who allows you to change the language of castbars and tooltips in FFXIV by pressing a keyboard shortcut.
+A Dalamud plugin for Final Fantasy XIV that allows you to change the language of castbars and tooltips in FFXIV by pressing a keyboard shortcut.
 
 ## Features
 - Swap castbars and tooltips language on the fly with a keyboard shortcut.

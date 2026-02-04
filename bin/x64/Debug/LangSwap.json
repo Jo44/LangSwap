@@ -3,7 +3,7 @@
   "Name": "LangSwap",
   "InternalName": "LangSwap",
   "AssemblyVersion": "1.0.0.0",
-  "Description": "LangSwap allows you to temporarily change the language of castbars and tooltips in FFXIV by pressing a keyboard shortcut. Press again the key(s) to return to your original language.",
+  "Description": "LangSwap allows you to change the language of castbars and tooltips in FFXIV by pressing a keyboard shortcut. Press again the key(s) to return to your original language.",
   "ApplicableVersion": "any",
   "Tags": [
     "language",
@@ -18,6 +18,6 @@
   "CanUnloadAsync": false,
   "LoadPriority": 0,
   "IconUrl": "https://raw.githubusercontent.com/Jo44/LangSwap/refs/heads/main/data/icon.png",
-  "Punchline": "Change castbars and tooltips language on the fly with a keyboard shortcut.",
+  "Punchline": "Swap castbars and tooltips language on the fly with a keyboard shortcut.",
   "AcceptsFeedback": true
 }

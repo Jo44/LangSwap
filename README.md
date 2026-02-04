@@ -1,9 +1,9 @@
 # LangSwap
 
-A Dalamud plugin for Final Fantasy XIV — temporarily switch the HUD/tooltips language while holding a keyboard shortcut.
+A Dalamud plugin for Final Fantasy XIV who allows you to change the language of castbars and tooltips in FFXIV by pressing a keyboard shortcut.
 
 ## Features
-- Temporarily switch HUD and tooltip language while the configured key combination is held.
+- Swap castbars and tooltips language on the fly with a keyboard shortcut.
 - Configure options through a `Settings` window.
 - Slash command: `/langswap`.
 
@@ -15,8 +15,10 @@ A Dalamud plugin for Final Fantasy XIV — temporarily switch the HUD/tooltips lan
 ## Usage
 1. Open the plugin manager in FFXIV.
 2. Click the `Settings` button to open the configuration window.
-3. Set the `Target Language`, the `Primary Key` and modifier keys (`Ctrl`, `Alt`, `Shift`).
-4. Hold the configured combination to switch languages temporarily; release to restore the original language.
+3. Set the `Target Language`.
+4. Set the shortcut : `Primary Key` and modifier keys (`Ctrl`, `Alt`, `Shift`).
+5. Set the components who will be affected : `Castbars`, `Item details` and `Skill details`.
+6. Press the configured combination to switch languages; press again to restore the original language.
 
 You can also open/close the settings window via `/langswap`.
 

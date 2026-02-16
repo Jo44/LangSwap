@@ -10,6 +10,7 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
 {    
     // Item caches
     private readonly Dictionary<(uint, LanguageEnum), string?> itemNameCache = [];
+    private readonly Dictionary<(uint, LanguageEnum), string?> itemEffectsCache = [];
     private readonly Dictionary<(uint, LanguageEnum), string?> itemDescriptionCache = [];
     
     // Action caches
@@ -46,6 +47,34 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
 
         // Return name
         return name;
+    }
+
+    // ----------------------------
+    // Get item effects
+    // ----------------------------
+    public string? GetItemEffects(uint itemId, LanguageEnum language)
+    {
+        // Create cache key
+        (uint, LanguageEnum) key = (itemId, language);
+
+        // Check cache
+        if (itemEffectsCache.TryGetValue(key, out string? cachedEffects))
+        {
+            return cachedEffects;
+        }
+
+        // Fetch from Excel and cache it
+        string? effects = excelProvider.GetItemEffects(itemId, language);
+        itemEffectsCache[key] = effects;
+
+        // Log
+        if (effects != null)
+        {
+            log.Debug($"Cached item effects {itemId} ({language}): {effects}");
+        }
+
+        // Return effects
+        return effects;
     }
 
     // ----------------------------

@@ -104,6 +104,39 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     }
 
     // ----------------------------
+    // Get item effects
+    // ----------------------------
+    public string? GetItemEffects(uint itemId, LanguageEnum lang)
+    {
+        try
+        {
+            // Get the item
+            Item? item = GetItem(itemId, lang);
+            if (item == null) return null;
+
+            // Extract the item effects
+            string? effects = null;
+            try
+            {
+                effects = ""; // TODO : get from structure
+            }
+            catch
+            {
+                log.Warning($"Could not extract effects for item {itemId}");
+                return null;
+            }
+
+            // Return the item effects if valid
+            return string.IsNullOrWhiteSpace(effects) ? null : effects;
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Exception while getting item effects for {itemId} in language {lang}");
+            return null;
+        }
+    }
+
+    // ----------------------------
     // Get item description
     // ----------------------------
     public string? GetItemDescription(uint itemId, LanguageEnum lang)
@@ -215,10 +248,35 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get action description
     // ----------------------------
-    public string? GetActionDescription(uint actionId, LanguageEnum language)
+    public string? GetActionDescription(uint actionId, LanguageEnum lang)
     {
-        // TODO: Implement action description retrieval
-        return "<DESCRIPTION>";
+        try
+        {
+            // Get the action
+            Lumina.Excel.Sheets.Action? action = GetAction(actionId, lang);
+            if (action == null) return null;
+
+            // Extract the action description
+            string? actionDescription = null;
+            try
+            {
+                // TODO : actionDescription = action.Value.Description.ToString();
+                actionDescription = "< DESCRIPTION >";
+            }
+            catch
+            {
+                log.Warning($"Could not extract description for action {actionId}");
+                return null;
+            }
+
+            // Return the action description if valid
+            return string.IsNullOrWhiteSpace(actionDescription) ? null : actionDescription;
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Exception while getting action description for {actionId} in language {lang}");
+            return null;
+        }
     }
 
 }

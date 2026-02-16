@@ -24,6 +24,7 @@ public unsafe class ItemDetailHook : BaseHook
 
     private const int ItemNameField = 0;
     private const int GlamourNameField = 1;
+    private const int ItemEffectsField = 9;
     private const int ItemDescriptionField = 13;
     private const string ItemDetailAddonName = "ItemDetail";
 
@@ -180,6 +181,15 @@ public unsafe class ItemDetailHook : BaseHook
                         SetTooltipString(stringArrayData, GlamourNameField, translatedGlamourName);
                         log.Information($"Translated glamour {currentGlamourId} name to {targetLang}");
                     }
+                }
+
+                // Translate item effects
+                var translatedEffects = translationCache.GetItemEffects(currentItemId, targetLang);
+                if (!string.IsNullOrWhiteSpace(translatedEffects))
+                {
+                    SetTooltipString(stringArrayData, ItemEffectsField, translatedEffects);
+                    log.Information($"Translated item {currentItemId} effects to {targetLang}");
+                    return generateItemTooltipHook!.Original(addonItemDetail, numberArrayData, stringArrayData);
                 }
 
                 // Translate item description

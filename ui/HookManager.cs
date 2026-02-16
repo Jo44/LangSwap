@@ -30,6 +30,14 @@ public class HookManager(
     public void EnableAll()
     {
         log.Information("Enabling all translation hooks...");
+        // Add hooks if component is enabled
+        if (configuration.Castbars)
+            // TODO : cassé !!! hooks.Add(castBarHook);
+        if (configuration.ItemDetails)
+            hooks.Add(itemDetailHook);
+        if (configuration.ActionDetails)
+            // TODO : cassé aussi !! hooks.Add(actionDetailHook);
+        // Enable all hooks
         foreach (var hook in hooks)
         {
             try

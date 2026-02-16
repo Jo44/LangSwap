@@ -31,7 +31,7 @@ public class ConfigWindow : Window, IDisposable
                 ImGuiWindowFlags.NoScrollWithMouse;
 
         // Initialize window size
-        Size = new Vector2(410, 273);
+        Size = new Vector2(420, 273);
         SizeCondition = ImGuiCond.Always;
 
         // Initialize key names and values
@@ -65,8 +65,8 @@ public class ConfigWindow : Window, IDisposable
 
         // Components
         bool castbars = _config.Castbars;
+        bool actionDetails = _config.ActionDetails;
         bool itemDetails = _config.ItemDetails;
-        bool skillDetails = _config.SkillDetails;
 
         /// Draw UI
 
@@ -145,17 +145,17 @@ public class ConfigWindow : Window, IDisposable
             _config.Save();
         }
         ImGui.SameLine();
+        if (ImGui.Checkbox("Action details", ref actionDetails))
+        {
+            _log.Information($"Setting ActionDetails to {actionDetails}");
+            _config.ActionDetails = actionDetails;
+            _config.Save();
+        }
+        ImGui.SameLine();
         if (ImGui.Checkbox("Item details", ref itemDetails))
         {
             _log.Information($"Setting ItemDetails to {itemDetails}");
             _config.ItemDetails = itemDetails;
-            _config.Save();
-        }
-        ImGui.SameLine();
-        if (ImGui.Checkbox("Skill details", ref skillDetails))
-        {
-            _log.Information($"Setting SkillDetails to {skillDetails}");
-            _config.SkillDetails = skillDetails;
             _config.Save();
         }
         ImGui.Spacing();

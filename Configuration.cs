@@ -27,8 +27,8 @@ public class Configuration : IPluginConfiguration
 
     // Components
     public bool Castbars { get; set; } = true;
+    public bool ActionDetails { get; set; } = true;
     public bool ItemDetails { get; set; } = true;
-    public bool SkillDetails { get; set; } = true;
 
     // Valid ID ranges
     public int MaxValidItemId { get; } = 100000;

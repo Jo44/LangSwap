@@ -14,6 +14,7 @@ public abstract class BaseHook(
     TranslationCache translationCache,
     IPluginLog log) : IDisposable
 {
+    // TODO : vraiment utile ça ?
     protected readonly Configuration configuration = configuration;
     protected readonly IGameInteropProvider gameInterop = gameInterop;
     protected readonly ISigScanner sigScanner = sigScanner;

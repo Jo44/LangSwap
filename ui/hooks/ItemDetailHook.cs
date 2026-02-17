@@ -140,8 +140,6 @@ public unsafe class ItemDetailHook : BaseHook
             {
                 currentGlamourId = 0;
             }
-            
-            log.Debug($"ItemHovered: ItemId={currentItemId}, GlamourId={currentGlamourId}");
         }
         catch (Exception ex)
         {

@@ -1,10 +1,13 @@
 using Dalamud.Hooking;
 using Dalamud.Memory;
 using Dalamud.Plugin.Services;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.translation;
 using System;
+using System.Text;
 
 namespace LangSwap.ui.hooks;
 
@@ -24,9 +27,13 @@ public unsafe class ItemDetailHook : BaseHook
 
     private const int ItemNameField = 0;
     private const int GlamourNameField = 1;
-    private const int ItemEffectsField = 9;
     private const int ItemDescriptionField = 13;
+    
     private const string ItemDetailAddonName = "ItemDetail";
+
+    // Special Unicode characters for item symbols
+    private const char GlamouredSymbol = '\uE03B'; // Mirage symbol
+    private const char HighQualitySymbol = '\uE03C'; // HQ symbol
 
     private readonly IGameGui gameGui;
 
@@ -148,6 +155,7 @@ public unsafe class ItemDetailHook : BaseHook
     {
         try
         {
+            // Get item ID if not already set
             if (currentItemId == 0 || currentItemId > configuration.MaxValidItemId)
             {
                 if (numberArrayData != null && numberArrayData->AtkArrayData.Size > 0)
@@ -160,68 +168,159 @@ public unsafe class ItemDetailHook : BaseHook
                 }
             }
 
-            if (isLanguageSwapped && currentItemId > 0 && currentItemId < configuration.MaxValidItemId)
+            // Modify StringArrayData BEFORE calling original
+            if (isLanguageSwapped && currentItemId > 0 && currentItemId < configuration.MaxValidItemId && stringArrayData != null)
             {
                 var targetLang = (LanguageEnum)configuration.TargetLanguage;
                 
-                // Translate item name
+                // Translate item name (preserving formatting and symbols)
                 var translatedName = translationCache.GetItemName(currentItemId, targetLang);
                 if (!string.IsNullOrWhiteSpace(translatedName))
                 {
-                    SetTooltipString(stringArrayData, ItemNameField, translatedName);
-                    log.Information($"Translated item {currentItemId} name to {targetLang}");
+                    ReplaceTextPreserveFormatting(stringArrayData, ItemNameField, translatedName);
                 }
 
-                // Translate glamour name
+                // Translate glamour name (preserving formatting and symbols)
                 if (currentGlamourId > 0 && currentGlamourId < configuration.MaxValidItemId)
                 {
                     var translatedGlamourName = translationCache.GetItemName(currentGlamourId, targetLang);
                     if (!string.IsNullOrWhiteSpace(translatedGlamourName))
                     {
-                        SetTooltipString(stringArrayData, GlamourNameField, translatedGlamourName);
-                        log.Information($"Translated glamour {currentGlamourId} name to {targetLang}");
+                        ReplaceTextPreserveFormatting(stringArrayData, GlamourNameField, translatedGlamourName);
                     }
                 }
 
-                // Translate item effects
-                var translatedEffects = translationCache.GetItemEffects(currentItemId, targetLang);
-                if (!string.IsNullOrWhiteSpace(translatedEffects))
-                {
-                    SetTooltipString(stringArrayData, ItemEffectsField, translatedEffects);
-                    log.Information($"Translated item {currentItemId} effects to {targetLang}");
-                    return generateItemTooltipHook!.Original(addonItemDetail, numberArrayData, stringArrayData);
-                }
-
-                // Translate item description
+                // Translate description (simple text)
                 var translatedDescription = translationCache.GetItemDescription(currentItemId, targetLang);
                 if (!string.IsNullOrWhiteSpace(translatedDescription))
                 {
-                    SetTooltipString(stringArrayData, ItemDescriptionField, translatedDescription);
-                    log.Information($"Translated item {currentItemId} description to {targetLang}");
+                    SafeSetString(stringArrayData, ItemDescriptionField, translatedDescription);
                 }
             }
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception in GenerateItemTooltip for item {currentItemId}");
+            log.Error(ex, $"Exception in GenerateItemTooltip BEFORE original for item {currentItemId}");
         }
 
+        // Call original to generate the tooltip
         return generateItemTooltipHook!.Original(addonItemDetail, numberArrayData, stringArrayData);
     }
 
-    private void SetTooltipString(StringArrayData* stringArrayData, int field, string text)
+    /// <summary>
+    /// Replace text in SeString while preserving formatting and special symbols
+    /// </summary>
+    private void ReplaceTextPreserveFormatting(StringArrayData* stringArrayData, int field, string newText)
     {
         try
         {
-            if (stringArrayData == null || stringArrayData->AtkArrayData.Size <= field)
+            if (stringArrayData == null || field >= stringArrayData->AtkArrayData.Size)
+                return;
+
+            // Read existing SeString
+            var address = new IntPtr(stringArrayData->StringArray[field]);
+            if (address == IntPtr.Zero)
+            {
+                SafeSetString(stringArrayData, field, newText);
+                return;
+            }
+
+            var existingSeString = MemoryHelper.ReadSeStringNullTerminated(address);
+            if (existingSeString == null)
+            {
+                SafeSetString(stringArrayData, field, newText);
+                return;
+            }
+
+            // If there's existing formatting, preserve it
+            if (existingSeString.Payloads.Count > 1)
+            {
+                var builder = new SeStringBuilder();
+                bool textReplaced = false;
+                
+                // Keep EXACT order, just replace the FIRST TextPayload
+                foreach (var payload in existingSeString.Payloads)
+                {
+                    if (!textReplaced && payload is TextPayload textPayload)
+                    {
+                        // Extract special symbols from original text
+                        var originalText = textPayload.Text ?? "";
+                        var translatedTextWithSymbols = PreserveSpecialSymbols(originalText, newText);
+                        
+                        // Replace first TextPayload with translated text + symbols
+                        builder.AddText(translatedTextWithSymbols);
+                        textReplaced = true;
+                    }
+                    else
+                    {
+                        // Keep ALL other payloads in EXACT order
+                        builder.Add(payload);
+                    }
+                }
+                
+                var encoded = builder.Build().Encode();
+                stringArrayData->SetValue(field, encoded, false, true, false);
+                return;
+            }
+            
+            // No existing formatting, set plain text
+            SafeSetString(stringArrayData, field, newText);
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Failed to replace text with formatting at field {field}");
+            SafeSetString(stringArrayData, field, newText);
+        }
+    }
+
+    /// <summary>
+    /// Preserve special symbols (Glamoured, HQ) from original text and add them to translated text
+    /// </summary>
+    private string PreserveSpecialSymbols(string originalText, string translatedText)
+    {
+        var result = new StringBuilder(translatedText.Trim());
+        
+        // Check for Glamoured symbol (usually at the beginning)
+        if (originalText.Contains(GlamouredSymbol))
+        {
+            result.Insert(0, $"{GlamouredSymbol} ");
+        }
+        
+        // Check for HQ symbol (usually at the end)
+        if (originalText.Contains(HighQualitySymbol))
+        {
+            result.Append($" {HighQualitySymbol}");
+        }
+        
+        return result.ToString();
+    }
+
+    /// <summary>
+    /// Safely set a string in StringArrayData with bounds checking
+    /// </summary>
+    private void SafeSetString(StringArrayData* stringArrayData, int field, string text)
+    {
+        try
+        {
+            if (stringArrayData == null)
+                return;
+
+            if (field >= stringArrayData->AtkArrayData.Size)
+                return;
+
+            if (string.IsNullOrEmpty(text))
                 return;
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(text + "\0");
+            
+            if (bytes.Length > 1024 * 10) // 10KB limit
+                return;
+
             stringArrayData->SetValue(field, bytes, false, true, false);
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to set tooltip string at field {field}");
+            log.Error(ex, $"Failed to safely set string at field {field}");
         }
     }
 

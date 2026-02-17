@@ -18,26 +18,28 @@ public class ConfigWindow : Window, IDisposable
     private readonly Configuration _config;
     private readonly TranslationCache _translationCache;
     private readonly IPluginLog _log;
+    private readonly Plugin _plugin;
     private readonly List<string> _keyNames = ["None"];
     private readonly List<int> _keyValues = [-1];
 
     // ----------------------------
     // Initialization
     // ----------------------------
-    public ConfigWindow(Configuration config, TranslationCache translationCache, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
+    public ConfigWindow(Plugin plugin, Configuration config, TranslationCache translationCache, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
     {
         // Window settings
         Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
                 ImGuiWindowFlags.NoScrollWithMouse;
 
         // Initialize window size
-        Size = new Vector2(420, 273);
+        Size = new Vector2(420, 290); // Augmenté pour le warning
         SizeCondition = ImGuiCond.Always;
 
         // Initialize key names and values
         InitKeys(_keyNames, _keyValues);
 
         // Store references
+        this._plugin = plugin;
         this._config = config;
         this._translationCache = translationCache;
         this._log = log;
@@ -169,6 +171,16 @@ public class ConfigWindow : Window, IDisposable
         {
             _translationCache.Clear();
             _log.Information("All translation caches cleared");
+        }
+
+        // Warning if translation is active
+        if (_plugin.IsLanguageSwapped())
+        {
+            ImGui.Spacing();
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.5f, 0.0f, 1.0f));
+            ImGui.TextWrapped("WARNING: Disable translation before changing settings !");
+            ImGui.PopStyleColor();
+            ImGui.Spacing();
         }
     }
 

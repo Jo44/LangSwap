@@ -70,104 +70,33 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
     }
 
+    private T? GetItemProperty<T>(uint itemId, LanguageEnum lang, Func<Item, T?> propertySelector, string propertyName)
+    {
+        var item = GetItem(itemId, lang);
+        if (item == null) return default;
+
+        try
+        {
+            return propertySelector(item.Value);
+        }
+        catch
+        {
+            log.Warning($"Could not extract {propertyName} for item {itemId}");
+            return default;
+        }
+    }
+
     // ----------------------------
     // Get item name
     // ----------------------------
     public string? GetItemName(uint itemId, LanguageEnum lang)
-    {
-        try
-        {
-            // Get the item
-            Item? item = GetItem(itemId, lang);
-            if (item == null) return null;
-
-            // Extract the item name
-            string? name = null;
-            try
-            {
-                name = item.Value.Name.ToString();
-            }
-            catch
-            {
-                log.Warning($"Could not extract name for item {itemId}");
-                return null;
-            }
-
-            // Return the item name if valid
-            return string.IsNullOrWhiteSpace(name) ? null : name;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"Exception while getting item name for {itemId} in language {lang}");
-            return null;
-        }
-    }
-
-    // ----------------------------
-    // Get item effects
-    // ----------------------------
-    public string? GetItemEffects(uint itemId, LanguageEnum lang)
-    {
-        try
-        {
-            // Get the item
-            Item? item = GetItem(itemId, lang);
-            if (item == null) return null;
-
-            // Extract the item effects
-            string? effects = null;
-            try
-            {
-                effects = ""; // TODO : get from structure
-            }
-            catch
-            {
-                log.Warning($"Could not extract effects for item {itemId}");
-                return null;
-            }
-
-            // Return the item effects if valid
-            return string.IsNullOrWhiteSpace(effects) ? null : effects;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"Exception while getting item effects for {itemId} in language {lang}");
-            return null;
-        }
-    }
+        => GetItemProperty(itemId, lang, item => item.Name.ToString(), "name");
 
     // ----------------------------
     // Get item description
     // ----------------------------
     public string? GetItemDescription(uint itemId, LanguageEnum lang)
-    {
-        try
-        {
-            // Get the item
-            Item? item = GetItem(itemId, lang);
-            if (item == null) return null;
-
-            // Extract the item description
-            string? description = null;
-            try
-            {
-                description = item.Value.Description.ToString();
-            }
-            catch
-            {
-                log.Warning($"Could not extract description for item {itemId}");
-                return null;
-            }
-
-            // Return the item description if valid
-            return string.IsNullOrWhiteSpace(description) ? null : description;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"Exception while getting item description for {itemId} in language {lang}");
-            return null;
-        }
-    }
+        => GetItemProperty(itemId, lang, item => item.Description.ToString(), "description");
 
     //
     // ========== ACTIONS ==========

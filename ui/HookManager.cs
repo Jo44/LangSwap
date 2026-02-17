@@ -33,10 +33,10 @@ public class HookManager(
         // Add hooks if component is enabled
         if (configuration.Castbars)
             // TODO : cassé !!! hooks.Add(castBarHook);
-        if (configuration.ItemDetails)
-            hooks.Add(itemDetailHook);
         if (configuration.ActionDetails)
             // TODO : cassé aussi !! hooks.Add(actionDetailHook);
+        if (configuration.ItemDetails)
+            hooks.Add(itemDetailHook);
         // Enable all hooks
         foreach (var hook in hooks)
         {

@@ -66,7 +66,7 @@ public sealed class Plugin : IDalamudPlugin
         ExcelProvider excelProvider = new(_config, dataManager, Log);
         TranslationCache translationCache = new(excelProvider, Log);
         _hookManager = new HookManager(_config, gameGui, gameInterop, sigScanner, translationCache, Log);
-        _configWindow = new ConfigWindow(_config, translationCache, Log);
+        _configWindow = new ConfigWindow(this, _config, translationCache, Log);
 
         // Register window
         _windowSystem.AddWindow(_configWindow);
@@ -169,7 +169,26 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
-    // Swap / Restore
+    // Public API for ConfigWindow
+    // ----------------------------
+    /// <summary>
+    /// Check if language is currently swapped
+    /// </summary>
+    public bool IsLanguageSwapped() => _isSwapEnabled;
+
+    /// <summary>
+    /// Restore language to client default (public version for ConfigWindow)
+    /// </summary>
+    public void RestoreLanguageFromConfig()
+    {
+        if (_isSwapEnabled)
+        {
+            RestoreLanguage();
+        }
+    }
+
+    // ----------------------------
+    // Swap / Restore (Private)
     // ----------------------------
     private void SwapLanguage()
     {
@@ -302,5 +321,4 @@ public sealed class Plugin : IDalamudPlugin
         // Log plugin informations
         Log.Information("=== LangSwap plugin unloaded ===");
     }
-
 }

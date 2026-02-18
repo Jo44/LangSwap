@@ -76,7 +76,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     private T? GetActionProperty<T>(uint actionId, LanguageEnum lang, Func<Lumina.Excel.Sheets.Action, T?> propertySelector, string propertyName)
     {
         // Get the action
-        var action = GetAction(actionId, lang);
+        Lumina.Excel.Sheets.Action? action = GetAction(actionId, lang);
         if (action == null) return default;
 
         // Extract the requested property using the provided selector
@@ -153,7 +153,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     private T? GetItemProperty<T>(uint itemId, LanguageEnum lang, Func<Item, T?> propertySelector, string propertyName)
     {
         // Get the item
-        var item = GetItem(itemId, lang);
+        Item? item = GetItem(itemId, lang);
         if (item == null) return default;
 
         // Extract the requested property using the provided selector

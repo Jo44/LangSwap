@@ -68,7 +68,7 @@ public sealed class Plugin : IDalamudPlugin
         _excelProvider = new(_config, dataManager, Log);
         _translationCache = new(_excelProvider, Log);
         _hookManager = new HookManager(_config, gameGui, gameInterop, sigScanner, _translationCache, Log);
-        _configWindow = new ConfigWindow(_config, this, _translationCache, Log);
+        _configWindow = new ConfigWindow(_config, _hookManager, this, _translationCache, Log);
 
         // Register window
         _windowSystem.AddWindow(_configWindow);

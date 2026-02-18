@@ -15,7 +15,13 @@ namespace LangSwap.ui.hooks;
 /// <summary>
 /// Hook for translating ItemDetail component (item tooltips)
 /// </summary>
-public unsafe class ItemDetailHook : BaseHook
+public unsafe class ItemDetailHook(
+    Configuration configuration,
+    IGameGui gameGui,
+    IGameInteropProvider gameInterop,
+    ISigScanner sigScanner,
+    TranslationCache translationCache,
+    IPluginLog log) : BaseHook(configuration, gameInterop, sigScanner, translationCache, log)
 {
     private delegate void* GenerateItemTooltipDelegate(AtkUnitBase* addonItemDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
     private delegate byte ItemHoveredDelegate(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7);
@@ -36,19 +42,7 @@ public unsafe class ItemDetailHook : BaseHook
     private const char GlamouredSymbol = '\uE03B'; // Mirage symbol
     private const char HighQualitySymbol = '\uE03C'; // HQ symbol
 
-    private readonly IGameGui gameGui;
-
-    public ItemDetailHook(
-        Configuration configuration,
-        IGameInteropProvider gameInterop,
-        ISigScanner sigScanner,
-        TranslationCache translationCache,
-        IPluginLog log,
-        IGameGui gameGui)
-        : base(configuration, gameInterop, sigScanner, translationCache, log)
-    {
-        this.gameGui = gameGui;
-    }
+    private readonly IGameGui gameGui = gameGui;
 
     public override void Enable()
     {
@@ -275,7 +269,7 @@ public unsafe class ItemDetailHook : BaseHook
     /// <summary>
     /// Preserve special symbols (Glamoured, HQ) from original text and add them to translated text
     /// </summary>
-    private string PreserveSpecialSymbols(string originalText, string translatedText)
+    private static string PreserveSpecialSymbols(string originalText, string translatedText)
     {
         var result = new StringBuilder(translatedText.Trim());
         
@@ -360,5 +354,6 @@ public unsafe class ItemDetailHook : BaseHook
         {
             log.Error(ex, "Failed to dispose ItemDetailHook");
         }
+        GC.SuppressFinalize(this);
     }
 }

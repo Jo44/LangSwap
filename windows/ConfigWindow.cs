@@ -3,6 +3,7 @@ using Dalamud.Game.ClientState.Keys;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using LangSwap.translation;
+using LangSwap.ui;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -16,19 +17,23 @@ public class ConfigWindow : Window, IDisposable
 {
     // Core components
     private readonly Configuration _config;
+    private readonly HookManager _hookManager;
     private readonly Plugin _plugin;
     private readonly TranslationCache _translationCache;
     private readonly IPluginLog _log;
+
+    // Primary key options
     private readonly List<string> _keyNames = ["None"];
     private readonly List<int> _keyValues = [-1];
 
     // ----------------------------
     // Initialization
     // ----------------------------
-    public ConfigWindow(Configuration config, Plugin plugin, TranslationCache translationCache, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
+    public ConfigWindow(Configuration config, HookManager hookManager, Plugin plugin, TranslationCache translationCache, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
     {
         // Store references
         this._config = config;
+        this._hookManager = hookManager;
         this._plugin = plugin;
         this._translationCache = translationCache;
         this._log = log;
@@ -145,6 +150,10 @@ public class ConfigWindow : Window, IDisposable
             _log.Information($"Setting Castbars to {castbars}");
             _config.Castbars = castbars;
             _config.Save();
+            if (castbars)
+                _hookManager.EnableHook(HookEnum.CastBar);
+            else
+                _hookManager.DisableHook(HookEnum.CastBar);
         }
         ImGui.SameLine();
         if (ImGui.Checkbox("Action details", ref actionDetails))
@@ -152,6 +161,10 @@ public class ConfigWindow : Window, IDisposable
             _log.Information($"Setting ActionDetails to {actionDetails}");
             _config.ActionDetails = actionDetails;
             _config.Save();
+            if (actionDetails)
+                _hookManager.EnableHook(HookEnum.ActionDetail);
+            else
+                _hookManager.DisableHook(HookEnum.ActionDetail);
         }
         ImGui.SameLine();
         if (ImGui.Checkbox("Item details", ref itemDetails))
@@ -159,6 +172,10 @@ public class ConfigWindow : Window, IDisposable
             _log.Information($"Setting ItemDetails to {itemDetails}");
             _config.ItemDetails = itemDetails;
             _config.Save();
+            if (itemDetails)
+                _hookManager.EnableHook(HookEnum.ItemDetail);
+            else
+                _hookManager.DisableHook(HookEnum.ItemDetail);
         }
         ImGui.Spacing();
         ImGui.Spacing();

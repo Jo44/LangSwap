@@ -7,9 +7,9 @@ using System.Collections.Generic;
 
 namespace LangSwap.ui;
 
-/// <summary>
-/// Hook manager
-/// </summary>
+// ----------------------------
+// Hook Manager
+// ----------------------------
 public class HookManager(
     Configuration configuration,
     IGameGui gameGui,
@@ -18,28 +18,29 @@ public class HookManager(
     TranslationCache translationCache,
     IPluginLog log) : IDisposable
 {
-    private readonly List<BaseHook> hooks = [];
-    private readonly IPluginLog log = log;
+    // Individual hooks
+    private readonly CastBarHook castBarHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, log);
+    private readonly ActionDetailHook actionDetailHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, log);
+    private readonly ItemDetailHook itemDetailHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, log);
 
-    private readonly ItemDetailHook itemDetailHook = new(configuration, gameInterop, sigScanner, translationCache, log, gameGui);
-    private readonly ActionDetailHook actionDetailHook = new(configuration, gameInterop, sigScanner, translationCache, log, gameGui);
-    private readonly CastBarHook castBarHook = new(configuration, gameInterop, sigScanner, translationCache, log, gameGui);
+    // Active hooks
+    private readonly HashSet<BaseHook> hooks = [];
 
-    /// <summary>
-    /// Enable all translation hooks
-    /// </summary>
+    // ----------------------------
+    // Enable all translation hooks
+    // ----------------------------
     public void EnableAll()
     {
-        log.Information("Enabling all translation hooks...");
         // Add hooks if component is enabled
         if (configuration.Castbars)
-            // TODO : cassé !!! hooks.Add(castBarHook);
+            // TODO : hooks.Add(castBarHook);
         if (configuration.ActionDetails)
-            // TODO : cassé aussi !! hooks.Add(actionDetailHook);
+            // TODO : hooks.Add(actionDetailHook);
         if (configuration.ItemDetails)
             hooks.Add(itemDetailHook);
+
         // Enable all hooks
-        foreach (var hook in hooks)
+        foreach (BaseHook hook in hooks)
         {
             try
             {
@@ -50,16 +51,47 @@ public class HookManager(
                 log.Error(ex, $"Failed to enable {hook.GetType().Name}");
             }
         }
-        log.Information("All translation hooks enabled");
     }
 
-    /// <summary>
-    /// Swap all hooks to target language
-    /// </summary>
+    // ----------------------------
+    // Enable translation hook
+    // ----------------------------
+    public void EnableHook(HookEnum hook)
+    {
+        try
+        {
+            switch (hook)
+            {
+                // Add cast bar hook
+                case HookEnum.CastBar:
+                    if (hooks.Add(castBarHook))
+                        castBarHook.Enable();
+                    break;
+                // Add action detail hook
+                case HookEnum.ActionDetail:
+                    if (hooks.Add(actionDetailHook))
+                        actionDetailHook.Enable();
+                    break;
+                // Add item detail hook
+                case HookEnum.ItemDetail:
+                    if (hooks.Add(itemDetailHook))
+                        itemDetailHook.Enable();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Failed to enable {hook}");
+        }
+    }
+
+    // ----------------------------
+    // Swap all hooks to target language
+    // ----------------------------
     public void SwapLanguage()
     {
-        log.Information("Swapping language for all hooks...");
-        foreach (var hook in hooks)
+        // Swap language for all hooks
+        foreach (BaseHook hook in hooks)
         {
             try
             {
@@ -72,13 +104,13 @@ public class HookManager(
         }
     }
 
-    /// <summary>
-    /// Restore all hooks to original language
-    /// </summary>
+    // ----------------------------
+    // Restore all hooks to original language
+    // ----------------------------
     public void RestoreLanguage()
     {
-        log.Information("Restoring language for all hooks...");
-        foreach (var hook in hooks)
+        // Restore language for all hooks
+        foreach (BaseHook hook in hooks)
         {
             try
             {
@@ -91,13 +123,45 @@ public class HookManager(
         }
     }
 
-    /// <summary>
-    /// Disable all translation hooks
-    /// </summary>
+    // ----------------------------
+    // Disable translation hook
+    // ----------------------------
+    public void DisableHook(HookEnum hook)
+    {
+        try
+        {
+            switch (hook)
+            {
+                // Remove cast bar hook
+                case HookEnum.CastBar:
+                    if (hooks.Remove(castBarHook))
+                        castBarHook.Disable();
+                    break;
+                // Remove action detail hook
+                case HookEnum.ActionDetail:
+                    if (hooks.Remove(actionDetailHook))
+                        actionDetailHook.Disable();
+                    break;
+                // Remove item detail hook
+                case HookEnum.ItemDetail:
+                    if (hooks.Remove(itemDetailHook))
+                        itemDetailHook.Disable();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Failed to enable {hook}");
+        }
+    }
+
+    // ----------------------------
+    // Disable all translation hooks
+    // ----------------------------
     public void DisableAll()
     {
-        log.Information("Disabling all translation hooks...");
-        foreach (var hook in hooks)
+        // Disable all hooks
+        foreach (BaseHook hook in hooks)
         {
             try
             {
@@ -108,13 +172,18 @@ public class HookManager(
                 log.Error(ex, $"Failed to disable {hook.GetType().Name}");
             }
         }
-        log.Information("All translation hooks disabled");
     }
 
+    // ----------------------------
+    // Dispose all hooks
+    // ----------------------------
     public void Dispose()
     {
+        // Disable all hooks
         DisableAll();
-        foreach (var hook in hooks)
+
+        // Dispose all hooks
+        foreach (BaseHook hook in hooks)
         {
             try
             {
@@ -125,6 +194,11 @@ public class HookManager(
                 log.Error(ex, $"Failed to dispose {hook.GetType().Name}");
             }
         }
+
+        // Clear hook list
         hooks.Clear();
+
+        // Finalize
+        GC.SuppressFinalize(this);
     }
 }

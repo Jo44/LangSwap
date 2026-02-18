@@ -11,7 +11,13 @@ namespace LangSwap.ui.hooks;
 /// <summary>
 /// Hook for translating ActionDetail component (action tooltips)
 /// </summary>
-public unsafe class ActionDetailHook : BaseHook
+public unsafe class ActionDetailHook(
+    Configuration configuration,
+    IGameGui gameGui,
+    IGameInteropProvider gameInterop,
+    ISigScanner sigScanner,
+    TranslationCache translationCache,
+    IPluginLog log) : BaseHook(configuration, gameInterop, sigScanner, translationCache, log)
 {
     private delegate void* GenerateActionTooltipDelegate(AtkUnitBase* addonActionDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
@@ -22,19 +28,7 @@ public unsafe class ActionDetailHook : BaseHook
     private const int ActionDescriptionField = 13;
     private const string ActionDetailAddonName = "ActionDetail";
 
-    private readonly IGameGui gameGui;
-
-    public ActionDetailHook(
-        Configuration configuration,
-        IGameInteropProvider gameInterop,
-        ISigScanner sigScanner,
-        TranslationCache translationCache,
-        IPluginLog log,
-        IGameGui gameGui)
-        : base(configuration, gameInterop, sigScanner, translationCache, log)
-    {
-        this.gameGui = gameGui;
-    }
+    private readonly IGameGui gameGui = gameGui;
 
     public override void Enable()
     {
@@ -177,5 +171,6 @@ public unsafe class ActionDetailHook : BaseHook
         {
             log.Error(ex, "Failed to dispose ActionDetailHook");
         }
+        GC.SuppressFinalize(this);
     }
 }

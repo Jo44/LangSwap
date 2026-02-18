@@ -4,9 +4,9 @@ using System;
 
 namespace LangSwap.ui.hooks.@base;
 
-/// <summary>
-/// Base class for all hooks
-/// </summary>
+// ----------------------------
+// Base class for all hooks
+// ----------------------------
 public abstract class BaseHook(
     Configuration configuration,
     IGameInteropProvider gameInterop,
@@ -14,70 +14,71 @@ public abstract class BaseHook(
     TranslationCache translationCache,
     IPluginLog log) : IDisposable
 {
-    // TODO : vraiment utile ça ?
+    // Core components
     protected readonly Configuration configuration = configuration;
     protected readonly IGameInteropProvider gameInterop = gameInterop;
     protected readonly ISigScanner sigScanner = sigScanner;
     protected readonly TranslationCache translationCache = translationCache;
     protected readonly IPluginLog log = log;
 
+    // Toggle state
     protected bool isEnabled = false;
     protected bool isLanguageSwapped = false;
 
-    /// <summary>
-    /// Enable the hook
-    /// </summary>
+    // ----------------------------
+    // Enable the hook
+    // ----------------------------
     public abstract void Enable();
 
-    /// <summary>
-    /// Swap to target language
-    /// </summary>
+    // ----------------------------
+    // Swap to target language
+    // ----------------------------
     public virtual void SwapLanguage()
     {
-        if (isLanguageSwapped)
-        {
-            log.Debug($"{GetType().Name}: Language already swapped, ignoring");
-            return;
-        }
-        
+        // Prevent redundant swaps
+        if (isLanguageSwapped) return;
+
+        // Set flag and log
         isLanguageSwapped = true;
-        log.Information($"{GetType().Name}: Language swap enabled");
+        log.Debug($"{GetType().Name}: Language swap enabled");
+
+        // Call hook-specific behavior
         OnLanguageSwapped();
     }
 
-    /// <summary>
-    /// Restore to original language
-    /// </summary>
+    // ----------------------------
+    // Restore to original language
+    // ----------------------------
     public virtual void RestoreLanguage()
     {
-        if (!isLanguageSwapped)
-        {
-            log.Debug($"{GetType().Name}: Language not swapped, ignoring restore");
-            return;
-        }
-        
+        // Prevent redundant restores
+        if (!isLanguageSwapped) return;
+
+        // Clear flag and log
         isLanguageSwapped = false;
-        log.Information($"{GetType().Name}: Language swap disabled");
+        log.Debug($"{GetType().Name}: Language swap disabled");
+
+        // Call hook-specific behavior
         OnLanguageRestored();
     }
 
-    /// <summary>
-    /// Called when language is swapped - override to add custom behavior
-    /// </summary>
+    // ----------------------------
+    // Called when language is swapped
+    // ----------------------------
     protected virtual void OnLanguageSwapped() { }
 
-    /// <summary>
-    /// Called when language is restored - override to add custom behavior
-    /// </summary>
+    // ----------------------------
+    // Called when language is restored
+    // ----------------------------
     protected virtual void OnLanguageRestored() { }
 
-    /// <summary>
-    /// Disable the hook
-    /// </summary>
+    // ----------------------------
+    // Disable the hook
+    // ----------------------------
     public abstract void Disable();
 
-    /// <summary>
-    /// Dispose the hook
-    /// </summary>
+    // ----------------------------
+    // Dispose the hook
+    // ----------------------------
     public abstract void Dispose();
 }

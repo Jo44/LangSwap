@@ -10,7 +10,13 @@ namespace LangSwap.ui.hooks;
 /// <summary>
 /// Hook for translating cast bars (player, enemy, party)
 /// </summary>
-public unsafe class CastBarHook : BaseHook
+public unsafe class CastBarHook(
+    Configuration configuration,
+    IGameGui gameGui,
+    IGameInteropProvider gameInterop,
+    ISigScanner sigScanner,
+    TranslationCache translationCache,
+    IPluginLog log) : BaseHook(configuration, gameInterop, sigScanner, translationCache, log)
 {
     private delegate void UpdateCastBarDelegate(IntPtr castBarPtr, uint actionId, IntPtr actionNamePtr);
 
@@ -19,19 +25,7 @@ public unsafe class CastBarHook : BaseHook
 
     private const string CastBarAddonName = "_CastBar";
 
-    private readonly IGameGui gameGui;
-
-    public CastBarHook(
-        Configuration configuration,
-        IGameInteropProvider gameInterop,
-        ISigScanner sigScanner,
-        TranslationCache translationCache,
-        IPluginLog log,
-        IGameGui gameGui)
-        : base(configuration, gameInterop, sigScanner, translationCache, log)
-    {
-        this.gameGui = gameGui;
-    }
+    private readonly IGameGui gameGui = gameGui;
 
     public override void Enable()
     {
@@ -180,5 +174,6 @@ public unsafe class CastBarHook : BaseHook
     {
         Disable();
         updateCastBarHook?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

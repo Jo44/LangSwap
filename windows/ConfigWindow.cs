@@ -16,33 +16,33 @@ public class ConfigWindow : Window, IDisposable
 {
     // Core components
     private readonly Configuration _config;
+    private readonly Plugin _plugin;
     private readonly TranslationCache _translationCache;
     private readonly IPluginLog _log;
-    private readonly Plugin _plugin;
     private readonly List<string> _keyNames = ["None"];
     private readonly List<int> _keyValues = [-1];
 
     // ----------------------------
     // Initialization
     // ----------------------------
-    public ConfigWindow(Plugin plugin, Configuration config, TranslationCache translationCache, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
+    public ConfigWindow(Configuration config, Plugin plugin, TranslationCache translationCache, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
     {
+        // Store references
+        this._config = config;
+        this._plugin = plugin;
+        this._translationCache = translationCache;
+        this._log = log;
+
         // Window settings
         Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
                 ImGuiWindowFlags.NoScrollWithMouse;
 
         // Initialize window size
-        Size = new Vector2(420, 290); // Augmenté pour le warning
+        Size = new Vector2(420, 290);
         SizeCondition = ImGuiCond.Always;
 
         // Initialize key names and values
         InitKeys(_keyNames, _keyValues);
-
-        // Store references
-        this._plugin = plugin;
-        this._config = config;
-        this._translationCache = translationCache;
-        this._log = log;
     }
 
     // ----------------------------
@@ -65,7 +65,7 @@ public class ConfigWindow : Window, IDisposable
         bool alt = _config.Alt;
         bool shift = _config.Shift;
 
-        // Components
+        // UI Components
         bool castbars = _config.Castbars;
         bool actionDetails = _config.ActionDetails;
         bool itemDetails = _config.ItemDetails;
@@ -174,7 +174,7 @@ public class ConfigWindow : Window, IDisposable
         }
 
         // Warning if translation is active
-        if (_plugin.IsLanguageSwapped())
+        if (_plugin.IsSwapEnabled())
         {
             ImGui.Spacing();
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.5f, 0.0f, 1.0f));
@@ -214,6 +214,9 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     // Dispose
     // ----------------------------
-    public void Dispose() { }
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+    }
 
 }

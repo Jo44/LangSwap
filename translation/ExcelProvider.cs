@@ -7,7 +7,7 @@ using System;
 namespace LangSwap.translation;
 
 // ----------------------------
-// Excel data provider for accessing game data via Lumina
+// Excel data provider (for accessing game data via Lumina)
 // ----------------------------
 public class ExcelProvider(Configuration config, IDataManager dataManager, IPluginLog log)
 {
@@ -28,84 +28,13 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     }
 
     //
-    // ========== ITEMS ==========
-    //
-
-    // ----------------------------
-    // Get item data from Excel sheet
-    // ----------------------------
-    public Item? GetItem(uint itemId, LanguageEnum lang)
-    {
-        try
-        {
-            // Validate item ID range
-            if (itemId < 1 || itemId > config.MaxValidItemId)
-            {
-                log.Warning($"Item ID {itemId} is out of valid range (1-{config.MaxValidItemId})");
-                return null;
-            }
-
-            // Access the Item sheet for the specified language
-            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(lang));
-            if (itemSheet == null)
-            {
-                log.Warning($"Item sheet is not available for language {lang}");
-                return null;
-            }
-
-            // Try to get the item row
-            if (!itemSheet.TryGetRow(itemId, out Item item))
-            {
-                log.Warning($"Item {itemId} not found in sheet for language {lang}");
-                return null;
-            }
-
-            // Return the found item
-            return item;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"Exception while getting item {itemId} in language {lang}");
-            return null;
-        }
-    }
-
-    private T? GetItemProperty<T>(uint itemId, LanguageEnum lang, Func<Item, T?> propertySelector, string propertyName)
-    {
-        var item = GetItem(itemId, lang);
-        if (item == null) return default;
-
-        try
-        {
-            return propertySelector(item.Value);
-        }
-        catch
-        {
-            log.Warning($"Could not extract {propertyName} for item {itemId}");
-            return default;
-        }
-    }
-
-    // ----------------------------
-    // Get item name
-    // ----------------------------
-    public string? GetItemName(uint itemId, LanguageEnum lang)
-        => GetItemProperty(itemId, lang, item => item.Name.ToString(), "name");
-
-    // ----------------------------
-    // Get item description
-    // ----------------------------
-    public string? GetItemDescription(uint itemId, LanguageEnum lang)
-        => GetItemProperty(itemId, lang, item => item.Description.ToString(), "description");
-
-    //
     // ========== ACTIONS ==========
     //
 
     // ----------------------------
-    // Get action data from Excel sheet
+    // Get action data
     // ----------------------------
-    public Lumina.Excel.Sheets.Action? GetAction(uint actionId, LanguageEnum lang)
+    private Lumina.Excel.Sheets.Action? GetAction(uint actionId, LanguageEnum lang)
     {
         try
         {
@@ -116,7 +45,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
                 return null;
             }
 
-            // Access the Action sheet for the specified language
+            // Access the action sheet for the specified language
             ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(lang));
             if (actionSheet == null)
             {
@@ -142,70 +71,113 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     }
 
     // ----------------------------
+    // Get action property
+    // ----------------------------
+    private T? GetActionProperty<T>(uint actionId, LanguageEnum lang, Func<Lumina.Excel.Sheets.Action, T?> propertySelector, string propertyName)
+    {
+        // Get the action
+        var action = GetAction(actionId, lang);
+        if (action == null) return default;
+
+        // Extract the requested property using the provided selector
+        try
+        {
+            return propertySelector(action.Value);
+        }
+        catch
+        {
+            log.Warning($"Could not extract {propertyName} for action {actionId}");
+            return default;
+        }
+    }
+
+    // ----------------------------
     // Get action name
     // ----------------------------
     public string? GetActionName(uint actionId, LanguageEnum lang)
-    {
-        try
-        {
-            // Get the action
-            Lumina.Excel.Sheets.Action? action = GetAction(actionId, lang);
-            if (action == null) return null;
-
-            // Extract the action name
-            string? actionName = null;
-            try
-            {
-                actionName = action.Value.Name.ToString();
-            }
-            catch
-            {
-                log.Warning($"Could not extract name for action {actionId}");
-                return null;
-            }
-
-            // Return the action name if valid
-            return string.IsNullOrWhiteSpace(actionName) ? null : actionName;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"Exception while getting action name for {actionId} in language {lang}");
-            return null;
-        }
-    }
+        => GetActionProperty(actionId, lang, action => action.Name.ToString(), "name");
 
     // ----------------------------
     // Get action description
     // ----------------------------
     public string? GetActionDescription(uint actionId, LanguageEnum lang)
+        => GetActionProperty(actionId, lang, action => action.Name.ToString(), "name");
+    // TODO : get description
+
+    //
+    // ========== ITEMS ==========
+    //
+
+    // ----------------------------
+    // Get item data
+    // ----------------------------
+    private Item? GetItem(uint itemId, LanguageEnum lang)
     {
         try
         {
-            // Get the action
-            Lumina.Excel.Sheets.Action? action = GetAction(actionId, lang);
-            if (action == null) return null;
-
-            // Extract the action description
-            string? actionDescription = null;
-            try
+            // Validate item ID range
+            if (itemId < 1 || itemId > config.MaxValidItemId)
             {
-                // TODO : actionDescription = action.Value.Description.ToString();
-                actionDescription = "< DESCRIPTION >";
-            }
-            catch
-            {
-                log.Warning($"Could not extract description for action {actionId}");
+                log.Warning($"Item ID {itemId} is out of valid range (1-{config.MaxValidItemId})");
                 return null;
             }
 
-            // Return the action description if valid
-            return string.IsNullOrWhiteSpace(actionDescription) ? null : actionDescription;
+            // Access the item sheet for the specified language
+            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(lang));
+            if (itemSheet == null)
+            {
+                log.Warning($"Item sheet is not available for language {lang}");
+                return null;
+            }
+
+            // Try to get the item row
+            if (!itemSheet.TryGetRow(itemId, out Item item))
+            {
+                log.Warning($"Item {itemId} not found in sheet for language {lang}");
+                return null;
+            }
+
+            // Return the found item
+            return item;
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception while getting action description for {actionId} in language {lang}");
+            log.Error(ex, $"Exception while getting item {itemId} in language {lang}");
             return null;
         }
     }
+
+    // ----------------------------
+    // Get item property
+    // ----------------------------
+    private T? GetItemProperty<T>(uint itemId, LanguageEnum lang, Func<Item, T?> propertySelector, string propertyName)
+    {
+        // Get the item
+        var item = GetItem(itemId, lang);
+        if (item == null) return default;
+
+        // Extract the requested property using the provided selector
+        try
+        {
+            return propertySelector(item.Value);
+        }
+        catch
+        {
+            log.Warning($"Could not extract {propertyName} for item {itemId}");
+            return default;
+        }
+    }
+
+    // ----------------------------
+    // Get item name
+    // ----------------------------
+    public string? GetItemName(uint itemId, LanguageEnum lang)
+        => GetItemProperty(itemId, lang, item => item.Name.ToString(), "name");
+
+    // ----------------------------
+    // Get item description
+    // ----------------------------
+    public string? GetItemDescription(uint itemId, LanguageEnum lang)
+        => GetItemProperty(itemId, lang, item => item.Description.ToString(), "description");
 
 }

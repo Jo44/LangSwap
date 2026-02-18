@@ -2,6 +2,7 @@ using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.translation;
+using LangSwap.ui.hooks.@base;
 using System;
 
 namespace LangSwap.ui.hooks;

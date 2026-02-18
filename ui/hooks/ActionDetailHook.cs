@@ -3,6 +3,7 @@ using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.translation;
+using LangSwap.ui.hooks.@base;
 using System;
 
 namespace LangSwap.ui.hooks;
@@ -163,7 +164,18 @@ public unsafe class ActionDetailHook : BaseHook
 
     public override void Dispose()
     {
-        Disable();
-        generateActionTooltipHook?.Dispose();
+        try
+        {
+            generateActionTooltipHook?.Disable();
+            generateActionTooltipHook?.Dispose();
+            generateActionTooltipHook = null;
+            
+            isEnabled = false;
+            log.Information("ActionDetailHook disposed");
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, "Failed to dispose ActionDetailHook");
+        }
     }
 }

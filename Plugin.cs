@@ -30,25 +30,27 @@ public sealed class Plugin : IDalamudPlugin
 
     // Constants
     private const string CommandName = "/langswap";
-    private const int ToggleCooldownMs = 500;
     private const int DeferredFrames = 2;
     private const byte LogTagColor = 45;
     private const byte MessageColor = 57;
+    private const int ToggleCooldownMs = 500;
 
     // Core components
     private readonly Configuration _config;
     private readonly ConfigWindow _configWindow;
+    private readonly ExcelProvider _excelProvider;
     private readonly HookManager _hookManager;
     private readonly ShortcutDetector _shortcutDetector;
+    private readonly TranslationCache _translationCache;
     private readonly WindowSystem _windowSystem = new("LangSwap");
 
     // Toggle state
+    private int _deferredFrameCount = 0;
+    private bool _disposed = false;
     private bool _isSwapEnabled = false;
     private bool _isSwapping = false;
     private DateTime _lastToggle = DateTime.MinValue;
-    private int _deferredFrameCount = 0;
     private bool _previousShortcutPressed = false;
-    private bool _disposed = false;
 
     // ----------------------------
     // Initialization
@@ -61,12 +63,12 @@ public sealed class Plugin : IDalamudPlugin
         // Detect client language
         DetectClientLanguage();
 
-        // Initialize core systems
+        // Initialize core components
         _shortcutDetector = new ShortcutDetector(_config, KeyState, Log);
-        ExcelProvider excelProvider = new(_config, dataManager, Log);
-        TranslationCache translationCache = new(excelProvider, Log);
-        _hookManager = new HookManager(_config, gameGui, gameInterop, sigScanner, translationCache, Log);
-        _configWindow = new ConfigWindow(this, _config, translationCache, Log);
+        _excelProvider = new(_config, dataManager, Log);
+        _translationCache = new(_excelProvider, Log);
+        _hookManager = new HookManager(_config, gameGui, gameInterop, sigScanner, _translationCache, Log);
+        _configWindow = new ConfigWindow(_config, this, _translationCache, Log);
 
         // Register window
         _windowSystem.AddWindow(_configWindow);
@@ -97,7 +99,7 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
-    // Main Draw / Shortcut Logic
+    // Main Draw / Swap Logic
     // ----------------------------
     private void OnDraw()
     {
@@ -169,26 +171,7 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
-    // Public API for ConfigWindow
-    // ----------------------------
-    /// <summary>
-    /// Check if language is currently swapped
-    /// </summary>
-    public bool IsLanguageSwapped() => _isSwapEnabled;
-
-    /// <summary>
-    /// Restore language to client default (public version for ConfigWindow)
-    /// </summary>
-    public void RestoreLanguageFromConfig()
-    {
-        if (_isSwapEnabled)
-        {
-            RestoreLanguage();
-        }
-    }
-
-    // ----------------------------
-    // Swap / Restore (Private)
+    // Swap / Restore
     // ----------------------------
     private void SwapLanguage()
     {
@@ -198,8 +181,9 @@ public sealed class Plugin : IDalamudPlugin
         // Check if target language is different from client language
         if (_config.TargetLanguage == _config.ClientLanguage)
         {
-            ChatLog("Target language is the same as client language, swap aborted");
-            Log.Warning("Target language is the same as client language, swap aborted");
+            string error = "Target language is the same as client language, swap aborted";
+            ChatLog(error);
+            Log.Warning(error);
             return;
         }
 
@@ -208,8 +192,9 @@ public sealed class Plugin : IDalamudPlugin
         _isSwapEnabled = true;
 
         // Log swap informations
-        ChatLog($"Swapped to {Enum.GetName(typeof(LanguageEnum), _config.TargetLanguage)}");
-        Log.Information($"Language swapped to {_config.TargetLanguage}");
+        string info = $"Swapped to {Enum.GetName(typeof(LanguageEnum), _config.TargetLanguage)}";
+        ChatLog(info);
+        Log.Information(info);
     }
 
     private void RestoreLanguage()
@@ -222,12 +207,13 @@ public sealed class Plugin : IDalamudPlugin
         _isSwapEnabled = false;
 
         // Log restore informations
-        ChatLog($"Restored to {Enum.GetName(typeof(LanguageEnum), _config.ClientLanguage)}");
-        Log.Information($"Language restored to {_config.ClientLanguage}");
+        string info = $"Restored to {Enum.GetName(typeof(LanguageEnum), _config.ClientLanguage)}";
+        ChatLog(info);
+        Log.Information(info);
     }
 
     // ----------------------------
-    // Configuration / Language
+    // Configuration
     // ----------------------------
     private void DetectClientLanguage()
     {
@@ -251,6 +237,21 @@ public sealed class Plugin : IDalamudPlugin
         // Save configuration
         _config.Save();
     }
+
+    // ----------------------------
+    // Swap State
+    // ----------------------------
+    public bool IsSwapEnabled() => _isSwapEnabled;
+
+    // ----------------------------
+    // Toggle Config UI
+    // ----------------------------
+    public void ToggleConfigUi() => _configWindow.Toggle();
+
+    // ----------------------------
+    // Command Handler
+    // ----------------------------
+    private void OnCommand(string command, string args) => _configWindow.Toggle();
 
     // ----------------------------
     // Chat Logging
@@ -282,14 +283,6 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
-    // Command / Config
-    // ----------------------------
-    // Command handler
-    private void OnCommand(string command, string args) => _configWindow.Toggle();
-    // Config UI toggle
-    public void ToggleConfigUi() => _configWindow.Toggle();
-
-    // ----------------------------
     // Dispose
     // ----------------------------
     public void Dispose()
@@ -306,8 +299,8 @@ public sealed class Plugin : IDalamudPlugin
         // Remove command
         CommandManager.RemoveHandler(CommandName);
 
-        // Disable hooks
-        _hookManager.DisableAll();
+        // Dispose hook manager
+        _hookManager.Dispose();
 
         // Unregister UI callbacks
         PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;

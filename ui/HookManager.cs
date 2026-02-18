@@ -1,6 +1,7 @@
 using Dalamud.Plugin.Services;
 using LangSwap.translation;
 using LangSwap.ui.hooks;
+using LangSwap.ui.hooks.@base;
 using System;
 using System.Collections.Generic;
 

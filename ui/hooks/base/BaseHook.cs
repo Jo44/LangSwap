@@ -2,7 +2,7 @@ using Dalamud.Plugin.Services;
 using LangSwap.translation;
 using System;
 
-namespace LangSwap.ui.hooks;
+namespace LangSwap.ui.hooks.@base;
 
 /// <summary>
 /// Base class for all hooks

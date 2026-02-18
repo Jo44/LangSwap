@@ -6,6 +6,7 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.translation;
+using LangSwap.ui.hooks.@base;
 using System;
 using System.Text;
 
@@ -341,8 +342,23 @@ public unsafe class ItemDetailHook : BaseHook
 
     public override void Dispose()
     {
-        Disable();
-        itemHoveredHook?.Dispose();
-        generateItemTooltipHook?.Dispose();
+        try
+        {
+            // Always disable and dispose, regardless of isEnabled state
+            itemHoveredHook?.Disable();
+            itemHoveredHook?.Dispose();
+            itemHoveredHook = null;
+            
+            generateItemTooltipHook?.Disable();
+            generateItemTooltipHook?.Dispose();
+            generateItemTooltipHook = null;
+            
+            isEnabled = false;
+            log.Information("ItemDetailHook disposed");
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, "Failed to dispose ItemDetailHook");
+        }
     }
 }

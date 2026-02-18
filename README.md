@@ -16,15 +16,15 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 1. Open the plugin manager in FFXIV.
 2. Click the `Settings` button to open the configuration window.
 3. Set the `Target Language`.
-4. Set the shortcut : `Primary Key` and modifier keys (`Ctrl`, `Alt`, `Shift`).
-5. Set the components who will be affected : `Castbars`, `Item details` and `Skill details`.
+4. Set the keyboard shortcut : `Primary Key` and modifier keys (`Ctrl`, `Alt`, `Shift`).
+5. Set the UI components who will be affected : `Castbars`, `Action details` and `Item details`.
 6. Press the configured combination to switch languages; press again to restore the original language.
 
 You can also open/close the settings window via `/langswap`.
 
 ## Development / build
 - Target: .NET 10
-- Open the project in Visual Studio / Rider, restore packages, build.
+- Open the project in Visual Studio, restore packages, build.
 - Deploy as a Dalamud plugin following the normal deployment instructions for Dalamud plugins.
 
 ## Logs & debugging

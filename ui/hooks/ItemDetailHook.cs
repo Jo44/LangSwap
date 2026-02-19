@@ -8,13 +8,14 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.translation;
 using LangSwap.ui.hooks.@base;
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace LangSwap.ui.hooks;
 
-/// <summary>
-/// Hook for translating ItemDetail component (item tooltips)
-/// </summary>
+// ----------------------------
+// Item Detail Hook
+// ----------------------------
 public unsafe class ItemDetailHook(
     Configuration configuration,
     IGameGui gameGui,
@@ -23,8 +24,9 @@ public unsafe class ItemDetailHook(
     TranslationCache translationCache,
     IPluginLog log) : BaseHook(configuration, gameInterop, sigScanner, translationCache, log)
 {
-    private delegate void* GenerateItemTooltipDelegate(AtkUnitBase* addonItemDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
+    // TODO : on tri à partir d'ici :)
     private delegate byte ItemHoveredDelegate(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7);
+    private delegate void* GenerateItemTooltipDelegate(AtkUnitBase* addonItemDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
     private Hook<GenerateItemTooltipDelegate>? generateItemTooltipHook;
     private Hook<ItemHoveredDelegate>? itemHoveredHook;
@@ -32,81 +34,104 @@ public unsafe class ItemDetailHook(
     private uint currentItemId = 0;
     private uint currentGlamourId = 0;
 
-    private const int ItemNameField = 0;
-    private const int GlamourNameField = 1;
-    private const int ItemDescriptionField = 13;
+    private readonly Dictionary<string, byte[]> _translatedBytesCache = [];
+    private const int MaxCacheSize = 500;
+
+    private readonly int ItemNameField = configuration.ItemNameField;
+    private readonly int GlamourNameField = configuration.GlamourNameField;
+    private readonly int ItemDescriptionField = configuration.ItemDescriptionField;
     
-    private const string ItemDetailAddonName = "ItemDetail";
+    private readonly string ItemDetailAddonName = configuration.ItemDetailAddonName;
 
-    // Special Unicode characters for item symbols
-    private const char GlamouredSymbol = '\uE03B'; // Mirage symbol
-    private const char HighQualitySymbol = '\uE03C'; // HQ symbol
+    private readonly char GlamouredSymbol = configuration.GlamouredSymbol;
+    private readonly char HighQualitySymbol = configuration.HighQualitySymbol;
 
-    private readonly IGameGui gameGui = gameGui;
-
+    // ----------------------------
+    // Enable the hook
+    // ----------------------------
     public override void Enable()
     {
+        // Prevent multiple enables
         if (isEnabled) return;
 
         try
         {
-            // Hook ItemHovered
+            // Hook ItemHovered (-> get current item ID when hovering an item)
             var itemHoveredAddr = sigScanner.ScanText(configuration.ItemHoveredSig);
             if (itemHoveredAddr != IntPtr.Zero)
             {
                 itemHoveredHook = gameInterop.HookFromAddress<ItemHoveredDelegate>(itemHoveredAddr, ItemHoveredDetour);
                 itemHoveredHook.Enable();
-                log.Information($"ItemHovered hook enabled at 0x{itemHoveredAddr:X}");
+                log.Debug($"ItemHovered hook enabled at 0x{itemHoveredAddr:X}");
             }
             else
             {
                 log.Warning("ItemHovered signature not found");
             }
 
-            // Hook GenerateItemTooltip
+            // Hook GenerateItemTooltip (-> modify item tooltip datas when generating it)
             var generateItemTooltipAddr = sigScanner.ScanText(configuration.GenerateItemTooltipSig);
             if (generateItemTooltipAddr != IntPtr.Zero)
             {
                 generateItemTooltipHook = gameInterop.HookFromAddress<GenerateItemTooltipDelegate>(generateItemTooltipAddr, GenerateItemTooltipDetour);
                 generateItemTooltipHook.Enable();
-                log.Information($"GenerateItemTooltip hook enabled at 0x{generateItemTooltipAddr:X}");
+                log.Debug($"GenerateItemTooltip hook enabled at 0x{generateItemTooltipAddr:X}");
             }
             else
             {
                 log.Warning("GenerateItemTooltip signature not found");
             }
 
+            // Set enabled flag
             isEnabled = true;
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to enable ItemDetailHook");
+            log.Error(ex, "Failed to enable ItemDetail Hook");
         }
     }
 
+    // ----------------------------
+    // Swap to target language
+    // ----------------------------
     protected override void OnLanguageSwapped()
     {
+        // Refresh item detail to apply translations
+        _translatedBytesCache.Clear();
         RefreshItemDetail();
     }
 
+    // ----------------------------
+    // Restore to original language
+    // ----------------------------
     protected override void OnLanguageRestored()
     {
+        // Clear current item and glamour IDs
         currentItemId = 0;
         currentGlamourId = 0;
+
+        // Refresh item detail to apply translations
+        _translatedBytesCache.Clear();
         RefreshItemDetail();
     }
 
+    // ----------------------------
+    // Refresh the ItemDetail addon
+    // ----------------------------
     private void RefreshItemDetail()
     {
         try
         {
+            // Get pointer to ItemDetail addon
             var itemDetailPtr = gameGui.GetAddonByName(ItemDetailAddonName);
             if (!itemDetailPtr.IsNull)
             {
-                var itemDetail = (AtkUnitBase*)itemDetailPtr.Address;
+                // Get AtkUnitBase from pointer
+                AtkUnitBase* itemDetail = (AtkUnitBase*)itemDetailPtr.Address;
+                
+                // Only refresh if the addon is currently visible
                 if (itemDetail != null && itemDetail->IsVisible)
                 {
-                    log.Debug("Refreshing ItemDetail");
                     itemDetail->Hide(true, false, 0);
                     itemDetail->Show(true, 0);
                 }
@@ -118,15 +143,22 @@ public unsafe class ItemDetailHook(
         }
     }
 
+    // ----------------------------
+    // On Item Hovered
+    // -> Get current item ID when hovering an item
+    // ----------------------------
     private byte ItemHoveredDetour(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7)
     {
+        // Call original first to ensure item ID is set correctly
         var returnValue = itemHoveredHook!.Original(a1, a2, containerId, slotId, a5, slotIdInt, a7);
         
         try
         {
+            // Read InventoryItem from a7 to get current ID
             var inventoryItem = *(InventoryItem*)a7;
             currentItemId = inventoryItem.ItemId;
-            
+
+            // Try to get GlamourId
             try
             {
                 currentGlamourId = inventoryItem.GlamourId;
@@ -140,10 +172,15 @@ public unsafe class ItemDetailHook(
         {
             log.Error(ex, "Exception in ItemHovered detour");
         }
-        
+
+        // Return original value
         return returnValue;
     }
 
+    // ----------------------------
+    // On Generate Item Tooltip
+    // -> Modify item tooltip datas when generating it
+    // ----------------------------
     private void* GenerateItemTooltipDetour(AtkUnitBase* addonItemDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {
         try
@@ -269,7 +306,7 @@ public unsafe class ItemDetailHook(
     /// <summary>
     /// Preserve special symbols (Glamoured, HQ) from original text and add them to translated text
     /// </summary>
-    private static string PreserveSpecialSymbols(string originalText, string translatedText)
+    private string PreserveSpecialSymbols(string originalText, string translatedText)
     {
         var result = new StringBuilder(translatedText.Trim());
         
@@ -289,7 +326,7 @@ public unsafe class ItemDetailHook(
     }
 
     /// <summary>
-    /// Safely set a string in StringArrayData with bounds checking
+    /// Safely set a string in StringArrayData with bounds checking and caching
     /// </summary>
     private void SafeSetString(StringArrayData* stringArrayData, int field, string text)
     {
@@ -304,10 +341,28 @@ public unsafe class ItemDetailHook(
             if (string.IsNullOrEmpty(text))
                 return;
 
-            var bytes = System.Text.Encoding.UTF8.GetBytes(text + "\0");
-            
-            if (bytes.Length > 1024 * 10) // 10KB limit
-                return;
+            // Vérifier le cache
+            if (!_translatedBytesCache.TryGetValue(text, out var bytes))
+            {
+                // Pas dans le cache, créer les bytes
+                bytes = System.Text.Encoding.UTF8.GetBytes(text + "\0");
+                
+                if (bytes.Length > 1024 * 10) // 10KB limit
+                    return;
+
+                // Ajouter au cache si la taille n'est pas dépassée
+                if (_translatedBytesCache.Count < MaxCacheSize)
+                {
+                    _translatedBytesCache[text] = bytes;
+                }
+                else
+                {
+                    // Cache plein, le vider et recommencer
+                    _translatedBytesCache.Clear();
+                    _translatedBytesCache[text] = bytes;
+                    log.Debug("Translation bytes cache cleared due to size limit");
+                }
+            }
 
             stringArrayData->SetValue(field, bytes, false, true, false);
         }
@@ -317,43 +372,62 @@ public unsafe class ItemDetailHook(
         }
     }
 
+    // ----------------------------
+    // Disable the hook
+    // ----------------------------
     public override void Disable()
     {
+        // Prevent multiple disables
         if (!isEnabled) return;
 
         try
         {
+            // Disable ItemHovered hook
             itemHoveredHook?.Disable();
+
+            // Disable GenerateItemTooltip hook
             generateItemTooltipHook?.Disable();
+
+            // Set disabled flag
             isEnabled = false;
-            log.Information("ItemDetailHook disabled");
+            log.Debug("ItemDetail hooks disabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to disable ItemDetailHook");
+            log.Error(ex, "Failed to disable ItemDetail hooks");
         }
     }
 
+    // ----------------------------
+    // Dispose the hook
+    // ----------------------------
     public override void Dispose()
     {
         try
         {
-            // Always disable and dispose, regardless of isEnabled state
+            // Dispose ItemHovered hook
             itemHoveredHook?.Disable();
             itemHoveredHook?.Dispose();
             itemHoveredHook = null;
-            
+
+            // Dispose GenerateItemTooltip hook
             generateItemTooltipHook?.Disable();
             generateItemTooltipHook?.Dispose();
             generateItemTooltipHook = null;
-            
+
+            // Clear cache
+            _translatedBytesCache.Clear();
+
+            // Set disabled flag
             isEnabled = false;
-            log.Information("ItemDetailHook disposed");
+            log.Debug("ItemDetail hooks disposed");
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to dispose ItemDetailHook");
+            log.Error(ex, "Failed to dispose ItemDetail hooks");
         }
+
+        // Finalize
         GC.SuppressFinalize(this);
     }
 }

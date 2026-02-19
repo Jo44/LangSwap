@@ -57,6 +57,9 @@ public sealed class Plugin : IDalamudPlugin
     // ----------------------------
     public Plugin(IDataManager dataManager, IGameGui gameGui, IGameInteropProvider gameInterop, ISigScanner sigScanner)
     {
+        // Log plugin initialization
+        Log.Information("=== LangSwap plugin initialization ===");
+
         // Load configuration
         _config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 

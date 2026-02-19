@@ -233,6 +233,7 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     public void Dispose()
     {
+        // Finalize
         GC.SuppressFinalize(this);
     }
 

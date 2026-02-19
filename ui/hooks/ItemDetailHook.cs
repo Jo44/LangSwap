@@ -10,6 +10,7 @@ using LangSwap.ui.hooks.@base;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Dalamud.Game.NativeWrapper;
 
 namespace LangSwap.ui.hooks;
 
@@ -22,29 +23,33 @@ public unsafe class ItemDetailHook(
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
-    IPluginLog log) : BaseHook(configuration, gameInterop, sigScanner, translationCache, log)
+    IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, log)
 {
-    // TODO : on tri à partir d'ici :)
+    // Delegates functions
     private delegate byte ItemHoveredDelegate(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7);
     private delegate void* GenerateItemTooltipDelegate(AtkUnitBase* addonItemDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
-    private Hook<GenerateItemTooltipDelegate>? generateItemTooltipHook;
+    // Hooks
     private Hook<ItemHoveredDelegate>? itemHoveredHook;
+    private Hook<GenerateItemTooltipDelegate>? generateItemTooltipHook;
 
+    // IDs
     private uint currentItemId = 0;
     private uint currentGlamourId = 0;
 
+    // Cache for translated bytes
     private readonly Dictionary<string, byte[]> _translatedBytesCache = [];
     private const int MaxCacheSize = 500;
 
+    // Miscellaneous
+    private readonly char GlamouredSymbol = configuration.GlamouredSymbol;
+    private readonly char HighQualitySymbol = configuration.HighQualitySymbol;
+
+    // Item Detail Addon
+    private readonly string ItemDetailAddonName = configuration.ItemDetailAddonName;
     private readonly int ItemNameField = configuration.ItemNameField;
     private readonly int GlamourNameField = configuration.GlamourNameField;
     private readonly int ItemDescriptionField = configuration.ItemDescriptionField;
-    
-    private readonly string ItemDetailAddonName = configuration.ItemDetailAddonName;
-
-    private readonly char GlamouredSymbol = configuration.GlamouredSymbol;
-    private readonly char HighQualitySymbol = configuration.HighQualitySymbol;
 
     // ----------------------------
     // Enable the hook
@@ -57,7 +62,7 @@ public unsafe class ItemDetailHook(
         try
         {
             // Hook ItemHovered (-> get current item ID when hovering an item)
-            var itemHoveredAddr = sigScanner.ScanText(configuration.ItemHoveredSig);
+            nint itemHoveredAddr = sigScanner.ScanText(configuration.ItemHoveredSig);
             if (itemHoveredAddr != IntPtr.Zero)
             {
                 itemHoveredHook = gameInterop.HookFromAddress<ItemHoveredDelegate>(itemHoveredAddr, ItemHoveredDetour);
@@ -70,7 +75,7 @@ public unsafe class ItemDetailHook(
             }
 
             // Hook GenerateItemTooltip (-> modify item tooltip datas when generating it)
-            var generateItemTooltipAddr = sigScanner.ScanText(configuration.GenerateItemTooltipSig);
+            nint generateItemTooltipAddr = sigScanner.ScanText(configuration.GenerateItemTooltipSig);
             if (generateItemTooltipAddr != IntPtr.Zero)
             {
                 generateItemTooltipHook = gameInterop.HookFromAddress<GenerateItemTooltipDelegate>(generateItemTooltipAddr, GenerateItemTooltipDetour);
@@ -110,7 +115,7 @@ public unsafe class ItemDetailHook(
         currentItemId = 0;
         currentGlamourId = 0;
 
-        // Refresh item detail to apply translations
+        // Refresh item detail to restore original texts
         _translatedBytesCache.Clear();
         RefreshItemDetail();
     }
@@ -120,10 +125,11 @@ public unsafe class ItemDetailHook(
     // ----------------------------
     private void RefreshItemDetail()
     {
+        // TODO : ça fonctionne ça ou inutile ?
         try
         {
             // Get pointer to ItemDetail addon
-            var itemDetailPtr = gameGui.GetAddonByName(ItemDetailAddonName);
+            AtkUnitBasePtr itemDetailPtr = gameGui.GetAddonByName(ItemDetailAddonName);
             if (!itemDetailPtr.IsNull)
             {
                 // Get AtkUnitBase from pointer
@@ -150,12 +156,12 @@ public unsafe class ItemDetailHook(
     private byte ItemHoveredDetour(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7)
     {
         // Call original first to ensure item ID is set correctly
-        var returnValue = itemHoveredHook!.Original(a1, a2, containerId, slotId, a5, slotIdInt, a7);
+        byte returnValue = itemHoveredHook!.Original(a1, a2, containerId, slotId, a5, slotIdInt, a7);
         
         try
         {
             // Read InventoryItem from a7 to get current ID
-            var inventoryItem = *(InventoryItem*)a7;
+            InventoryItem inventoryItem = *(InventoryItem*)a7;
             currentItemId = inventoryItem.ItemId;
 
             // Try to get GlamourId
@@ -185,26 +191,13 @@ public unsafe class ItemDetailHook(
     {
         try
         {
-            // Get item ID if not already set
-            if (currentItemId == 0 || currentItemId > configuration.MaxValidItemId)
-            {
-                if (numberArrayData != null && numberArrayData->AtkArrayData.Size > 0)
-                {
-                    var potentialItemId = (uint)numberArrayData->IntArray[0];
-                    if (potentialItemId > 0 && potentialItemId < configuration.MaxValidItemId)
-                    {
-                        currentItemId = potentialItemId;
-                    }
-                }
-            }
-
             // Modify StringArrayData BEFORE calling original
             if (isLanguageSwapped && currentItemId > 0 && currentItemId < configuration.MaxValidItemId && stringArrayData != null)
             {
-                var targetLang = (LanguageEnum)configuration.TargetLanguage;
+                LanguageEnum targetLang = (LanguageEnum)configuration.TargetLanguage;
                 
                 // Translate item name (preserving formatting and symbols)
-                var translatedName = translationCache.GetItemName(currentItemId, targetLang);
+                string? translatedName = translationCache.GetItemName(currentItemId, targetLang);
                 if (!string.IsNullOrWhiteSpace(translatedName))
                 {
                     ReplaceTextPreserveFormatting(stringArrayData, ItemNameField, translatedName);
@@ -213,7 +206,7 @@ public unsafe class ItemDetailHook(
                 // Translate glamour name (preserving formatting and symbols)
                 if (currentGlamourId > 0 && currentGlamourId < configuration.MaxValidItemId)
                 {
-                    var translatedGlamourName = translationCache.GetItemName(currentGlamourId, targetLang);
+                    string? translatedGlamourName = translationCache.GetItemName(currentGlamourId, targetLang);
                     if (!string.IsNullOrWhiteSpace(translatedGlamourName))
                     {
                         ReplaceTextPreserveFormatting(stringArrayData, GlamourNameField, translatedGlamourName);
@@ -221,7 +214,7 @@ public unsafe class ItemDetailHook(
                 }
 
                 // Translate description (simple text)
-                var translatedDescription = translationCache.GetItemDescription(currentItemId, targetLang);
+                string? translatedDescription = translationCache.GetItemDescription(currentItemId, targetLang);
                 if (!string.IsNullOrWhiteSpace(translatedDescription))
                 {
                     SafeSetString(stringArrayData, ItemDescriptionField, translatedDescription);
@@ -248,14 +241,14 @@ public unsafe class ItemDetailHook(
                 return;
 
             // Read existing SeString
-            var address = new IntPtr(stringArrayData->StringArray[field]);
+            nint address = new(stringArrayData->StringArray[field]);
             if (address == IntPtr.Zero)
             {
                 SafeSetString(stringArrayData, field, newText);
                 return;
             }
 
-            var existingSeString = MemoryHelper.ReadSeStringNullTerminated(address);
+            SeString existingSeString = MemoryHelper.ReadSeStringNullTerminated(address);
             if (existingSeString == null)
             {
                 SafeSetString(stringArrayData, field, newText);
@@ -265,17 +258,17 @@ public unsafe class ItemDetailHook(
             // If there's existing formatting, preserve it
             if (existingSeString.Payloads.Count > 1)
             {
-                var builder = new SeStringBuilder();
+                SeStringBuilder builder = new();
                 bool textReplaced = false;
                 
                 // Keep EXACT order, just replace the FIRST TextPayload
-                foreach (var payload in existingSeString.Payloads)
+                foreach (Payload payload in existingSeString.Payloads)
                 {
                     if (!textReplaced && payload is TextPayload textPayload)
                     {
                         // Extract special symbols from original text
-                        var originalText = textPayload.Text ?? "";
-                        var translatedTextWithSymbols = PreserveSpecialSymbols(originalText, newText);
+                        string originalText = textPayload.Text ?? "";
+                        string translatedTextWithSymbols = PreserveSpecialSymbols(originalText, newText);
                         
                         // Replace first TextPayload with translated text + symbols
                         builder.AddText(translatedTextWithSymbols);
@@ -288,7 +281,7 @@ public unsafe class ItemDetailHook(
                     }
                 }
                 
-                var encoded = builder.Build().Encode();
+                byte[] encoded = builder.Build().Encode();
                 stringArrayData->SetValue(field, encoded, false, true, false);
                 return;
             }
@@ -308,7 +301,7 @@ public unsafe class ItemDetailHook(
     /// </summary>
     private string PreserveSpecialSymbols(string originalText, string translatedText)
     {
-        var result = new StringBuilder(translatedText.Trim());
+        StringBuilder result = new(translatedText.Trim());
         
         // Check for Glamoured symbol (usually at the beginning)
         if (originalText.Contains(GlamouredSymbol))
@@ -342,7 +335,7 @@ public unsafe class ItemDetailHook(
                 return;
 
             // Vérifier le cache
-            if (!_translatedBytesCache.TryGetValue(text, out var bytes))
+            if (!_translatedBytesCache.TryGetValue(text, out byte[]? bytes))
             {
                 // Pas dans le cache, créer les bytes
                 bytes = System.Text.Encoding.UTF8.GetBytes(text + "\0");

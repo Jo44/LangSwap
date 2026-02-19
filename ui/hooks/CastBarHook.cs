@@ -16,7 +16,7 @@ public unsafe class CastBarHook(
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
-    IPluginLog log) : BaseHook(configuration, gameInterop, sigScanner, translationCache, log)
+    IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, log)
 {
     private delegate void UpdateCastBarDelegate(IntPtr castBarPtr, uint actionId, IntPtr actionNamePtr);
 
@@ -24,8 +24,6 @@ public unsafe class CastBarHook(
     private uint currentCastActionId = 0;
 
     private const string CastBarAddonName = "_CastBar";
-
-    private readonly IGameGui gameGui = gameGui;
 
     public override void Enable()
     {

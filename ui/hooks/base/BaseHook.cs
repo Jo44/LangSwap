@@ -9,6 +9,7 @@ namespace LangSwap.ui.hooks.@base;
 // ----------------------------
 public abstract class BaseHook(
     Configuration configuration,
+    IGameGui gameGui,
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
@@ -16,6 +17,7 @@ public abstract class BaseHook(
 {
     // Core components
     protected readonly Configuration configuration = configuration;
+    protected readonly IGameGui gameGui = gameGui;
     protected readonly IGameInteropProvider gameInterop = gameInterop;
     protected readonly ISigScanner sigScanner = sigScanner;
     protected readonly TranslationCache translationCache = translationCache;

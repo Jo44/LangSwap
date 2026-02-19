@@ -42,7 +42,7 @@ public class Configuration : IPluginConfiguration
     public int MaxValidActionId { get; } = 100000;
     public int MaxValidItemId { get; } = 100000;
 
-    // Item Detail
+    // Item Detail Addon
     public string ItemDetailAddonName { get; } = "ItemDetail";
     public int ItemNameField { get; } = 0;
     public int GlamourNameField { get; } = 1;

@@ -17,7 +17,7 @@ public unsafe class ActionDetailHook(
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
-    IPluginLog log) : BaseHook(configuration, gameInterop, sigScanner, translationCache, log)
+    IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, log)
 {
     private delegate void* GenerateActionTooltipDelegate(AtkUnitBase* addonActionDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
@@ -27,8 +27,6 @@ public unsafe class ActionDetailHook(
     private const int ActionNameField = 0;
     private const int ActionDescriptionField = 13;
     private const string ActionDetailAddonName = "ActionDetail";
-
-    private readonly IGameGui gameGui = gameGui;
 
     public override void Enable()
     {

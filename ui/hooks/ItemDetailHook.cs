@@ -92,7 +92,7 @@ public unsafe class ItemDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to enable ItemDetail Hook");
+            log.Error(ex, "Failed to enable ItemDetail hooks");
         }
     }
 
@@ -125,7 +125,6 @@ public unsafe class ItemDetailHook(
     // ----------------------------
     private void RefreshItemDetail()
     {
-        // TODO : ça fonctionne ça ou inutile ?
         try
         {
             // Get pointer to ItemDetail addon
@@ -136,10 +135,10 @@ public unsafe class ItemDetailHook(
                 AtkUnitBase* itemDetail = (AtkUnitBase*)itemDetailPtr.Address;
                 
                 // Only refresh if the addon is currently visible
-                if (itemDetail != null && itemDetail->IsVisible)
+                if (itemDetail != null && itemDetail -> IsVisible)
                 {
-                    itemDetail->Hide(true, false, 0);
-                    itemDetail->Show(true, 0);
+                    itemDetail -> Hide(true, false, 0);
+                    itemDetail -> Show(true, 0);
                 }
             }
         }
@@ -191,66 +190,71 @@ public unsafe class ItemDetailHook(
     {
         try
         {
-            // Modify StringArrayData BEFORE calling original
+            // Modify texts in StringArrayData
             if (isLanguageSwapped && currentItemId > 0 && currentItemId < configuration.MaxValidItemId && stringArrayData != null)
             {
-                LanguageEnum targetLang = (LanguageEnum)configuration.TargetLanguage;
+                // Get target language
+                LanguageEnum lang = (LanguageEnum)configuration.TargetLanguage;
                 
-                // Translate item name (preserving formatting and symbols)
-                string? translatedName = translationCache.GetItemName(currentItemId, targetLang);
+                // Translate item name
+                string? translatedName = translationCache.GetItemName(currentItemId, lang);
                 if (!string.IsNullOrWhiteSpace(translatedName))
                 {
-                    ReplaceTextPreserveFormatting(stringArrayData, ItemNameField, translatedName);
+                    ReplaceText(stringArrayData, ItemNameField, translatedName);
                 }
 
-                // Translate glamour name (preserving formatting and symbols)
+                // Translate glamour name
                 if (currentGlamourId > 0 && currentGlamourId < configuration.MaxValidItemId)
                 {
-                    string? translatedGlamourName = translationCache.GetItemName(currentGlamourId, targetLang);
+                    string? translatedGlamourName = translationCache.GetItemName(currentGlamourId, lang);
                     if (!string.IsNullOrWhiteSpace(translatedGlamourName))
                     {
-                        ReplaceTextPreserveFormatting(stringArrayData, GlamourNameField, translatedGlamourName);
+                        ReplaceText(stringArrayData, GlamourNameField, translatedGlamourName);
                     }
                 }
 
-                // Translate description (simple text)
-                string? translatedDescription = translationCache.GetItemDescription(currentItemId, targetLang);
+                // Translate description
+                string? translatedDescription = translationCache.GetItemDescription(currentItemId, lang);
                 if (!string.IsNullOrWhiteSpace(translatedDescription))
                 {
-                    SafeSetString(stringArrayData, ItemDescriptionField, translatedDescription);
+                    ReplaceText(stringArrayData, ItemDescriptionField, translatedDescription);
                 }
             }
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception in GenerateItemTooltip BEFORE original for item {currentItemId}");
+            log.Error(ex, $"Exception in GenerateItemTooltip before original for item {currentItemId}");
         }
 
         // Call original to generate the tooltip
         return generateItemTooltipHook!.Original(addonItemDetail, numberArrayData, stringArrayData);
     }
 
-    /// <summary>
-    /// Replace text in SeString while preserving formatting and special symbols
-    /// </summary>
-    private void ReplaceTextPreserveFormatting(StringArrayData* stringArrayData, int field, string newText)
+    // ----------------------------
+    // Replace text in SeString
+    // ----------------------------
+    private void ReplaceText(StringArrayData* stringArrayData, int field, string newText)
     {
         try
         {
-            if (stringArrayData == null || field >= stringArrayData->AtkArrayData.Size)
+            // Check for null pointer and valid field index
+            if (stringArrayData == null || field >= stringArrayData -> AtkArrayData.Size)
                 return;
 
-            // Read existing SeString
-            nint address = new(stringArrayData->StringArray[field]);
+            // Get memory address of existing string
+            nint address = new(stringArrayData -> StringArray[field]);
             if (address == IntPtr.Zero)
             {
+                // Set plain text if no existing string
                 SafeSetString(stringArrayData, field, newText);
                 return;
             }
 
+            // Get existing SeString from memory address
             SeString existingSeString = MemoryHelper.ReadSeStringNullTerminated(address);
             if (existingSeString == null)
             {
+                // Set plain text if failed to read existing string
                 SafeSetString(stringArrayData, field, newText);
                 return;
             }
@@ -258,10 +262,11 @@ public unsafe class ItemDetailHook(
             // If there's existing formatting, preserve it
             if (existingSeString.Payloads.Count > 1)
             {
+                // Prepare a new SeStringBuilder
                 SeStringBuilder builder = new();
                 bool textReplaced = false;
                 
-                // Keep EXACT order, just replace the FIRST TextPayload
+                // Replace the first TextPayload found
                 foreach (Payload payload in existingSeString.Payloads)
                 {
                     if (!textReplaced && payload is TextPayload textPayload)
@@ -276,13 +281,14 @@ public unsafe class ItemDetailHook(
                     }
                     else
                     {
-                        // Keep ALL other payloads in EXACT order
+                        // Keep all other payloads in exact order
                         builder.Add(payload);
                     }
                 }
-                
+
+                // Encode the modified SeString and set it back to StringArrayData
                 byte[] encoded = builder.Build().Encode();
-                stringArrayData->SetValue(field, encoded, false, true, false);
+                stringArrayData -> SetValue(field, encoded, false, true, false);
                 return;
             }
             
@@ -296,68 +302,76 @@ public unsafe class ItemDetailHook(
         }
     }
 
-    /// <summary>
-    /// Preserve special symbols (Glamoured, HQ) from original text and add them to translated text
-    /// </summary>
+    // ----------------------------
+    // Preserve special symbols (Glamoured, HQ)
+    // ----------------------------
     private string PreserveSpecialSymbols(string originalText, string translatedText)
     {
+        // Prepare result
         StringBuilder result = new(translatedText.Trim());
-        
-        // Check for Glamoured symbol (usually at the beginning)
+
+        // Check for Glamoured symbol in original text
         if (originalText.Contains(GlamouredSymbol))
         {
+            // Insert Glamoured symbol in translated text
             result.Insert(0, $"{GlamouredSymbol} ");
         }
-        
-        // Check for HQ symbol (usually at the end)
+
+        // Check for HQ symbol in original text
         if (originalText.Contains(HighQualitySymbol))
         {
+            // Insert HQ symbol in translated text
             result.Append($" {HighQualitySymbol}");
         }
-        
+
+        // Return final text with preserved symbols
         return result.ToString();
     }
 
-    /// <summary>
-    /// Safely set a string in StringArrayData with bounds checking and caching
-    /// </summary>
+    // ----------------------------
+    // Safely set a string in StringArrayData
+    // ----------------------------
     private void SafeSetString(StringArrayData* stringArrayData, int field, string text)
     {
         try
         {
+            // Check for null pointer
             if (stringArrayData == null)
                 return;
 
-            if (field >= stringArrayData->AtkArrayData.Size)
+            // Check field index is within bounds
+            if (field >= stringArrayData -> AtkArrayData.Size)
                 return;
 
+            // Check for empty or null text
             if (string.IsNullOrEmpty(text))
                 return;
 
-            // Vérifier le cache
+            // Check cache first to avoid unnecessary encoding
             if (!_translatedBytesCache.TryGetValue(text, out byte[]? bytes))
             {
-                // Pas dans le cache, créer les bytes
-                bytes = System.Text.Encoding.UTF8.GetBytes(text + "\0");
-                
-                if (bytes.Length > 1024 * 10) // 10KB limit
+                // Get bytes of text
+                bytes = Encoding.UTF8.GetBytes(text + "\0");
+
+                // Check for excessively long text (10KB limit)
+                if (bytes.Length > 1024 * 10)
                     return;
 
-                // Ajouter au cache si la taille n'est pas dépassée
+                // Add to cache if size limit not exceeded
                 if (_translatedBytesCache.Count < MaxCacheSize)
                 {
                     _translatedBytesCache[text] = bytes;
                 }
                 else
                 {
-                    // Cache plein, le vider et recommencer
+                    // Clear cache before if limit exceeded
                     _translatedBytesCache.Clear();
                     _translatedBytesCache[text] = bytes;
-                    log.Debug("Translation bytes cache cleared due to size limit");
                 }
             }
 
-            stringArrayData->SetValue(field, bytes, false, true, false);
+            // Set the string value in StringArrayData
+            stringArrayData -> SetValue(field, bytes, false, true, false);
         }
         catch (Exception ex)
         {

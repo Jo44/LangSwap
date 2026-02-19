@@ -73,11 +73,11 @@ public unsafe class ActionDetailHook(
             if (!actionDetailPtr.IsNull)
             {
                 var actionDetail = (AtkUnitBase*)actionDetailPtr.Address;
-                if (actionDetail != null && actionDetail->IsVisible)
+                if (actionDetail != null && actionDetail -> IsVisible)
                 {
                     log.Debug("Refreshing ActionDetail");
-                    actionDetail->Hide(true, false, 0);
-                    actionDetail->Show(true, 0);
+                    actionDetail -> Hide(true, false, 0);
+                    actionDetail -> Show(true, 0);
                 }
             }
         }
@@ -91,9 +91,9 @@ public unsafe class ActionDetailHook(
     {
         try
         {
-            if (numberArrayData != null && numberArrayData->AtkArrayData.Size > 0)
+            if (numberArrayData != null && numberArrayData -> AtkArrayData.Size > 0)
             {
-                var potentialActionId = (uint)numberArrayData->IntArray[0];
+                var potentialActionId = (uint)numberArrayData -> IntArray[0];
                 if (potentialActionId > 0 && potentialActionId < configuration.MaxValidActionId)
                 {
                     currentActionId = potentialActionId;
@@ -126,11 +126,11 @@ public unsafe class ActionDetailHook(
     {
         try
         {
-            if (stringArrayData == null || stringArrayData->AtkArrayData.Size <= field)
+            if (stringArrayData == null || stringArrayData -> AtkArrayData.Size <= field)
                 return;
 
-            var bytes = System.Text.Encoding.UTF8.GetBytes(text + "\0");
-            stringArrayData->SetValue(field, bytes, false, true, false);
+            var bytes = System .Text.Encoding.UTF8.GetBytes(text + "\0");
+            stringArrayData -> SetValue(field, bytes, false, true, false);
         }
         catch (Exception ex)
         {

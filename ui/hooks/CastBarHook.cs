@@ -70,7 +70,7 @@ public unsafe class CastBarHook(
             if (!castBarPtr.IsNull)
             {
                 var castBar = (AtkUnitBase*)castBarPtr.Address;
-                if (castBar != null && castBar->IsVisible && currentCastActionId > 0)
+                if (castBar != null && castBar -> IsVisible && currentCastActionId > 0)
                 {
                     log.Debug($"Refreshing CastBar for action {currentCastActionId}");
                     TranslateCastBarText(castBar);
@@ -125,14 +125,14 @@ public unsafe class CastBarHook(
             if (currentCastActionId == 0 || currentCastActionId > configuration.MaxValidActionId)
                 return;
 
-            for (var i = 0; i < castBar->UldManager.NodeListCount; i++)
+            for (var i = 0; i < castBar -> UldManager.NodeListCount; i++)
             {
-                var node = castBar->UldManager.NodeList[i];
-                if (node == null || (int)node->Type != 3)
+                var node = castBar -> UldManager.NodeList[i];
+                if (node == null || (int)node -> Type != 3)
                     continue;
 
                 var textNode = (AtkTextNode*)node;
-                if (textNode->NodeText.ToString().Length == 0)
+                if (textNode -> NodeText.ToString().Length == 0)
                     continue;
 
                 var targetLang = (LanguageEnum)configuration.TargetLanguage;
@@ -140,7 +140,7 @@ public unsafe class CastBarHook(
                 
                 if (!string.IsNullOrWhiteSpace(translatedName))
                 {
-                    textNode->SetText(translatedName);
+                    textNode -> SetText(translatedName);
                     log.Information($"Updated cast bar text to: {translatedName}");
                     break;
                 }

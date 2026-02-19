@@ -7,7 +7,7 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 - Configure options through a `Settings` window.
 - Slash command: `/langswap`.
 
-## Default values (first run)
+## Default values
 - Target language: English
 - Primary key: `Y`
 - Modifier: `Alt`

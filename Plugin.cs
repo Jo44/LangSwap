@@ -19,6 +19,11 @@ namespace LangSwap;
 // ----------------------------
 public sealed class Plugin : IDalamudPlugin
 {
+    // ////////////////////////////// //
+    //             TODO               //
+    // ////////////////////////////// //
+    // - test : jeu en fr -> trad en -> payloads description tooltips
+
     // Plugin services
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;

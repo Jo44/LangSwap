@@ -217,8 +217,6 @@ public unsafe class ItemDetailHook(
                 string? translatedDescription = translationCache.GetItemDescription(currentItemId, lang);
                 if (!string.IsNullOrWhiteSpace(translatedDescription))
                 {
-                    // TODO : du coup on récupère plusieurs payloads pour la description
-                    // log pour voir ce qu'il y a dedans, si on peut traduire d'autres choses ou non
                     ReplaceText(stringArrayData, ItemDescriptionField, translatedDescription);
                 }
             }
@@ -279,11 +277,18 @@ public unsafe class ItemDetailHook(
                         
                         // Replace first TextPayload with translated text + symbols
                         builder.AddText(translatedTextWithSymbols);
+
+                        // Flag to indicate text has been replaced
                         textReplaced = true;
                     }
                     else
                     {
-                        // Keep all other payloads in exact order
+                        // Clean other payloads of any text
+                        if (payload is TextPayload otherTextPayload)
+                        {
+                            otherTextPayload.Text = "";
+                        }
+                        // Keep them in exact order
                         builder.Add(payload);
                     }
                 }

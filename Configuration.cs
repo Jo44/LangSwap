@@ -32,6 +32,8 @@ public class Configuration : IPluginConfiguration
 
     // Signatures
     public string CastBarSig { get; } = "48 83 EC 38 48 8B 92";
+
+    public string ActionHoveredSig { get; } = "E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 48 89 9C 24 ?? ?? ?? ?? 4C 89 A4 24";
     public string GenerateActionTooltipSig { get; } = "E8 ?? ?? ?? ?? 48 8B 43 28 48 8B AF";
     public string ItemHoveredSig { get; } = "E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 48 89 9C 24 ?? ?? ?? ?? 4C 89 A4 24";
     public string GenerateItemTooltipSig { get; } = "48 89 5C 24 ?? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ?? 48 8B 42 ?? 4C 8B EA";
@@ -41,6 +43,11 @@ public class Configuration : IPluginConfiguration
     public char HighQualitySymbol { get; } = '\uE03C'; // HQ symbol
     public int MaxValidActionId { get; } = 100000;
     public int MaxValidItemId { get; } = 100000;
+
+    // Action Detail Addon
+    public string ActionDetailAddonName { get; } = "ActionDetail";
+    public int ActionNameField { get; } = 0;
+    public int ActionDescriptionField { get; } = 13;
 
     // Item Detail Addon
     public string ItemDetailAddonName { get; } = "ItemDetail";

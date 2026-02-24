@@ -23,12 +23,10 @@ public unsafe class ActionDetailHook(
     TranslationCache translationCache,
     IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, log)
 {
-    // Delegates functions
-    private delegate byte ActionHoveredDelegate(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7);
+    // Delegate function
     private delegate void* GenerateActionTooltipDelegate(AtkUnitBase* addonActionDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
-    // Hooks
-    private Hook<ActionHoveredDelegate>? actionHoveredHook;
+    // Hook
     private Hook<GenerateActionTooltipDelegate>? generateActionTooltipHook;
 
     // ID
@@ -53,19 +51,6 @@ public unsafe class ActionDetailHook(
 
         try
         {
-            // Hook ActionHovered (-> get current action ID when hovering an action)
-            nint actionHoveredAddr = sigScanner.ScanText(configuration.ActionHoveredSig);
-            if (actionHoveredAddr != IntPtr.Zero)
-            {
-                actionHoveredHook = gameInterop.HookFromAddress<ActionHoveredDelegate>(actionHoveredAddr, ActionHoveredDetour);
-                actionHoveredHook.Enable();
-                log.Debug($"ActionHovered hook enabled at 0x{actionHoveredAddr:X}");
-            }
-            else
-            {
-                log.Warning("ActionHovered signature not found");
-            }
-
             // Hook GenerateActionTooltip (-> modify action tooltip datas when generating it)
             nint generateActionTooltipAddr = sigScanner.ScanText(configuration.GenerateActionTooltipSig);
             if (generateActionTooltipAddr != IntPtr.Zero)
@@ -84,7 +69,7 @@ public unsafe class ActionDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to enable ActionDetail hooks");
+            log.Error(ex, "Failed to enable ActionDetail hook");
         }
     }
 
@@ -137,30 +122,6 @@ public unsafe class ActionDetailHook(
         {
             log.Error(ex, "Failed to refresh ActionDetail");
         }
-    }
-
-    // ----------------------------
-    // On Action Hovered
-    // -> Get current action ID when hovering an action
-    // ----------------------------
-    private byte ActionHoveredDetour(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7)
-    {
-        // Call original first to ensure action ID is set correctly
-        byte returnValue = actionHoveredHook!.Original(a1, a2, containerId, slotId, a5, slotIdInt, a7);
-
-        try
-        {
-            // TODO
-            ActionManager actionManager = *(ActionManager*)a7;
-            currentActionId = 0;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, "Exception in ActionHovered detour");
-        }
-
-        // Return original value
-        return returnValue;
     }
 
     // ----------------------------
@@ -229,19 +190,16 @@ public unsafe class ActionDetailHook(
 
         try
         {
-            // Disable ActionHovered hook
-            actionHoveredHook?.Disable();
-
             // Disable GenerateActionTooltip hook
             generateActionTooltipHook?.Disable();
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug("ActionDetail hooks disabled");
+            log.Debug("ActionDetail hook disabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to disable ActionDetail hooks");
+            log.Error(ex, "Failed to disable ActionDetail hook");
         }
     }
 
@@ -252,11 +210,6 @@ public unsafe class ActionDetailHook(
     {
         try
         {
-            // Dispose ActionHovered hook
-            actionHoveredHook?.Disable();
-            actionHoveredHook?.Dispose();
-            actionHoveredHook = null;
-
             // Dispose GenerateActionTooltip hook
             generateActionTooltipHook?.Disable();
             generateActionTooltipHook?.Dispose();
@@ -267,11 +220,11 @@ public unsafe class ActionDetailHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug("ActionDetail hooks disposed");
+            log.Debug("ActionDetail hook disposed");
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to dispose ActionDetail hooks");
+            log.Error(ex, "Failed to dispose ActionDetail hook");
         }
 
         // Finalize

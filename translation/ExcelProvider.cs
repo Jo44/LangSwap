@@ -11,20 +11,56 @@ namespace LangSwap.translation;
 // ----------------------------
 public class ExcelProvider(Configuration config, IDataManager dataManager, IPluginLog log)
 {
+    //
+    // ========== BASE PARAMS ==========
+    //
+
     // ----------------------------
-    // Convert LanguageEnum to ClientLanguage
+    // Get base param name by name
     // ----------------------------
-    private static ClientLanguage EnumToClientLang(LanguageEnum lang)
+    public string? GetBaseParamName(string paramName, LanguageEnum clientLang, LanguageEnum targetLang)
     {
-        // Map LanguageEnum to ClientLanguage
-        return lang switch
+        try
         {
-            LanguageEnum.Japanese => ClientLanguage.Japanese,
-            LanguageEnum.English => ClientLanguage.English,
-            LanguageEnum.German => ClientLanguage.German,
-            LanguageEnum.French => ClientLanguage.French,
-            _ => ClientLanguage.English
-        };
+            // Access the BaseParam sheet for the client language
+            ExcelSheet<BaseParam> clientSheet = dataManager.GetExcelSheet<BaseParam>(EnumToClientLang(clientLang));
+            if (clientSheet == null)
+            {
+                log.Warning($"BaseParam sheet is not available for language {clientLang}");
+                return null;
+            }
+
+            // Find the row ID matching the client language name
+            uint? rowId = null;
+            foreach (BaseParam row in clientSheet)
+            {
+                if (row.Name.ToString().Equals(paramName, StringComparison.OrdinalIgnoreCase))
+                {
+                    rowId = row.RowId;
+                    break;
+                }
+            }
+
+            // Check if row ID is found
+            if (rowId == null)
+            {
+                return null;
+            }
+
+            // Get the translated name using the row ID in target language
+            ExcelSheet<BaseParam> targetSheet = dataManager.GetExcelSheet<BaseParam>(EnumToClientLang(targetLang));
+            if (targetSheet != null && targetSheet.TryGetRow(rowId.Value, out BaseParam translatedParam))
+            {
+                return translatedParam.Name.ToString();
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Exception while getting BaseParam {paramName} from {clientLang} to {targetLang}");
+            return null;
+        }
     }
 
     //
@@ -180,4 +216,19 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     public string? GetItemDescription(uint itemId, LanguageEnum lang)
         => GetItemProperty(itemId, lang, item => item.Description.ToString(), "description");
 
+    // ----------------------------
+    // Convert LanguageEnum to ClientLanguage
+    // ----------------------------
+    private static ClientLanguage EnumToClientLang(LanguageEnum lang)
+    {
+        // Map LanguageEnum to ClientLanguage
+        return lang switch
+        {
+            LanguageEnum.Japanese => ClientLanguage.Japanese,
+            LanguageEnum.English => ClientLanguage.English,
+            LanguageEnum.German => ClientLanguage.German,
+            LanguageEnum.French => ClientLanguage.French,
+            _ => ClientLanguage.English
+        };
+    }
 }

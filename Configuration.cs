@@ -52,6 +52,7 @@ public class Configuration : IPluginConfiguration
     public int ItemNameField { get; } = 0;
     public int GlamourNameField { get; } = 1;
     public int ItemDescriptionField { get; } = 13;
+    public int ItemEffectsField { get; } = 16;
 
     // Save configuration
     public void Save()

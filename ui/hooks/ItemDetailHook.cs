@@ -50,6 +50,7 @@ public unsafe class ItemDetailHook(
     private readonly int ItemNameField = configuration.ItemNameField;
     private readonly int GlamourNameField = configuration.GlamourNameField;
     private readonly int ItemDescriptionField = configuration.ItemDescriptionField;
+    private readonly int ItemEffectsField = configuration.ItemEffectsField;
 
     // ----------------------------
     // Enable the hook
@@ -219,6 +220,14 @@ public unsafe class ItemDetailHook(
                 {
                     ReplaceText(stringArrayData, ItemDescriptionField, translatedDescription);
                 }
+
+                // Translate effects
+                string? effectsText = ReadStringFromArray(stringArrayData, ItemEffectsField);
+                if (!string.IsNullOrWhiteSpace(effectsText))
+                {
+                    string translatedEffects = TranslateEffects(effectsText, lang);
+                    ReplaceText(stringArrayData, ItemEffectsField, translatedEffects);
+                }
             }
         }
         catch (Exception ex)
@@ -228,6 +237,33 @@ public unsafe class ItemDetailHook(
 
         // Call original to generate the tooltip
         return generateItemTooltipHook!.Original(addonItemDetail, numberArrayData, stringArrayData);
+    }
+
+    // ----------------------------
+    // Read string from StringArrayData at specified index
+    // ----------------------------
+    private string ReadStringFromArray(StringArrayData* stringArrayData, int index)
+    {
+        try
+        {
+            // Check for null pointer and valid index
+            if (stringArrayData == null || index >= stringArrayData -> AtkArrayData.Size)
+                return string.Empty;
+
+            // Get memory address of the string
+            nint address = new(stringArrayData -> StringArray[index]);
+            if (address == IntPtr.Zero)
+                return string.Empty;
+
+            // Read SeString from memory and convert to string
+            SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
+            return seString?.ToString() ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Failed to read string at index {index}");
+            return string.Empty;
+        }
     }
 
     // ----------------------------
@@ -383,6 +419,83 @@ public unsafe class ItemDetailHook(
         catch (Exception ex)
         {
             log.Error(ex, $"Failed to safely set string at field {field}");
+        }
+    }
+
+    // ----------------------------
+    // Translate effects text
+    // ----------------------------
+    private string TranslateEffects(string effectsText, LanguageEnum targetLang)
+    {
+        // No effects
+        if (string.IsNullOrWhiteSpace(effectsText))
+            return effectsText;
+
+        try
+        {
+            // Split effects by line breaks
+            string[] lines = effectsText.Split('\n');
+            List<string> translatedLines = [];
+
+            foreach (string line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    translatedLines.Add(line);
+                    continue;
+                }
+
+                // Translate stat name while preserving values and formatting
+                string translatedLine = TranslateStatName(line, targetLang);
+                translatedLines.Add(translatedLine);
+            }
+
+            return string.Join("\n", translatedLines);
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, "Failed to translate effects");
+            return effectsText;
+        }
+    }
+
+    // ----------------------------
+    // Translate stat name in effect line
+    // ----------------------------
+    private string TranslateStatName(string line, LanguageEnum targetLang)
+    {
+        try
+        {
+            // Extract stat name from line
+            int plusIndex = line.IndexOf('+');
+
+            // No stat format found
+            if (plusIndex <= 0)
+            {
+                return line;
+            }
+
+            // Get stat name and the rest of the line
+            string statName = line[..plusIndex].Trim();
+            string remainder = line[plusIndex..];
+
+            // Get client language
+            LanguageEnum clientLang = (LanguageEnum)configuration.ClientLanguage;
+
+            // Translate stat name from client language to target language
+            string? translatedStat = translationCache.GetBaseParamName(statName, clientLang, targetLang);
+            if (!string.IsNullOrWhiteSpace(translatedStat))
+            {
+                return $"{translatedStat} {remainder}";
+            }
+
+            // If no translation found, return original line
+            return line;
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Failed to translate stat name in line: {line}");
+            return line;
         }
     }
 

@@ -7,17 +7,20 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 - Configure options through a `Settings` window.
 - Slash command: `/langswap`.
 
+## Limitations
+- Item tooltip only translate : name, glamour, description, bonuses and materias
+
 ## Default values
-- Target language: English
-- Primary key: `Y`
-- Modifier: `Alt`
+- Target language: `English`
+- Shortcut: `Alt + Y`
+- Components: `Castbars`, `Action tooltips` and `Item tooltips`
 
 ## Usage
 1. Open the plugin manager in FFXIV.
 2. Click the `Settings` button to open the configuration window.
 3. Set the `Target Language`.
 4. Set the keyboard shortcut : `Primary Key` and modifier keys (`Ctrl`, `Alt`, `Shift`).
-5. Set the UI components who will be affected : `Castbars`, `Action details` and `Item details`.
+5. Set the UI components who will be affected : `Castbars`, `Action tooltips` and `Item tooltips`.
 6. Press the configured combination to switch languages; press again to restore the original language.
 
 You can also open/close the settings window via `/langswap`.

@@ -34,9 +34,9 @@ public class HookManager(
         // Add hooks if component is enabled
         if (configuration.Castbars)
             // TODO : hooks.Add(castBarHook);
-        if (configuration.ActionDetails)
+        if (configuration.ActionTooltips)
             // TODO : hooks.Add(actionDetailHook);
-        if (configuration.ItemDetails)
+        if (configuration.ItemTooltips)
             hooks.Add(itemDetailHook);
 
         // Enable all hooks
@@ -68,12 +68,12 @@ public class HookManager(
                         castBarHook.Enable();
                     break;
                 // Add action detail hook
-                case HookEnum.ActionDetail:
+                case HookEnum.ActionTooltip:
                     if (hooks.Add(actionDetailHook))
                         actionDetailHook.Enable();
                     break;
                 // Add item detail hook
-                case HookEnum.ItemDetail:
+                case HookEnum.ItemTooltip:
                     if (hooks.Add(itemDetailHook))
                         itemDetailHook.Enable();
                     break;
@@ -138,12 +138,12 @@ public class HookManager(
                         castBarHook.Disable();
                     break;
                 // Remove action detail hook
-                case HookEnum.ActionDetail:
+                case HookEnum.ActionTooltip:
                     if (hooks.Remove(actionDetailHook))
                         actionDetailHook.Disable();
                     break;
                 // Remove item detail hook
-                case HookEnum.ItemDetail:
+                case HookEnum.ItemTooltip:
                     if (hooks.Remove(itemDetailHook))
                         itemDetailHook.Disable();
                     break;

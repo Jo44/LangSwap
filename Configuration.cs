@@ -27,8 +27,8 @@ public class Configuration : IPluginConfiguration
 
     // Components
     public bool Castbars { get; set; } = true;
-    public bool ActionDetails { get; set; } = true;
-    public bool ItemDetails { get; set; } = true;
+    public bool ActionTooltips { get; set; } = true;
+    public bool ItemTooltips { get; set; } = true;
 
     // Signatures
     public string CastBarSig { get; } = "48 83 EC 38 48 8B 92";

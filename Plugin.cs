@@ -102,8 +102,8 @@ public sealed class Plugin : IDalamudPlugin
         Log.Debug($"Alt = {_config.Alt}");
         Log.Debug($"Shift = {_config.Shift}");
         Log.Debug($"Castbars = {_config.Castbars}");
-        Log.Debug($"ActionDetails = {_config.ActionDetails}");
-        Log.Debug($"ItemDetails = {_config.ItemDetails}");
+        Log.Debug($"ActionDetails = {_config.ActionTooltips}");
+        Log.Debug($"ItemDetails = {_config.ItemTooltips}");
     }
 
     // ----------------------------

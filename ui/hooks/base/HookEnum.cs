@@ -6,8 +6,8 @@
     public enum HookEnum
     {
         CastBar = 0,
-        ActionDetail = 1,
-        ItemDetail = 2
+        ActionTooltip = 1,
+        ItemTooltip = 2
     }
 
 }

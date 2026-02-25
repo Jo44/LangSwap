@@ -53,6 +53,12 @@ public class Configuration : IPluginConfiguration
     public int GlamourNameField { get; } = 1;
     public int ItemDescriptionField { get; } = 13;
     public int ItemEffectsField { get; } = 16;
+    public int ItemBonusesStartField { get; } = 37;
+    public int ItemBonusesEndField { get; } = 49;
+    public int ItemMateriaNameStartField { get; } = 53;
+    public int ItemMateriaNameEndField { get; } = 57;
+    public int ItemMateriaStatStartField { get; } = 58;
+    public int ItemMateriaStatEndField { get; } = 62;
 
     // Save configuration
     public void Save()

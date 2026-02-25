@@ -217,6 +217,55 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         => GetItemProperty(itemId, lang, item => item.Description.ToString(), "description");
 
     // ----------------------------
+    // Get item ID by name (reverse lookup)
+    // ----------------------------
+    public uint? GetItemIdByName(string itemName, LanguageEnum lang)
+    {
+        try
+        {
+            // Validate input
+            if (string.IsNullOrWhiteSpace(itemName))
+                return null;
+
+            // Normalize the search name for comparison
+            string normalizedSearchName = itemName.Trim();
+
+            // Get the Item sheet for the specified language
+            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(lang));
+            if (itemSheet == null)
+            {
+                log.Warning($"Item sheet is not available for language {lang}");
+                return null;
+            }
+
+            // Search through items for matching name
+            foreach (Item item in itemSheet)
+            {
+                // Skip invalid items
+                if (item.RowId == 0)
+                    continue;
+
+                // Get item name in the target language
+                string itemNameInLang = item.Name.ToString() ?? string.Empty;
+
+                // Compare names (case-insensitive)
+                if (string.Equals(normalizedSearchName, itemNameInLang.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return item.RowId;
+                }
+            }
+
+            // No match found
+            return null;
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Failed to get item ID for name: {itemName}");
+            return null;
+        }
+    }
+
+    // ----------------------------
     // Convert LanguageEnum to ClientLanguage
     // ----------------------------
     private static ClientLanguage EnumToClientLang(LanguageEnum lang)

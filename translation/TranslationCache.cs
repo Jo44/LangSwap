@@ -18,6 +18,7 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
     // Item caches
     private readonly Dictionary<(uint, LanguageEnum), string?> itemNameCache = [];
     private readonly Dictionary<(uint, LanguageEnum), string?> itemDescriptionCache = [];
+    private readonly Dictionary<(string, LanguageEnum), uint?> itemIdByNameCache = [];
 
     //
     // ========== BASE PARAMS ==========
@@ -172,6 +173,38 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
     }
 
     // ----------------------------
+    // Get item ID by name (reverse lookup)
+    // ----------------------------
+    public uint? GetItemIdByName(string itemName, LanguageEnum lang)
+    {
+        // Validate input
+        if (string.IsNullOrWhiteSpace(itemName))
+            return null;
+
+        // Create cache key
+        (string, LanguageEnum) key = (itemName.Trim(), lang);
+
+        // Check cache
+        if (itemIdByNameCache.TryGetValue(key, out uint? cachedId))
+        {
+            return cachedId;
+        }
+
+        // Fetch from Excel and cache it
+        uint? itemId = excelProvider.GetItemIdByName(itemName, lang);
+        itemIdByNameCache[key] = itemId;
+
+        // Log
+        if (itemId != null)
+        {
+            log.Debug($"Cached item ID lookup '{itemName}' ({lang}): {itemId}");
+        }
+
+        // Return item ID
+        return itemId;
+    }
+
+    // ----------------------------
     // Clear all caches
     // ----------------------------
     public void Clear()
@@ -184,7 +217,7 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
         // Clear item caches
         itemNameCache.Clear();
         itemDescriptionCache.Clear();
-        
+        itemIdByNameCache.Clear();
     }
 
 }

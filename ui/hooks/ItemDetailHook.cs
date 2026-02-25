@@ -1,23 +1,25 @@
+using Dalamud.Game.NativeWrapper;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
 using Dalamud.Memory;
 using Dalamud.Plugin.Services;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.translation;
 using LangSwap.ui.hooks.@base;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
-using Dalamud.Game.NativeWrapper;
+using System.Text.RegularExpressions;
 
 namespace LangSwap.ui.hooks;
 
 // ----------------------------
 // Item Detail Hook
 // ----------------------------
-public unsafe class ItemDetailHook(
+public unsafe partial class ItemDetailHook(
     Configuration configuration,
     IGameGui gameGui,
     IGameInteropProvider gameInterop,
@@ -25,6 +27,10 @@ public unsafe class ItemDetailHook(
     TranslationCache translationCache,
     IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, log)
 {
+    // Generated Regex
+    [GeneratedRegex(@"\+\d+")]
+    private static partial Regex StatLineRegex();
+
     // Delegates functions
     private delegate byte ItemHoveredDelegate(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7);
     private delegate void* GenerateItemTooltipDelegate(AtkUnitBase* addonItemDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
@@ -51,6 +57,12 @@ public unsafe class ItemDetailHook(
     private readonly int GlamourNameField = configuration.GlamourNameField;
     private readonly int ItemDescriptionField = configuration.ItemDescriptionField;
     private readonly int ItemEffectsField = configuration.ItemEffectsField;
+    private readonly int ItemBonusesStartField = configuration.ItemBonusesStartField;
+    private readonly int ItemBonusesEndField = configuration.ItemBonusesEndField;
+    private readonly int ItemMateriaNameStartField = configuration.ItemMateriaNameStartField;
+    private readonly int ItemMateriaNameEndField = configuration.ItemMateriaNameEndField;
+    private readonly int ItemMateriaStatStartField = configuration.ItemMateriaStatStartField;
+    private readonly int ItemMateriaStatEndField = configuration.ItemMateriaStatEndField;
 
     // ----------------------------
     // Enable the hook
@@ -191,12 +203,15 @@ public unsafe class ItemDetailHook(
     {
         try
         {
+            // Log the structure of StringArrayData for debugging
+            // LogSADStructure(stringArrayData);
+
             // Modify texts in StringArrayData
             if (isLanguageSwapped && currentItemId > 0 && currentItemId < configuration.MaxValidItemId && stringArrayData != null)
             {
                 // Get target language
                 LanguageEnum lang = (LanguageEnum)configuration.TargetLanguage;
-                
+
                 // Translate item name
                 string? translatedName = translationCache.GetItemName(currentItemId, lang);
                 if (!string.IsNullOrWhiteSpace(translatedName))
@@ -207,10 +222,10 @@ public unsafe class ItemDetailHook(
                 // Translate glamour name
                 if (currentGlamourId > 0 && currentGlamourId < configuration.MaxValidItemId)
                 {
-                    string? translatedGlamourName = translationCache.GetItemName(currentGlamourId, lang);
-                    if (!string.IsNullOrWhiteSpace(translatedGlamourName))
+                    string? translatedGlamour = translationCache.GetItemName(currentGlamourId, lang);
+                    if (!string.IsNullOrWhiteSpace(translatedGlamour))
                     {
-                        ReplaceText(stringArrayData, GlamourNameField, translatedGlamourName);
+                        ReplaceText(stringArrayData, GlamourNameField, translatedGlamour);
                     }
                 }
 
@@ -222,11 +237,49 @@ public unsafe class ItemDetailHook(
                 }
 
                 // Translate effects
-                string? effectsText = ReadStringFromArray(stringArrayData, ItemEffectsField);
-                if (!string.IsNullOrWhiteSpace(effectsText))
+                string? effects = ReadStringFromArray(stringArrayData, ItemEffectsField);
+                if (!string.IsNullOrWhiteSpace(effects))
                 {
-                    string translatedEffects = TranslateEffects(effectsText, lang);
+                    string translatedEffects = TranslateEffects(effects, lang);
                     ReplaceText(stringArrayData, ItemEffectsField, translatedEffects);
+                }
+
+                // Translate bonuses
+                for (int i = ItemBonusesStartField; i <= ItemBonusesEndField; i++)
+                {
+                    string bonus = ReadStringFromArray(stringArrayData, i);
+
+                    // -> Only translate stat line
+                    if (!string.IsNullOrWhiteSpace(bonus) && StatLineRegex().IsMatch(bonus))
+                    {
+                        string translatedBonus = TranslateStat(bonus, lang);
+                        ReplaceText(stringArrayData, i, translatedBonus);
+                    }
+                }
+
+                // Translate materia names
+                for (int j = ItemMateriaNameStartField; j <= ItemMateriaNameEndField; j++)
+                {
+                    string materia = ReadStringFromArray(stringArrayData, j);
+                    if (!string.IsNullOrWhiteSpace(materia))
+                    {
+                        string translatedMateria = TranslateMateria(materia, lang);
+                        ReplaceText(stringArrayData, j, translatedMateria);
+                    }
+                }
+
+                // Translate materia stats
+                for (int k = ItemMateriaStatStartField; k <= ItemMateriaStatEndField; k++)
+                {
+                    string materia = ReadStringFromArray(stringArrayData, k);
+                    
+                    // -> Only translate stat line
+                    if (!string.IsNullOrWhiteSpace(materia) && StatLineRegex().IsMatch(materia))
+                    {
+                        string translatedMateria = TranslateStat(materia, lang);
+                        ReplaceText(stringArrayData, k, translatedMateria);
+
+                    }
                 }
             }
         }
@@ -298,77 +351,23 @@ public unsafe class ItemDetailHook(
             // If there's existing formatting, preserve it
             if (existingSeString.Payloads.Count > 1)
             {
-                // Prepare a new SeStringBuilder
-                SeStringBuilder builder = new();
-                bool textReplaced = false;
+                // Build new SeString with translated text while preserving formatting
+                byte[] encoded = BuildSeStringWithTranslation(existingSeString, newText);
                 
-                // Replace the first TextPayload found
-                foreach (Payload payload in existingSeString.Payloads)
-                {
-                    if (!textReplaced && payload is TextPayload textPayload)
-                    {
-                        // Extract special symbols from original text
-                        string originalText = textPayload.Text ?? "";
-                        string translatedTextWithSymbols = PreserveSpecialSymbols(originalText, newText);
-                        
-                        // Replace first TextPayload with translated text + symbols
-                        builder.AddText(translatedTextWithSymbols);
-
-                        // Flag to indicate text has been replaced
-                        textReplaced = true;
-                    }
-                    else
-                    {
-                        // Clean other payloads of any text
-                        if (payload is TextPayload otherTextPayload)
-                        {
-                            otherTextPayload.Text = "";
-                        }
-                        // Keep them in exact order
-                        builder.Add(payload);
-                    }
-                }
-
-                // Encode the modified SeString and set it back to StringArrayData
-                byte[] encoded = builder.Build().Encode();
+                // Set the new encoded SeString value in StringArrayData
                 stringArrayData -> SetValue(field, encoded, false, true, false);
-                return;
             }
-            
-            // No existing formatting, set plain text
-            SafeSetString(stringArrayData, field, newText);
+            else
+            {
+                // No complex formatting, set plain text
+                SafeSetString(stringArrayData, field, newText);
+            }
         }
         catch (Exception ex)
         {
             log.Error(ex, $"Failed to replace text with formatting at field {field}");
             SafeSetString(stringArrayData, field, newText);
         }
-    }
-
-    // ----------------------------
-    // Preserve special symbols (Glamoured, HQ)
-    // ----------------------------
-    private string PreserveSpecialSymbols(string originalText, string translatedText)
-    {
-        // Prepare result
-        StringBuilder result = new(translatedText.Trim());
-
-        // Check for Glamoured symbol in original text
-        if (originalText.Contains(GlamouredSymbol))
-        {
-            // Insert Glamoured symbol in translated text
-            result.Insert(0, $"{GlamouredSymbol} ");
-        }
-
-        // Check for HQ symbol in original text
-        if (originalText.Contains(HighQualitySymbol))
-        {
-            // Insert HQ symbol in translated text
-            result.Append($" {HighQualitySymbol}");
-        }
-
-        // Return final text with preserved symbols
-        return result.ToString();
     }
 
     // ----------------------------
@@ -423,79 +422,197 @@ public unsafe class ItemDetailHook(
     }
 
     // ----------------------------
-    // Translate effects text
+    // Build SeString with translated text preserving formatting
     // ----------------------------
-    private string TranslateEffects(string effectsText, LanguageEnum targetLang)
+    private byte[] BuildSeStringWithTranslation(SeString existingSeString, string newText)
+    {
+        // Prepare a new builder for the SeString
+        SeStringBuilder builder = new();
+        bool textReplaced = false;
+
+        // Replace the first TextPayload found
+        foreach (Payload payload in existingSeString.Payloads)
+        {
+            if (!textReplaced && payload is TextPayload textPayload)
+            {
+                // Extract special symbols from original text
+                string originalText = textPayload.Text ?? "";
+                string translatedTextWithSymbols = PreserveSpecialSymbols(originalText, newText);
+                        
+                // Replace first TextPayload with translated text + symbols
+                builder.AddText(translatedTextWithSymbols);
+
+                // Flag to indicate text has been replaced
+                textReplaced = true;
+            }
+            else
+            {
+                // Clean other payloads of any text
+                if (payload is TextPayload otherTextPayload)
+                {
+                    otherTextPayload.Text = "";
+                }
+                // Keep them in exact order
+                builder.Add(payload);
+            }
+        }
+
+        // Return the built SeString
+        return builder.Build().Encode();
+    }
+
+    // ----------------------------
+    // Preserve special symbols (Glamoured, HQ)
+    // ----------------------------
+    private string PreserveSpecialSymbols(string originalText, string translatedText)
+    {
+        // Prepare result
+        StringBuilder result = new(translatedText.Trim());
+
+        // Check for Glamoured symbol in original text
+        if (originalText.Contains(GlamouredSymbol))
+        {
+            // Insert Glamoured symbol in translated text
+            result.Insert(0, $"{GlamouredSymbol} ");
+        }
+
+        // Check for HQ symbol in original text
+        if (originalText.Contains(HighQualitySymbol))
+        {
+            // Insert HQ symbol in translated text
+            result.Append($" {HighQualitySymbol}");
+        }
+
+        // Return final text with preserved symbols
+        return result.ToString();
+    }
+
+    // ----------------------------
+    // Translate effects
+    // ----------------------------
+    private string TranslateEffects(string effects, LanguageEnum targetLang)
     {
         // No effects
-        if (string.IsNullOrWhiteSpace(effectsText))
-            return effectsText;
+        if (string.IsNullOrWhiteSpace(effects))
+            return effects;
 
         try
         {
             // Split effects by line breaks
-            string[] lines = effectsText.Split('\n');
-            List<string> translatedLines = [];
+            string[] lines = effects.Split('\n');
 
-            foreach (string line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    translatedLines.Add(line);
-                    continue;
-                }
+            // Translate each line individually
+            string[] translatedLines = [.. lines.Select(line => 
+                string.IsNullOrWhiteSpace(line) ? line : TranslateStat(line, targetLang)
+            )];
 
-                // Translate stat name while preserving values and formatting
-                string translatedLine = TranslateStatName(line, targetLang);
-                translatedLines.Add(translatedLine);
-            }
-
+            // Join translated lines back together
             return string.Join("\n", translatedLines);
         }
         catch (Exception ex)
         {
             log.Error(ex, "Failed to translate effects");
-            return effectsText;
+            return effects;
         }
     }
 
     // ----------------------------
-    // Translate stat name in effect line
+    // Translate stat name
     // ----------------------------
-    private string TranslateStatName(string line, LanguageEnum targetLang)
+    private string TranslateStat(string stat, LanguageEnum targetLang)
     {
         try
         {
             // Extract stat name from line
-            int plusIndex = line.IndexOf('+');
+            int plusIndex = stat.IndexOf('+');
 
             // No stat format found
             if (plusIndex <= 0)
-            {
-                return line;
-            }
+                return stat;
 
             // Get stat name and the rest of the line
-            string statName = line[..plusIndex].Trim();
-            string remainder = line[plusIndex..];
+            string statName = stat[..plusIndex].Trim();
+            string valuePart = stat[plusIndex..];
 
             // Get client language
             LanguageEnum clientLang = (LanguageEnum)configuration.ClientLanguage;
 
             // Translate stat name from client language to target language
             string? translatedStat = translationCache.GetBaseParamName(statName, clientLang, targetLang);
-            if (!string.IsNullOrWhiteSpace(translatedStat))
-            {
-                return $"{translatedStat} {remainder}";
-            }
 
-            // If no translation found, return original line
-            return line;
+            // Return translated stat name with value
+            return !string.IsNullOrWhiteSpace(translatedStat) 
+                ? $"{translatedStat} {valuePart}" 
+                : stat;
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to translate stat name in line: {line}");
-            return line;
+            log.Error(ex, $"Failed to translate stat name: {stat}");
+            return stat;
+        }
+    }
+
+    // ----------------------------
+    // Translate materia name
+    // ----------------------------
+    private string TranslateMateria(string materiaName, LanguageEnum targetLang)
+    {
+        try
+        {
+            // Get client language
+            LanguageEnum clientLang = (LanguageEnum)configuration.ClientLanguage;
+
+            // Try to get materia ID from name
+            uint? materiaId = translationCache.GetItemIdByName(materiaName, clientLang);
+
+            if (materiaId.HasValue && materiaId.Value > 0 && materiaId.Value < configuration.MaxValidItemId)
+            {
+                // Translate using item name translation
+                string? translatedMateria = translationCache.GetItemName(materiaId.Value, targetLang);
+                if (!string.IsNullOrWhiteSpace(translatedMateria))
+                    return translatedMateria;
+            }
+
+            // If no translation found, return original name
+            return materiaName;
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Failed to translate materia name: {materiaName}");
+            return materiaName;
+        }
+    }
+
+    // ----------------------------
+    // Log the structure of StringArrayData for debugging
+    // ----------------------------
+    private void LogSADStructure(StringArrayData* stringArrayData)
+    {
+        if (stringArrayData != null)
+        {
+            log.Debug("=== StringArrayData Structure ===");
+            log.Debug($"Total Size: {stringArrayData -> AtkArrayData.Size}");
+
+            // Log each field with its content
+            for (int i = 0; i < stringArrayData -> AtkArrayData.Size; i++)
+            {
+                // Read the string at this index
+                string text = ReadStringFromArray(stringArrayData, i);
+
+                // Log all non-empty fields
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    // Truncate long text for readability
+                    string displayText = text.Length > 100 ? text[..100] + "..." : text;
+
+                    // Replace line breaks for compact display
+                    displayText = displayText.Replace("\n", " | ");
+
+                    log.Debug($"[{i,2}] {displayText}");
+                }
+            }
+
+            log.Debug("=== End of StringArrayData ===");
         }
     }
 

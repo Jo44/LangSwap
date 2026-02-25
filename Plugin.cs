@@ -95,15 +95,15 @@ public sealed class Plugin : IDalamudPlugin
         // Log plugin informations
         Log.Information("=== LangSwap plugin loaded ===");
         Log.Debug("Configuration loaded :");
-        Log.Debug($"ClientLanguage = {_config.ClientLanguage}");
-        Log.Debug($"TargetLanguage = {_config.TargetLanguage}");
-        Log.Debug($"PrimaryKey = {_config.PrimaryKey}");
+        Log.Debug($"Client Language = {_config.ClientLanguage}");
+        Log.Debug($"Target Language = {_config.TargetLanguage}");
+        Log.Debug($"Primary Key = {_config.PrimaryKey}");
         Log.Debug($"Ctrl = {_config.Ctrl}");
         Log.Debug($"Alt = {_config.Alt}");
         Log.Debug($"Shift = {_config.Shift}");
         Log.Debug($"Castbars = {_config.Castbars}");
-        Log.Debug($"ActionDetails = {_config.ActionTooltips}");
-        Log.Debug($"ItemDetails = {_config.ItemTooltips}");
+        Log.Debug($"Action Tooltips = {_config.ActionTooltips}");
+        Log.Debug($"Item Tooltips = {_config.ItemTooltips}");
     }
 
     // ----------------------------

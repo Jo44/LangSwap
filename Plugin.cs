@@ -22,7 +22,7 @@ public sealed class Plugin : IDalamudPlugin
     // ////////////////////////////// //
     //             TODO               //
     // ////////////////////////////// //
-    // - test : jeu en fr -> trad en -> payloads description tooltips
+    // - action tooltip swap
 
     // Plugin services
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;

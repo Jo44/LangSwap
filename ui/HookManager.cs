@@ -35,7 +35,7 @@ public class HookManager(
         if (configuration.Castbars)
             // TODO : hooks.Add(castBarHook);
         if (configuration.ActionTooltips)
-            // TODO : hooks.Add(actionDetailHook);
+            hooks.Add(actionDetailHook);
         if (configuration.ItemTooltips)
             hooks.Add(itemDetailHook);
 

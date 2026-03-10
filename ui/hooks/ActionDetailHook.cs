@@ -1,7 +1,9 @@
 using Dalamud.Game.NativeWrapper;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Hooking;
 using Dalamud.Memory;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.translation;
@@ -132,27 +134,36 @@ public unsafe class ActionDetailHook(
     {
         try
         {
+            // TODO : TEST - Log the structure of StringArrayData for debugging
+            LogSADStructure(stringArrayData);
+
+            // Get client language
+            LanguageEnum clientLang = (LanguageEnum)configuration.ClientLanguage;
+
+            // Get action name from StringArrayData
+            string? actionName = ReadStringFromArray(stringArrayData, ActionNameField);
+
+            // Get action ID 
+            currentActionId = translationCache.GetActionIdByName(actionName, clientLang) ?? 0;
+
             // Modify texts in StringArrayData
-            if (numberArrayData != null && numberArrayData -> AtkArrayData.Size > 0)
-            {
-                uint potentialActionId = (uint)numberArrayData -> IntArray[0];
-                if (potentialActionId > 0 && potentialActionId < configuration.MaxValidActionId)
-                {
-                    currentActionId = potentialActionId;
-                }
-            }
-
-            log.Verbose($"GenerateActionTooltip - isSwapped={isLanguageSwapped}, actionId={currentActionId}");
-
             if (isLanguageSwapped && currentActionId > 0 && currentActionId < configuration.MaxValidActionId)
             {
-                LanguageEnum lang = (LanguageEnum)configuration.TargetLanguage;
-                string? translatedName = translationCache.GetActionName(currentActionId, lang);
-                
+                // Get target language
+                LanguageEnum targetLang = (LanguageEnum)configuration.TargetLanguage;
+
+                // Translate action name
+                string? translatedName = translationCache.GetActionName(currentActionId, targetLang);
                 if (!string.IsNullOrWhiteSpace(translatedName))
                 {
-                    SetTooltipString(stringArrayData, ActionNameField, translatedName);
-                    log.Information($"Translated action {currentActionId} name to {lang}");
+                    ReplaceText(stringArrayData, ActionNameField, translatedName);
+                }
+
+                // Translate action description
+                string? translatedDescription = translationCache.GetActionDescription(currentActionId, targetLang);
+                if (!string.IsNullOrWhiteSpace(translatedDescription))
+                {
+                    ReplaceText(stringArrayData, ActionDescriptionField, translatedDescription);
                 }
             }
         }
@@ -164,19 +175,166 @@ public unsafe class ActionDetailHook(
         return generateActionTooltipHook!.Original(addonActionDetail, numberArrayData, stringArrayData);
     }
 
-    private void SetTooltipString(StringArrayData* stringArrayData, int field, string text)
+    // ----------------------------
+    // Read string from StringArrayData at specified index
+    // ----------------------------
+    private string ReadStringFromArray(StringArrayData* stringArrayData, int index)
     {
         try
         {
-            if (stringArrayData == null || stringArrayData -> AtkArrayData.Size <= field)
-                return;
+            // Check for null pointer and valid index
+            if (stringArrayData == null || index >= stringArrayData->AtkArrayData.Size)
+                return string.Empty;
 
-            byte[]? bytes = Encoding.UTF8.GetBytes(text + "\0");
-            stringArrayData -> SetValue(field, bytes, false, true, false);
+            // Get memory address of the string
+            nint address = new(stringArrayData->StringArray[index]);
+            if (address == IntPtr.Zero)
+                return string.Empty;
+
+            // Read SeString from memory and convert to string
+            SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
+            return seString?.ToString() ?? string.Empty;
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to set tooltip string at field {field}");
+            log.Error(ex, $"Failed to read string at index {index}");
+            return string.Empty;
+        }
+    }
+
+    // ----------------------------
+    // Replace text in SeString
+    // ----------------------------
+    private void ReplaceText(StringArrayData* stringArrayData, int field, string newText)
+    {
+        try
+        {
+            // Check for null pointer and valid field index
+            if (stringArrayData == null || field >= stringArrayData->AtkArrayData.Size)
+                return;
+
+            // Get memory address of existing string
+            nint address = new(stringArrayData->StringArray[field]);
+            if (address == IntPtr.Zero)
+            {
+                // Set plain text if no existing string
+                SafeSetString(stringArrayData, field, newText);
+                return;
+            }
+
+            // Get existing SeString from memory address
+            SeString existingSeString = MemoryHelper.ReadSeStringNullTerminated(address);
+            if (existingSeString == null)
+            {
+                // Set plain text if failed to read existing string
+                SafeSetString(stringArrayData, field, newText);
+                return;
+            }
+
+            // If there's existing formatting, preserve it
+            if (existingSeString.Payloads.Count > 1)
+            {
+                // Build new SeString with translated text while preserving formatting
+                // TODO : test - byte[] encoded = BuildSeStringWithTranslation(existingSeString, newText);
+                byte[] encoded = [];
+
+                // Set the new encoded SeString value in StringArrayData
+                stringArrayData -> SetValue(field, encoded, false, true, false);
+            }
+            else
+            {
+                // No complex formatting, set plain text
+                SafeSetString(stringArrayData, field, newText);
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Failed to replace text with formatting at field {field}");
+            SafeSetString(stringArrayData, field, newText);
+        }
+    }
+
+    // ----------------------------
+    // Safely set a string in StringArrayData
+    // ----------------------------
+    private void SafeSetString(StringArrayData* stringArrayData, int field, string text)
+    {
+        try
+        {
+            // Check for null pointer
+            if (stringArrayData == null)
+                return;
+
+            // Check field index is within bounds
+            if (field >= stringArrayData -> AtkArrayData.Size)
+                return;
+
+            // Check for empty or null text
+            if (string.IsNullOrEmpty(text))
+                return;
+
+            // Check cache first to avoid unnecessary encoding
+            if (!_translatedBytesCache.TryGetValue(text, out byte[]? bytes))
+            {
+                // Get bytes of text
+                bytes = Encoding.UTF8.GetBytes(text + "\0");
+
+                // Check for excessively long text (10KB limit)
+                if (bytes.Length > 1024 * 10)
+                    return;
+
+                // Add to cache if size limit not exceeded
+                if (_translatedBytesCache.Count < MaxCacheSize)
+                {
+                    _translatedBytesCache[text] = bytes;
+                }
+                else
+                {
+                    // Clear cache before if limit exceeded
+                    _translatedBytesCache.Clear();
+                    _translatedBytesCache[text] = bytes;
+                }
+            }
+
+            // Set the string value in StringArrayData
+            stringArrayData->SetValue(field, bytes, false, true, false);
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Failed to safely set string at field {field}");
+        }
+    }
+
+    // ----------------------------
+    // Log the structure of StringArrayData for debugging
+    // ----------------------------
+    private void LogSADStructure(StringArrayData* stringArrayData)
+    {
+        if (stringArrayData != null)
+        {
+            log.Debug("=== StringArrayData Structure ===");
+            log.Debug($"Total Size: {stringArrayData->AtkArrayData.Size}");
+
+            // Log each field with its content
+            for (int i = 0; i < stringArrayData->AtkArrayData.Size; i++)
+            {
+                // Read the string at this index
+                string text = ReadStringFromArray(stringArrayData, i);
+
+                // Log all non-empty fields
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    // Truncate long text for readability
+                    string displayText = text.Length > 100 ? text[..100] + "..." : text;
+
+                    // Replace line breaks for compact display
+                    displayText = displayText.Replace("\n", " | ");
+
+                    log.Debug($"[{i,2}] {displayText}");
+                }
+            }
+
+            log.Debug("=== End of StringArrayData ===");
         }
     }
 

@@ -70,7 +70,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get action data
     // ----------------------------
-    private Lumina.Excel.Sheets.Action? GetAction(uint actionId, LanguageEnum lang)
+    private Lumina.Excel.Sheets.Action? GetAction(uint actionId, LanguageEnum targetLang)
     {
         try
         {
@@ -82,17 +82,17 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             }
 
             // Access the action sheet for the specified language
-            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(lang));
+            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(targetLang));
             if (actionSheet == null)
             {
-                log.Warning($"Action sheet is not available for language {lang}");
+                log.Warning($"Action sheet is not available for language {targetLang}");
                 return null;
             }
 
             // Try to get the action row
             if (!actionSheet.TryGetRow(actionId, out Lumina.Excel.Sheets.Action action))
             {
-                log.Warning($"Action {actionId} not found in sheet for language {lang}");
+                log.Warning($"Action {actionId} not found in sheet for language {targetLang}");
                 return null;
             }
 
@@ -101,7 +101,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception while getting action {actionId} in language {lang}");
+            log.Error(ex, $"Exception while getting action {actionId} in language {targetLang}");
             return null;
         }
     }
@@ -130,15 +130,64 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get action name
     // ----------------------------
-    public string? GetActionName(uint actionId, LanguageEnum lang)
-        => GetActionProperty(actionId, lang, action => action.Name.ToString(), "name");
+    public string? GetActionName(uint actionId, LanguageEnum targetLang)
+        => GetActionProperty(actionId, targetLang, action => action.Name.ToString(), "name");
 
     // ----------------------------
     // Get action description
     // ----------------------------
-    public string? GetActionDescription(uint actionId, LanguageEnum lang)
-        => GetActionProperty(actionId, lang, action => action.Name.ToString(), "name");
+    public string? GetActionDescription(uint actionId, LanguageEnum targetLang)
+        => GetActionProperty(actionId, targetLang, action => action.Name.ToString(), "name");
     // TODO : get description
+
+    // ----------------------------
+    // Get action ID by name (reverse lookup)
+    // ----------------------------
+    public uint? GetActionIdByName(string actionName, LanguageEnum clientLang)
+    {
+        try
+        {
+            // Validate input
+            if (string.IsNullOrWhiteSpace(actionName))
+                return null;
+
+            // Normalize the search name for comparison
+            string normalizedSearchName = actionName.Trim();
+
+            // Get the Item sheet for the specified language
+            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(clientLang));
+            if (actionSheet == null)
+            {
+                log.Warning($"Action sheet is not available for language {clientLang}");
+                return null;
+            }
+
+            // Search through items for matching name
+            foreach (Lumina.Excel.Sheets.Action action in actionSheet)
+            {
+                // Skip invalid items
+                if (action.RowId == 0)
+                    continue;
+
+                // Get action name in the target language
+                string actionNameInLang = action.Name.ToString() ?? string.Empty;
+
+                // Compare names (case-insensitive)
+                if (string.Equals(normalizedSearchName, actionNameInLang.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return action.RowId;
+                }
+            }
+
+            // No match found
+            return null;
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Failed to get action ID for name {actionName} in language {clientLang}");
+            return null;
+        }
+    }
 
     //
     // ========== ITEMS ==========
@@ -147,7 +196,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get item data
     // ----------------------------
-    private Item? GetItem(uint itemId, LanguageEnum lang)
+    private Item? GetItem(uint itemId, LanguageEnum targetLang)
     {
         try
         {
@@ -159,17 +208,17 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             }
 
             // Access the item sheet for the specified language
-            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(lang));
+            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(targetLang));
             if (itemSheet == null)
             {
-                log.Warning($"Item sheet is not available for language {lang}");
+                log.Warning($"Item sheet is not available for language {targetLang}");
                 return null;
             }
 
             // Try to get the item row
             if (!itemSheet.TryGetRow(itemId, out Item item))
             {
-                log.Warning($"Item {itemId} not found in sheet for language {lang}");
+                log.Warning($"Item {itemId} not found in sheet for language {targetLang}");
                 return null;
             }
 
@@ -178,7 +227,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception while getting item {itemId} in language {lang}");
+            log.Error(ex, $"Exception while getting item {itemId} in language {targetLang}");
             return null;
         }
     }
@@ -207,19 +256,19 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get item name
     // ----------------------------
-    public string? GetItemName(uint itemId, LanguageEnum lang)
-        => GetItemProperty(itemId, lang, item => item.Name.ToString(), "name");
+    public string? GetItemName(uint itemId, LanguageEnum targetLang)
+        => GetItemProperty(itemId, targetLang, item => item.Name.ToString(), "name");
 
     // ----------------------------
     // Get item description
     // ----------------------------
-    public string? GetItemDescription(uint itemId, LanguageEnum lang)
-        => GetItemProperty(itemId, lang, item => item.Description.ToString(), "description");
+    public string? GetItemDescription(uint itemId, LanguageEnum targetLang)
+        => GetItemProperty(itemId, targetLang, item => item.Description.ToString(), "description");
 
     // ----------------------------
     // Get item ID by name (reverse lookup)
     // ----------------------------
-    public uint? GetItemIdByName(string itemName, LanguageEnum lang)
+    public uint? GetItemIdByName(string itemName, LanguageEnum clientLang)
     {
         try
         {
@@ -231,10 +280,10 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             string normalizedSearchName = itemName.Trim();
 
             // Get the Item sheet for the specified language
-            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(lang));
+            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(clientLang));
             if (itemSheet == null)
             {
-                log.Warning($"Item sheet is not available for language {lang}");
+                log.Warning($"Item sheet is not available for language {clientLang}");
                 return null;
             }
 
@@ -260,7 +309,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to get item ID for name: {itemName}");
+            log.Error(ex, $"Failed to get item ID for name {itemName} in language {clientLang}");
             return null;
         }
     }

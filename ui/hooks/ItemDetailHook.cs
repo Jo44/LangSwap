@@ -174,11 +174,13 @@ public unsafe partial class ItemDetailHook(
         {
             // Read InventoryItem from a7 to get current ID
             InventoryItem inventoryItem = *(InventoryItem*)a7;
+
+            // Get current item ID from InventoryItem struct
             currentItemId = inventoryItem.ItemId;
 
-            // Try to get GlamourId
             try
             {
+                // Get current glamour ID from InventoryItem struct
                 currentGlamourId = inventoryItem.GlamourId;
             }
             catch
@@ -485,6 +487,15 @@ public unsafe partial class ItemDetailHook(
 
         // Return final text with preserved symbols
         return result.ToString();
+    }
+
+    // ----------------------------
+    // Remove special symbols (Glamoured, HQ)
+    // ----------------------------
+    private string RemoveSpecialSymbols(string text)
+    {
+        // Remove Glamoured and HQ symbols from text
+        return text.Replace(GlamouredSymbol.ToString(), "").Replace(HighQualitySymbol.ToString(), "").Trim();
     }
 
     // ----------------------------

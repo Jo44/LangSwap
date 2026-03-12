@@ -4,8 +4,9 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
 using Dalamud.Memory;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.ui.hooks.@base;
 using System;
@@ -25,29 +26,27 @@ public unsafe partial class ItemDetailHook(
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
-    IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, log)
+    Utilities utilities,
+    IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, utilities, log)
 {
     // Generated Regex
     [GeneratedRegex(@"\+\d+")]
     private static partial Regex StatLineRegex();
 
-    // Delegates functions
-    private delegate byte ItemHoveredDelegate(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7);
+    // Constant
+    private const string Class = "[ItemDetailHook.cs]";
+
+    // Delegates function
     private delegate void* GenerateItemTooltipDelegate(AtkUnitBase* addonItemDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
-    // Hooks
-    private Hook<ItemHoveredDelegate>? itemHoveredHook;
+    // Hook
     private Hook<GenerateItemTooltipDelegate>? generateItemTooltipHook;
-
-    // IDs
-    private uint currentItemId = 0;
-    private uint currentGlamourId = 0;
 
     // Cache for translated bytes
     private readonly Dictionary<string, byte[]> _translatedBytesCache = [];
     private const int MaxCacheSize = 500;
 
-    // Miscellaneous
+    // Symbols
     private readonly char GlamouredSymbol = configuration.GlamouredSymbol;
     private readonly char HighQualitySymbol = configuration.HighQualitySymbol;
 
@@ -74,30 +73,17 @@ public unsafe partial class ItemDetailHook(
 
         try
         {
-            // Hook ItemHovered (-> get current item ID when hovering an item)
-            nint itemHoveredAddr = sigScanner.ScanText(configuration.ItemHoveredSig);
-            if (itemHoveredAddr != IntPtr.Zero)
-            {
-                itemHoveredHook = gameInterop.HookFromAddress<ItemHoveredDelegate>(itemHoveredAddr, ItemHoveredDetour);
-                itemHoveredHook.Enable();
-                log.Debug($"ItemHovered hook enabled at 0x{itemHoveredAddr:X}");
-            }
-            else
-            {
-                log.Warning("ItemHovered signature not found");
-            }
-
             // Hook GenerateItemTooltip (-> modify item tooltip datas when generating it)
             nint generateItemTooltipAddr = sigScanner.ScanText(configuration.GenerateItemTooltipSig);
             if (generateItemTooltipAddr != IntPtr.Zero)
             {
                 generateItemTooltipHook = gameInterop.HookFromAddress<GenerateItemTooltipDelegate>(generateItemTooltipAddr, GenerateItemTooltipDetour);
                 generateItemTooltipHook.Enable();
-                log.Debug($"GenerateItemTooltip hook enabled at 0x{generateItemTooltipAddr:X}");
+                log.Debug($"{Class} - GenerateItemTooltip hook enabled at 0x{generateItemTooltipAddr:X}");
             }
             else
             {
-                log.Warning("GenerateItemTooltip signature not found");
+                log.Warning($"{Class} - GenerateItemTooltip signature not found");
             }
 
             // Set enabled flag
@@ -105,30 +91,16 @@ public unsafe partial class ItemDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to enable ItemDetail hooks");
+            log.Error(ex, $"{Class} - Failed to enable ItemDetail hook");
         }
     }
 
     // ----------------------------
-    // Swap to target language
+    // On language swap
     // ----------------------------
-    protected override void OnLanguageSwapped()
+    protected override void OnLanguageSwap()
     {
         // Refresh item detail to apply translations
-        _translatedBytesCache.Clear();
-        RefreshItemDetail();
-    }
-
-    // ----------------------------
-    // Restore to original language
-    // ----------------------------
-    protected override void OnLanguageRestored()
-    {
-        // Clear current item and glamour IDs
-        currentItemId = 0;
-        currentGlamourId = 0;
-
-        // Refresh item detail to restore original texts
         _translatedBytesCache.Clear();
         RefreshItemDetail();
     }
@@ -157,44 +129,8 @@ public unsafe partial class ItemDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to refresh ItemDetail");
+            log.Error(ex, $"{Class} - Failed to refresh ItemDetail");
         }
-    }
-
-    // ----------------------------
-    // On Item Hovered
-    // -> Get current item ID when hovering an item
-    // ----------------------------
-    private byte ItemHoveredDetour(IntPtr a1, IntPtr* a2, int* containerId, ushort* slotId, IntPtr a5, uint slotIdInt, IntPtr a7)
-    {
-        // Call original first to ensure item ID is set correctly
-        byte returnValue = itemHoveredHook!.Original(a1, a2, containerId, slotId, a5, slotIdInt, a7);
-        
-        try
-        {
-            // Read InventoryItem from a7 to get current ID
-            InventoryItem inventoryItem = *(InventoryItem*)a7;
-
-            // Get current item ID from InventoryItem struct
-            currentItemId = inventoryItem.ItemId;
-
-            try
-            {
-                // Get current glamour ID from InventoryItem struct
-                currentGlamourId = inventoryItem.GlamourId;
-            }
-            catch
-            {
-                currentGlamourId = 0;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, "Exception in ItemHovered detour");
-        }
-
-        // Return original value
-        return returnValue;
     }
 
     // ----------------------------
@@ -208,118 +144,118 @@ public unsafe partial class ItemDetailHook(
             // Log the structure of StringArrayData for debugging
             // LogSADStructure(stringArrayData);
 
-            // Modify texts in StringArrayData
-            if (isLanguageSwapped && currentItemId > 0 && currentItemId < configuration.MaxValidItemId && stringArrayData != null)
+            // Initialize item and glamour IDs
+            uint itemId = 0;
+            uint glamourId = 0;
+
+            // Check if language is swapped
+            if (isLanguageSwapped && stringArrayData != null)
             {
-                // Get target language
-                LanguageEnum lang = (LanguageEnum)configuration.TargetLanguage;
+                // Get client language
+                LanguageEnum clientLang = (LanguageEnum)configuration.ClientLanguage;
 
-                // Translate item name
-                string? translatedName = translationCache.GetItemName(currentItemId, lang);
-                if (!string.IsNullOrWhiteSpace(translatedName))
+                // Get item name
+                string itemName = utilities.ReadStringFromArray(stringArrayData, ItemNameField);
+                if (!itemName.IsNullOrEmpty())
                 {
-                    ReplaceText(stringArrayData, ItemNameField, translatedName);
-                }
-
-                // Translate glamour name
-                if (currentGlamourId > 0 && currentGlamourId < configuration.MaxValidItemId)
-                {
-                    string? translatedGlamour = translationCache.GetItemName(currentGlamourId, lang);
-                    if (!string.IsNullOrWhiteSpace(translatedGlamour))
+                    // Get item ID
+                    itemId = translationCache.GetItemIdByName(itemName, clientLang) ?? 0;
+                    if (itemId > 0 && itemId <= configuration.MaxValidItemId)
                     {
-                        ReplaceText(stringArrayData, GlamourNameField, translatedGlamour);
-                    }
-                }
+                        // Get glamour name
+                        string glamourName = utilities.ReadStringFromArray(stringArrayData, GlamourNameField);
+                        if (!glamourName.IsNullOrEmpty())
+                        {
+                            // Get glamour ID
+                            glamourId = translationCache.GetItemIdByName(glamourName, clientLang) ?? 0;
+                        }
 
-                // Translate description
-                string? translatedDescription = translationCache.GetItemDescription(currentItemId, lang);
-                if (!string.IsNullOrWhiteSpace(translatedDescription))
-                {
-                    ReplaceText(stringArrayData, ItemDescriptionField, translatedDescription);
-                }
+                        // Get target language
+                        LanguageEnum lang = (LanguageEnum)configuration.TargetLanguage;
 
-                // Translate effects
-                string? effects = ReadStringFromArray(stringArrayData, ItemEffectsField);
-                if (!string.IsNullOrWhiteSpace(effects))
-                {
-                    string translatedEffects = TranslateEffects(effects, lang);
-                    ReplaceText(stringArrayData, ItemEffectsField, translatedEffects);
-                }
+                        // Translate item name
+                        string? translatedName = translationCache.GetItemName(itemId, lang);
+                        if (!string.IsNullOrWhiteSpace(translatedName))
+                        {
+                            ReplaceText(stringArrayData, ItemNameField, translatedName);
+                        }
 
-                // Translate bonuses
-                for (int i = ItemBonusesStartField; i <= ItemBonusesEndField; i++)
-                {
-                    string bonus = ReadStringFromArray(stringArrayData, i);
+                        // Translate glamour name
+                        if (glamourId > 0 && glamourId <= configuration.MaxValidItemId)
+                        {
+                            string? translatedGlamour = translationCache.GetItemName(glamourId, lang);
+                            if (!string.IsNullOrWhiteSpace(translatedGlamour))
+                            {
+                                ReplaceText(stringArrayData, GlamourNameField, translatedGlamour);
+                            }
+                        }
 
-                    // -> Only translate stat line
-                    if (!string.IsNullOrWhiteSpace(bonus) && StatLineRegex().IsMatch(bonus))
-                    {
-                        string translatedBonus = TranslateStat(bonus, lang);
-                        ReplaceText(stringArrayData, i, translatedBonus);
-                    }
-                }
+                        // Translate description
+                        string? translatedDescription = translationCache.GetItemDescription(itemId, lang);
+                        if (!string.IsNullOrWhiteSpace(translatedDescription))
+                        {
+                            ReplaceText(stringArrayData, ItemDescriptionField, translatedDescription);
+                        }
 
-                // Translate materia names
-                for (int j = ItemMateriaNameStartField; j <= ItemMateriaNameEndField; j++)
-                {
-                    string materia = ReadStringFromArray(stringArrayData, j);
-                    if (!string.IsNullOrWhiteSpace(materia))
-                    {
-                        string translatedMateria = TranslateMateria(materia, lang);
-                        ReplaceText(stringArrayData, j, translatedMateria);
-                    }
-                }
+                        // Translate effects
+                        string? effects = utilities.ReadStringFromArray(stringArrayData, ItemEffectsField);
+                        if (!string.IsNullOrWhiteSpace(effects))
+                        {
+                            string translatedEffects = TranslateEffects(effects, lang);
+                            ReplaceText(stringArrayData, ItemEffectsField, translatedEffects);
+                        }
 
-                // Translate materia stats
-                for (int k = ItemMateriaStatStartField; k <= ItemMateriaStatEndField; k++)
-                {
-                    string materia = ReadStringFromArray(stringArrayData, k);
-                    
-                    // -> Only translate stat line
-                    if (!string.IsNullOrWhiteSpace(materia) && StatLineRegex().IsMatch(materia))
-                    {
-                        string translatedMateria = TranslateStat(materia, lang);
-                        ReplaceText(stringArrayData, k, translatedMateria);
+                        // Translate bonuses
+                        for (int i = ItemBonusesStartField; i <= ItemBonusesEndField; i++)
+                        {
+                            string bonus = utilities.ReadStringFromArray(stringArrayData, i);
 
+                            // -> Only translate stat line
+                            if (!string.IsNullOrWhiteSpace(bonus) && StatLineRegex().IsMatch(bonus))
+                            {
+                                string translatedBonus = TranslateStat(bonus, lang);
+                                ReplaceText(stringArrayData, i, translatedBonus);
+                            }
+                        }
+
+                        // Translate materia names
+                        for (int j = ItemMateriaNameStartField; j <= ItemMateriaNameEndField; j++)
+                        {
+                            string materia = utilities.ReadStringFromArray(stringArrayData, j);
+                            if (!string.IsNullOrWhiteSpace(materia))
+                            {
+                                string translatedMateria = TranslateMateria(materia, lang);
+                                ReplaceText(stringArrayData, j, translatedMateria);
+                            }
+                        }
+
+                        // Translate materia stats
+                        for (int k = ItemMateriaStatStartField; k <= ItemMateriaStatEndField; k++)
+                        {
+                            string materia = utilities.ReadStringFromArray(stringArrayData, k);
+
+                            // -> Only translate stat line
+                            if (!string.IsNullOrWhiteSpace(materia) && StatLineRegex().IsMatch(materia))
+                            {
+                                string translatedMateria = TranslateStat(materia, lang);
+                                ReplaceText(stringArrayData, k, translatedMateria);
+
+                            }
+                        }
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception in GenerateItemTooltip before original for item {currentItemId}");
+            log.Error(ex, $"{Class} - Exception in GenerateItemTooltip before original");
         }
 
         // Call original to generate the tooltip
         return generateItemTooltipHook!.Original(addonItemDetail, numberArrayData, stringArrayData);
     }
 
-    // ----------------------------
-    // Read string from StringArrayData at specified index
-    // ----------------------------
-    private string ReadStringFromArray(StringArrayData* stringArrayData, int index)
-    {
-        try
-        {
-            // Check for null pointer and valid index
-            if (stringArrayData == null || index >= stringArrayData -> AtkArrayData.Size)
-                return string.Empty;
-
-            // Get memory address of the string
-            nint address = new(stringArrayData -> StringArray[index]);
-            if (address == IntPtr.Zero)
-                return string.Empty;
-
-            // Read SeString from memory and convert to string
-            SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
-            return seString?.ToString() ?? string.Empty;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"Failed to read string at index {index}");
-            return string.Empty;
-        }
-    }
+    
 
     // ----------------------------
     // Replace text in SeString
@@ -367,7 +303,7 @@ public unsafe partial class ItemDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to replace text with formatting at field {field}");
+            log.Error(ex, $"{Class} - Failed to replace text with formatting at field {field}");
             SafeSetString(stringArrayData, field, newText);
         }
     }
@@ -419,7 +355,7 @@ public unsafe partial class ItemDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to safely set string at field {field}");
+            log.Error(ex, $"{Class} - Failed to safely set string at field {field}");
         }
     }
 
@@ -522,7 +458,7 @@ public unsafe partial class ItemDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to translate effects");
+            log.Error(ex, $"{Class} - Failed to translate effects");
             return effects;
         }
     }
@@ -558,7 +494,7 @@ public unsafe partial class ItemDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to translate stat name: {stat}");
+            log.Error(ex, $"{Class} - Failed to translate stat name: {stat}");
             return stat;
         }
     }
@@ -589,7 +525,7 @@ public unsafe partial class ItemDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to translate materia name: {materiaName}");
+            log.Error(ex, $"{Class} - Failed to translate materia name: {materiaName}");
             return materiaName;
         }
     }
@@ -601,14 +537,14 @@ public unsafe partial class ItemDetailHook(
     {
         if (stringArrayData != null)
         {
-            log.Debug("=== StringArrayData Structure ===");
-            log.Debug($"Total Size: {stringArrayData -> AtkArrayData.Size}");
+            log.Debug($"{Class} === StringArrayData Structure ===");
+            log.Debug($"{Class} - Total Size: {stringArrayData -> AtkArrayData.Size}");
 
             // Log each field with its content
             for (int i = 0; i < stringArrayData -> AtkArrayData.Size; i++)
             {
                 // Read the string at this index
-                string text = ReadStringFromArray(stringArrayData, i);
+                string text = utilities.ReadStringFromArray(stringArrayData, i);
 
                 // Log all non-empty fields
                 if (!string.IsNullOrWhiteSpace(text))
@@ -619,11 +555,11 @@ public unsafe partial class ItemDetailHook(
                     // Replace line breaks for compact display
                     displayText = displayText.Replace("\n", " | ");
 
-                    log.Debug($"[{i,2}] {displayText}");
+                    log.Debug($"{Class} - [{i,2}] {displayText}");
                 }
             }
 
-            log.Debug("=== End of StringArrayData ===");
+            log.Debug($"{Class} === End of StringArrayData ===");
         }
     }
 
@@ -637,19 +573,16 @@ public unsafe partial class ItemDetailHook(
 
         try
         {
-            // Disable ItemHovered hook
-            itemHoveredHook?.Disable();
-
             // Disable GenerateItemTooltip hook
             generateItemTooltipHook?.Disable();
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug("ItemDetail hooks disabled");
+            log.Debug($"{Class} - ItemDetail hook disabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to disable ItemDetail hooks");
+            log.Error(ex, $"{Class} - Failed to disable ItemDetail hook");
         }
     }
 
@@ -660,11 +593,6 @@ public unsafe partial class ItemDetailHook(
     {
         try
         {
-            // Dispose ItemHovered hook
-            itemHoveredHook?.Disable();
-            itemHoveredHook?.Dispose();
-            itemHoveredHook = null;
-
             // Dispose GenerateItemTooltip hook
             generateItemTooltipHook?.Disable();
             generateItemTooltipHook?.Dispose();
@@ -675,14 +603,15 @@ public unsafe partial class ItemDetailHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug("ItemDetail hooks disposed");
+            log.Debug($"{Class} - ItemDetail hook disposed");
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to dispose ItemDetail hooks");
+            log.Error(ex, $"{Class} - Failed to dispose ItemDetail hook");
         }
 
         // Finalize
         GC.SuppressFinalize(this);
     }
+
 }

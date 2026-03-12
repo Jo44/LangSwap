@@ -9,11 +9,15 @@ namespace LangSwap.input;
 // ----------------------------
 public class ShortcutDetector(Configuration config, IKeyState keyState, IPluginLog log)
 {
+    // Constant
+    private const string Class = "[ShortcutDetector.cs]";
+
     // ----------------------------
     // Check if the configured shortcut is currently pressed
     // ----------------------------
     public bool IsPressed()
     {
+        // Validate key state
         if (keyState is null) return false;
 
         // Primary key
@@ -24,9 +28,8 @@ public class ShortcutDetector(Configuration config, IKeyState keyState, IPluginL
         bool alt = !config.Alt || IsKeyDown((int)VirtualKey.LMENU) || IsKeyDown((int)VirtualKey.RMENU) || IsKeyDown((int)VirtualKey.MENU);
         bool shift = !config.Shift || IsKeyDown((int)VirtualKey.LSHIFT) || IsKeyDown((int)VirtualKey.RSHIFT) || IsKeyDown((int)VirtualKey.SHIFT);
 
-        // If no keys are configured, always return false
-        if (config.PrimaryKey == 0 && !config.Ctrl && !config.Alt && !config.Shift)
-            return false;
+        // Always return false if no keys are configured
+        if (config.PrimaryKey == 0 && !config.Ctrl && !config.Alt && !config.Shift) return false;
 
         // Final evaluation
         return primary && ctrl && alt && shift;
@@ -70,7 +73,7 @@ public class ShortcutDetector(Configuration config, IKeyState keyState, IPluginL
         catch (Exception ex)
         {
             // Log exception and return false
-            log.Warning($"ShortcutDetector.IsKeyDown exception for vk={vkCode}: {ex.Message}");
+            log.Warning($"{Class} - ShortcutDetector.IsKeyDown exception for vk={vkCode}: {ex.Message}");
             return false;
         }
     }

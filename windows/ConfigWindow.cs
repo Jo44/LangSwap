@@ -15,6 +15,9 @@ namespace LangSwap.Windows;
 // ----------------------------
 public class ConfigWindow : Window, IDisposable
 {
+    // Constant
+    private const string Class = "[ConfigWindow.cs]";
+
     // Core components
     private readonly Configuration _config;
     private readonly HookManager _hookManager;
@@ -90,7 +93,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SetNextItemWidth(100f);
         if (ImGui.Combo("##Language", ref currentLang, languages, languages.Length))
         {
-            _log.Information($"Setting target language to {languages[currentLang]} ({currentLang})");
+            _log.Information($"{Class} - Setting target language to {languages[currentLang]} ({currentLang})");
             _config.TargetLanguage = (byte)currentLang;
             _config.Save();
         }
@@ -109,7 +112,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SetNextItemWidth(100f);
         if (ImGui.Combo("##PrimaryKey", ref selIndex, _keyNames.ToArray(), _keyNames.Count))
         {
-            _log.Information($"Setting primary key to {_keyNames[selIndex]} ({_keyValues[selIndex]})");
+            _log.Information($"{Class} - Setting primary key to {_keyNames[selIndex]} ({_keyValues[selIndex]})");
             _config.PrimaryKey = _keyValues[selIndex];
             _config.Save();
         }
@@ -118,21 +121,21 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 20f);
         if (ImGui.Checkbox("Ctrl", ref ctrl))
         {
-            _log.Information($"Setting Ctrl to {ctrl}");
+            _log.Information($"{Class} - Setting Ctrl to {ctrl}");
             _config.Ctrl = ctrl;
             _config.Save();
         }
         ImGui.SameLine();
         if (ImGui.Checkbox("Alt", ref alt))
         {
-            _log.Information($"Setting Alt to {alt}");
+            _log.Information($"{Class} - Setting Alt to {alt}");
             _config.Alt = alt;
             _config.Save();
         }
         ImGui.SameLine();
         if (ImGui.Checkbox("Shift", ref shift))
         {
-            _log.Information($"Setting Shift to {shift}");
+            _log.Information($"{Class} - Setting Shift to {shift}");
             _config.Shift = shift;
             _config.Save();
         }
@@ -147,35 +150,29 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 10f);
         if (ImGui.Checkbox("Castbars", ref castbars))
         {
-            _log.Information($"Setting Castbars to {castbars}");
+            _log.Information($"{Class} - Setting Castbars to {castbars}");
             _config.Castbars = castbars;
             _config.Save();
-            if (castbars)
-                _hookManager.EnableHook(HookEnum.CastBar);
-            else
-                _hookManager.DisableHook(HookEnum.CastBar);
+            if (castbars) _hookManager.EnableHook(HookEnum.CastBar);
+            else _hookManager.DisableHook(HookEnum.CastBar);
         }
         ImGui.SameLine();
         if (ImGui.Checkbox("Action tooltips", ref actionTooltips))
         {
-            _log.Information($"Setting Action tooltips to {actionTooltips}");
+            _log.Information($"{Class} - Setting Action tooltips to {actionTooltips}");
             _config.ActionTooltips = actionTooltips;
             _config.Save();
-            if (actionTooltips)
-                _hookManager.EnableHook(HookEnum.ActionTooltip);
-            else
-                _hookManager.DisableHook(HookEnum.ActionTooltip);
+            if (actionTooltips) _hookManager.EnableHook(HookEnum.ActionTooltip);
+            else _hookManager.DisableHook(HookEnum.ActionTooltip);
         }
         ImGui.SameLine();
         if (ImGui.Checkbox("Item tooltips", ref itemTooltips))
         {
-            _log.Information($"Setting Item tooltips to {itemTooltips}");
+            _log.Information($"{Class} - Setting Item tooltips to {itemTooltips}");
             _config.ItemTooltips = itemTooltips;
             _config.Save();
-            if (itemTooltips)
-                _hookManager.EnableHook(HookEnum.ItemTooltip);
-            else
-                _hookManager.DisableHook(HookEnum.ItemTooltip);
+            if (itemTooltips) _hookManager.EnableHook(HookEnum.ItemTooltip);
+            else _hookManager.DisableHook(HookEnum.ItemTooltip);
         }
         ImGui.Spacing();
         ImGui.Spacing();
@@ -187,7 +184,7 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.Button("Clear all translation caches"))
         {
             _translationCache.Clear();
-            _log.Information("All translation caches cleared");
+            _log.Information($"{Class} - All translation caches cleared");
         }
 
         // Warning if translation is active
@@ -195,7 +192,7 @@ public class ConfigWindow : Window, IDisposable
         {
             ImGui.Spacing();
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.5f, 0.0f, 1.0f));
-            ImGui.TextWrapped("WARNING: Disable translation before changing settings !");
+            ImGui.TextWrapped("WARNING : Disable translation before changing settings !");
             ImGui.PopStyleColor();
             ImGui.Spacing();
         }

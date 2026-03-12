@@ -1,4 +1,5 @@
 using Dalamud.Plugin.Services;
+using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.ui.hooks;
 using LangSwap.ui.hooks.@base;
@@ -16,12 +17,16 @@ public class HookManager(
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
+    Utilities utilities,
     IPluginLog log) : IDisposable
 {
+    // Constant
+    private const string Class = "[HookManager.cs]";
+
     // Individual hooks
-    private readonly CastBarHook castBarHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, log);
-    private readonly ActionDetailHook actionDetailHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, log);
-    private readonly ItemDetailHook itemDetailHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, log);
+    private readonly CastBarHook castBarHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly ActionDetailHook actionDetailHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly ItemDetailHook itemDetailHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
 
     // Active hooks
     private readonly HashSet<BaseHook> hooks = [];
@@ -32,12 +37,9 @@ public class HookManager(
     public void EnableAll()
     {
         // Add hooks if component is enabled
-        if (configuration.Castbars)
-            // TODO : hooks.Add(castBarHook);
-        if (configuration.ActionTooltips)
-            hooks.Add(actionDetailHook);
-        if (configuration.ItemTooltips)
-            hooks.Add(itemDetailHook);
+        if (configuration.Castbars) // TODO : hooks.Add(castBarHook);
+        if (configuration.ActionTooltips) hooks.Add(actionDetailHook);
+        if (configuration.ItemTooltips) hooks.Add(itemDetailHook);
 
         // Enable all hooks
         foreach (BaseHook hook in hooks)
@@ -48,7 +50,7 @@ public class HookManager(
             }
             catch (Exception ex)
             {
-                log.Error(ex, $"Failed to enable {hook.GetType().Name}");
+                log.Error(ex, $"{Class} - Failed to enable {hook.GetType().Name}");
             }
         }
     }
@@ -64,24 +66,21 @@ public class HookManager(
             {
                 // Add cast bar hook
                 case HookEnum.CastBar:
-                    if (hooks.Add(castBarHook))
-                        castBarHook.Enable();
+                    if (hooks.Add(castBarHook)) castBarHook.Enable();
                     break;
                 // Add action detail hook
                 case HookEnum.ActionTooltip:
-                    if (hooks.Add(actionDetailHook))
-                        actionDetailHook.Enable();
+                    if (hooks.Add(actionDetailHook)) actionDetailHook.Enable();
                     break;
                 // Add item detail hook
                 case HookEnum.ItemTooltip:
-                    if (hooks.Add(itemDetailHook))
-                        itemDetailHook.Enable();
+                    if (hooks.Add(itemDetailHook)) itemDetailHook.Enable();
                     break;
             }
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to enable {hook}");
+            log.Error(ex, $"{Class} - Failed to enable {hook}");
         }
     }
 
@@ -99,7 +98,7 @@ public class HookManager(
             }
             catch (Exception ex)
             {
-                log.Error(ex, $"Failed to swap language for {hook.GetType().Name}");
+                log.Error(ex, $"{Class} - Failed to swap language for {hook.GetType().Name}");
             }
         }
     }
@@ -118,7 +117,7 @@ public class HookManager(
             }
             catch (Exception ex)
             {
-                log.Error(ex, $"Failed to restore language for {hook.GetType().Name}");
+                log.Error(ex, $"{Class} - Failed to restore language for {hook.GetType().Name}");
             }
         }
     }
@@ -134,24 +133,21 @@ public class HookManager(
             {
                 // Remove cast bar hook
                 case HookEnum.CastBar:
-                    if (hooks.Remove(castBarHook))
-                        castBarHook.Disable();
+                    if (hooks.Remove(castBarHook)) castBarHook.Disable();
                     break;
                 // Remove action detail hook
                 case HookEnum.ActionTooltip:
-                    if (hooks.Remove(actionDetailHook))
-                        actionDetailHook.Disable();
+                    if (hooks.Remove(actionDetailHook)) actionDetailHook.Disable();
                     break;
                 // Remove item detail hook
                 case HookEnum.ItemTooltip:
-                    if (hooks.Remove(itemDetailHook))
-                        itemDetailHook.Disable();
+                    if (hooks.Remove(itemDetailHook)) itemDetailHook.Disable();
                     break;
             }
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to enable {hook}");
+            log.Error(ex, $"{Class} - Failed to enable {hook}");
         }
     }
 
@@ -169,7 +165,7 @@ public class HookManager(
             }
             catch (Exception ex)
             {
-                log.Error(ex, $"Failed to disable {hook.GetType().Name}");
+                log.Error(ex, $"{Class} - Failed to disable {hook.GetType().Name}");
             }
         }
     }
@@ -191,7 +187,7 @@ public class HookManager(
             }
             catch (Exception ex)
             {
-                log.Error(ex, $"Failed to dispose {hook.GetType().Name}");
+                log.Error(ex, $"{Class} - Failed to dispose {hook.GetType().Name}");
             }
         }
 
@@ -201,4 +197,5 @@ public class HookManager(
         // Finalize
         GC.SuppressFinalize(this);
     }
+
 }

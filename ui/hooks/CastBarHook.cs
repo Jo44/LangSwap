@@ -1,6 +1,7 @@
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.ui.hooks.@base;
 using System;
@@ -16,8 +17,12 @@ public unsafe class CastBarHook(
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
-    IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, log)
+    Utilities utilities,
+    IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, utilities, log)
 {
+    // Constant
+    private const string Class = "[CastBarHook.cs]";
+
     private delegate void UpdateCastBarDelegate(IntPtr castBarPtr, uint actionId, IntPtr actionNamePtr);
 
     private Hook<UpdateCastBarDelegate>? updateCastBarHook;
@@ -36,29 +41,23 @@ public unsafe class CastBarHook(
             {
                 updateCastBarHook = gameInterop.HookFromAddress<UpdateCastBarDelegate>(updateCastBarAddr, UpdateCastBarDetour);
                 updateCastBarHook.Enable();
-                log.Information($"UpdateCastBar hook enabled at 0x{updateCastBarAddr:X}");
+                log.Information($"{Class} - UpdateCastBar hook enabled at 0x{updateCastBarAddr:X}");
             }
             else
             {
-                log.Warning("UpdateCastBar signature not found");
+                log.Warning($"{Class} - UpdateCastBar signature not found");
             }
 
             isEnabled = true;
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to enable CastBarHook");
+            log.Error(ex, $"{Class} - Failed to enable CastBarHook");
         }
     }
 
-    protected override void OnLanguageSwapped()
+    protected override void OnLanguageSwap()
     {
-        RefreshCastBar();
-    }
-
-    protected override void OnLanguageRestored()
-    {
-        currentCastActionId = 0;
         RefreshCastBar();
     }
 
@@ -72,14 +71,14 @@ public unsafe class CastBarHook(
                 var castBar = (AtkUnitBase*)castBarPtr.Address;
                 if (castBar != null && castBar -> IsVisible && currentCastActionId > 0)
                 {
-                    log.Debug($"Refreshing CastBar for action {currentCastActionId}");
+                    log.Debug($"{Class} - Refreshing CastBar for action {currentCastActionId}");
                     TranslateCastBarText(castBar);
                 }
             }
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to refresh cast bar");
+            log.Error(ex, $"{Class} - Failed to refresh cast bar");
         }
     }
 
@@ -88,7 +87,7 @@ public unsafe class CastBarHook(
         try
         {
             currentCastActionId = actionId;
-            log.Debug($"UpdateCastBar called: actionId={actionId}");
+            log.Debug($"{Class} - UpdateCastBar called: actionId={actionId}");
 
             if (isLanguageSwapped && actionId > 0 && actionId < configuration.MaxValidActionId)
             {
@@ -97,7 +96,7 @@ public unsafe class CastBarHook(
                 
                 if (!string.IsNullOrWhiteSpace(translatedName))
                 {
-                    log.Information($"Translating cast bar action {actionId} to: {translatedName}");
+                    log.Information($"{Class} - Translating cast bar action {actionId} to: {translatedName}");
                     
                     var translatedBytes = System.Text.Encoding.UTF8.GetBytes(translatedName + "\0");
                     unsafe
@@ -112,7 +111,7 @@ public unsafe class CastBarHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception in UpdateCastBar for action {actionId}");
+            log.Error(ex, $"{Class} - Exception in UpdateCastBar for action {actionId}");
         }
 
         updateCastBarHook!.Original(castBarPtr, actionId, actionNamePtr);
@@ -141,14 +140,14 @@ public unsafe class CastBarHook(
                 if (!string.IsNullOrWhiteSpace(translatedName))
                 {
                     textNode -> SetText(translatedName);
-                    log.Information($"Updated cast bar text to: {translatedName}");
+                    log.Information($"{Class} - Updated cast bar text to: {translatedName}");
                     break;
                 }
             }
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to translate cast bar text");
+            log.Error(ex, $"{Class} - Failed to translate cast bar text");
         }
     }
 
@@ -160,11 +159,11 @@ public unsafe class CastBarHook(
         {
             updateCastBarHook?.Disable();
             isEnabled = false;
-            log.Information("CastBarHook disabled");
+            log.Information($"{Class} - CastBarHook disabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to disable CastBarHook");
+            log.Error(ex, $"{Class} - Failed to disable CastBarHook");
         }
     }
 
@@ -174,4 +173,5 @@ public unsafe class CastBarHook(
         updateCastBarHook?.Dispose();
         GC.SuppressFinalize(this);
     }
+
 }

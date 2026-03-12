@@ -1,4 +1,5 @@
 using Dalamud.Plugin.Services;
+using LangSwap.tool;
 using LangSwap.translation;
 using System;
 
@@ -13,14 +14,19 @@ public abstract class BaseHook(
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
+    Utilities utilities,
     IPluginLog log) : IDisposable
 {
+    // Constant
+    private const string Class = "[BaseHook.cs]";
+
     // Core components
     protected readonly Configuration configuration = configuration;
     protected readonly IGameGui gameGui = gameGui;
     protected readonly IGameInteropProvider gameInterop = gameInterop;
     protected readonly ISigScanner sigScanner = sigScanner;
     protected readonly TranslationCache translationCache = translationCache;
+    protected readonly Utilities utilities = utilities;
     protected readonly IPluginLog log = log;
 
     // Toggle state
@@ -42,10 +48,10 @@ public abstract class BaseHook(
 
         // Set flag and log
         isLanguageSwapped = true;
-        log.Debug($"{GetType().Name}: Language swap enabled");
+        log.Debug($"{Class} - {GetType().Name} : Language swap enabled");
 
         // Call hook-specific behavior
-        OnLanguageSwapped();
+        OnLanguageSwap();
     }
 
     // ----------------------------
@@ -58,21 +64,16 @@ public abstract class BaseHook(
 
         // Clear flag and log
         isLanguageSwapped = false;
-        log.Debug($"{GetType().Name}: Language swap disabled");
+        log.Debug($"{Class} - {GetType().Name} : Language swap disabled");
 
         // Call hook-specific behavior
-        OnLanguageRestored();
+        OnLanguageSwap();
     }
 
     // ----------------------------
-    // Called when language is swapped
+    // Called when language is swapped or restored
     // ----------------------------
-    protected virtual void OnLanguageSwapped() { }
-
-    // ----------------------------
-    // Called when language is restored
-    // ----------------------------
-    protected virtual void OnLanguageRestored() { }
+    protected virtual void OnLanguageSwap() { }
 
     // ----------------------------
     // Disable the hook
@@ -83,4 +84,5 @@ public abstract class BaseHook(
     // Dispose the hook
     // ----------------------------
     public abstract void Dispose();
+
 }

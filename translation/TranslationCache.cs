@@ -4,10 +4,13 @@ using System.Collections.Generic;
 namespace LangSwap.translation;
 
 // ----------------------------
-// Cache for translated datas
+// Cache for translated data
 // ----------------------------
 public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
 {
+    // Constant
+    private const string Class = "[TranslationCache.cs]";
+
     // Base param cache
     private readonly Dictionary<(string, LanguageEnum, LanguageEnum), string?> baseParamCache = [];
 
@@ -34,20 +37,14 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
         (string, LanguageEnum, LanguageEnum) key = (paramName, clientLang, targetLang);
 
         // Check cache
-        if (baseParamCache.TryGetValue(key, out string? cachedName))
-        {
-            return cachedName;
-        }
+        if (baseParamCache.TryGetValue(key, out string? cachedName)) return cachedName;
 
         // Fetch from Excel and cache it
         string? name = excelProvider.GetBaseParamName(paramName, clientLang, targetLang);
         baseParamCache[key] = name;
 
         // Log
-        if (name != null)
-        {
-            log.Debug($"Cached base param name {paramName} ({clientLang} -> {targetLang}): {name}");
-        }
+        if (name != null) log.Debug($"{Class} - Cached base param name {paramName} ({clientLang} -> {targetLang}): {name}");
 
         // Return name
         return name;
@@ -66,20 +63,14 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
         (uint, LanguageEnum) key = (actionId, targetLang);
 
         // Check cache
-        if (actionNameCache.TryGetValue(key, out string? cachedName))
-        {
-            return cachedName;
-        }
+        if (actionNameCache.TryGetValue(key, out string? cachedName)) return cachedName;
 
         // Fetch from Excel and cache it
         string? name = excelProvider.GetActionName(actionId, targetLang);
         actionNameCache[key] = name;
 
         // Log
-        if (name != null)
-        {
-            log.Debug($"Cached action name {actionId} ({targetLang}): {name}");
-        }
+        if (name != null) log.Debug($"{Class} - Cached action name {actionId} ({targetLang}): {name}");
 
         // Return name
         return name;
@@ -94,20 +85,14 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
         (uint, LanguageEnum) key = (actionId, targetLang);
 
         // Check cache
-        if (actionDescriptionCache.TryGetValue(key, out string? cachedDesc))
-        {
-            return cachedDesc;
-        }
+        if (actionDescriptionCache.TryGetValue(key, out string? cachedDesc)) return cachedDesc;
 
         // Fetch from Excel and cache it
         string? description = excelProvider.GetActionDescription(actionId, targetLang);
         actionDescriptionCache[key] = description;
 
         // Log
-        if (description != null)
-        {
-            log.Debug($"Cached action description {actionId} ({targetLang}): {description}");
-        }
+        if (description != null) log.Debug($"{Class} - Cached action description {actionId} ({targetLang}): {description}");
 
         // Return description
         return description;
@@ -119,30 +104,23 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
     public uint? GetActionIdByName(string actionName, LanguageEnum clientLang)
     {
         // Validate input
-        if (string.IsNullOrWhiteSpace(actionName))
-            return null;
+        if (string.IsNullOrWhiteSpace(actionName)) return null;
 
         // Create cache key
         (string, LanguageEnum) key = (actionName.Trim(), clientLang);
 
         // Check cache
-        if (actionIdByNameCache.TryGetValue(key, out uint? cachedId))
-        {
-            return cachedId;
-        }
+        if (actionIdByNameCache.TryGetValue(key, out uint? cachedId)) return cachedId;
 
         // Fetch from Excel and cache it
-        uint? actionId = excelProvider.GetActionIdByName(actionName, clientLang);
-        actionIdByNameCache[key] = actionId;
+        uint? id = excelProvider.GetActionIdByName(actionName, clientLang);
+        actionIdByNameCache[key] = id;
 
         // Log
-        if (actionName != null)
-        {
-            log.Debug($"Cached action ID lookup '{actionName}' ({clientLang}): {actionId}");
-        }
+        if (id != null) log.Debug($"{Class} - Cached action ID lookup '{actionName}' ({clientLang}): {id}");
 
-        // Return action ID
-        return actionId;
+        // Return ID
+        return id;
     }
 
     //
@@ -158,20 +136,14 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
         (uint, LanguageEnum) key = (itemId, targetLang);
 
         // Check cache
-        if (itemNameCache.TryGetValue(key, out string? cachedName))
-        {
-            return cachedName;
-        }
+        if (itemNameCache.TryGetValue(key, out string? cachedName)) return cachedName;
 
         // Fetch from Excel and cache it
         string? name = excelProvider.GetItemName(itemId, targetLang);
         itemNameCache[key] = name;
 
         // Log
-        if (name != null)
-        {
-            log.Debug($"Cached item name {itemId} ({targetLang}): {name}");
-        }
+        if (name != null) log.Debug($"{Class} - Cached item name {itemId} ({targetLang}): {name}");
 
         // Return name
         return name;
@@ -186,20 +158,14 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
         (uint, LanguageEnum) key = (itemId, targetLang);
 
         // Check cache
-        if (itemDescriptionCache.TryGetValue(key, out string? cachedDesc))
-        {
-            return cachedDesc;
-        }
+        if (itemDescriptionCache.TryGetValue(key, out string? cachedDesc)) return cachedDesc;
 
         // Fetch from Excel and cache it
         string? description = excelProvider.GetItemDescription(itemId, targetLang);
         itemDescriptionCache[key] = description;
 
         // Log
-        if (description != null)
-        {
-            log.Debug($"Cached item description {itemId} ({targetLang}): {description}");
-        }
+        if (description != null) log.Debug($"{Class} - Cached item description {itemId} ({targetLang}): {description}");
 
         // Return description
         return description;
@@ -211,30 +177,23 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
     public uint? GetItemIdByName(string itemName, LanguageEnum clientLang)
     {
         // Validate input
-        if (string.IsNullOrWhiteSpace(itemName))
-            return null;
+        if (string.IsNullOrWhiteSpace(itemName)) return null;
 
         // Create cache key
         (string, LanguageEnum) key = (itemName.Trim(), clientLang);
 
         // Check cache
-        if (itemIdByNameCache.TryGetValue(key, out uint? cachedId))
-        {
-            return cachedId;
-        }
+        if (itemIdByNameCache.TryGetValue(key, out uint? cachedId)) return cachedId;
 
         // Fetch from Excel and cache it
-        uint? itemId = excelProvider.GetItemIdByName(itemName, clientLang);
-        itemIdByNameCache[key] = itemId;
+        uint? id = excelProvider.GetItemIdByName(itemName, clientLang);
+        itemIdByNameCache[key] = id;
 
         // Log
-        if (itemId != null)
-        {
-            log.Debug($"Cached item ID lookup '{itemName}' ({clientLang}): {itemId}");
-        }
+        if (id != null) log.Debug($"{Class} - Cached item ID lookup '{itemName}' ({clientLang}): {id}");
 
-        // Return item ID
-        return itemId;
+        // Return ID
+        return id;
     }
 
     // ----------------------------
@@ -244,9 +203,11 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
     {
         // Clear base param cache
         baseParamCache.Clear();
+
         // Clear action caches
         actionNameCache.Clear();
         actionDescriptionCache.Clear();
+
         // Clear item caches
         itemNameCache.Clear();
         itemDescriptionCache.Clear();

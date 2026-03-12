@@ -7,6 +7,7 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using LangSwap.input;
+using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.ui;
 using LangSwap.Windows;
@@ -19,11 +20,6 @@ namespace LangSwap;
 // ----------------------------
 public sealed class Plugin : IDalamudPlugin
 {
-    // ////////////////////////////// //
-    //             TODO               //
-    // ////////////////////////////// //
-    // - action tooltip swap
-
     // Plugin services
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
@@ -34,6 +30,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     // Constants
+    private const string Class = "[Plugin.cs]";
     private const string CommandName = "/langswap";
     private const int DeferredFrames = 2;
     private const byte LogTagColor = 45;
@@ -47,6 +44,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly HookManager _hookManager;
     private readonly ShortcutDetector _shortcutDetector;
     private readonly TranslationCache _translationCache;
+    private readonly Utilities _utilities;
     private readonly WindowSystem _windowSystem = new("LangSwap");
 
     // Toggle state
@@ -63,7 +61,7 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin(IDataManager dataManager, IGameGui gameGui, IGameInteropProvider gameInterop, ISigScanner sigScanner)
     {
         // Log plugin initialization
-        Log.Information("=== LangSwap plugin initialization ===");
+        Log.Information($"{Class} === LangSwap plugin initialization ===");
 
         // Load configuration
         _config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -72,11 +70,12 @@ public sealed class Plugin : IDalamudPlugin
         DetectClientLanguage();
 
         // Initialize core components
-        _shortcutDetector = new ShortcutDetector(_config, KeyState, Log);
+        _shortcutDetector = new(_config, KeyState, Log);
         _excelProvider = new(_config, dataManager, Log);
         _translationCache = new(_excelProvider, Log);
-        _hookManager = new HookManager(_config, gameGui, gameInterop, sigScanner, _translationCache, Log);
-        _configWindow = new ConfigWindow(_config, _hookManager, this, _translationCache, Log);
+        _utilities = new(Log);
+        _hookManager = new(_config, gameGui, gameInterop, sigScanner, _translationCache, _utilities, Log);
+        _configWindow = new(_config, _hookManager, this, _translationCache, Log);
 
         // Register window
         _windowSystem.AddWindow(_configWindow);
@@ -93,21 +92,21 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
 
         // Log plugin informations
-        Log.Information("=== LangSwap plugin loaded ===");
-        Log.Debug("Configuration loaded :");
-        Log.Debug($"Client Language = {_config.ClientLanguage}");
-        Log.Debug($"Target Language = {_config.TargetLanguage}");
-        Log.Debug($"Primary Key = {_config.PrimaryKey}");
-        Log.Debug($"Ctrl = {_config.Ctrl}");
-        Log.Debug($"Alt = {_config.Alt}");
-        Log.Debug($"Shift = {_config.Shift}");
-        Log.Debug($"Castbars = {_config.Castbars}");
-        Log.Debug($"Action Tooltips = {_config.ActionTooltips}");
-        Log.Debug($"Item Tooltips = {_config.ItemTooltips}");
+        Log.Information($"{Class} === LangSwap plugin loaded ===");
+        Log.Debug($"{Class} - Configuration loaded :");
+        Log.Debug($"{Class} - Client Language = {_config.ClientLanguage}");
+        Log.Debug($"{Class} - Target Language = {_config.TargetLanguage}");
+        Log.Debug($"{Class} - Primary Key = {_config.PrimaryKey}");
+        Log.Debug($"{Class} - Ctrl = {_config.Ctrl}");
+        Log.Debug($"{Class} - Alt = {_config.Alt}");
+        Log.Debug($"{Class} - Shift = {_config.Shift}");
+        Log.Debug($"{Class} - Castbars = {_config.Castbars}");
+        Log.Debug($"{Class} - Action Tooltips = {_config.ActionTooltips}");
+        Log.Debug($"{Class} - Item Tooltips = {_config.ItemTooltips}");
     }
 
     // ----------------------------
-    // Main Draw / Swap Logic
+    // Swap Logic
     // ----------------------------
     private void OnDraw()
     {
@@ -118,15 +117,15 @@ public sealed class Plugin : IDalamudPlugin
         bool shortcutPressed = _shortcutDetector.IsPressed();
 
         // Toggle language swap
-        if (shortcutPressed && !_previousShortcutPressed)
-        {
-            ToggleLanguageSwap();
-        }
+        if (shortcutPressed && !_previousShortcutPressed) ToggleLanguageSwap();
 
         // Update previous shortcut state
         _previousShortcutPressed = shortcutPressed;
     }
 
+    // ----------------------------
+    // Toogle Language Swap
+    // ----------------------------
     private void ToggleLanguageSwap()
     {
         // Check disposed or already swapping
@@ -142,6 +141,9 @@ public sealed class Plugin : IDalamudPlugin
         Framework.Update += DeferredSwap;
     }
 
+    // ----------------------------
+    // Deferred Swap Handler
+    // ----------------------------
     private void DeferredSwap(IFramework framework)
     {
         // Check disposed
@@ -156,20 +158,14 @@ public sealed class Plugin : IDalamudPlugin
         // Perform the swap or restore
         try
         {
-            if (_isSwapEnabled)
-            {
-                // Currently swapped -> restore
-                RestoreLanguage();
-            }
-            else
-            {
-                // Currently not swapped -> swap
-                SwapLanguage();
-            }
+            // Currently swapped -> restore
+            if (_isSwapEnabled) RestoreLanguage();
+            // Currently not swapped -> swap
+            else SwapLanguage();
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Error while toggling language swap");
+            Log.Error(ex, $"{Class} - Error while toggling language swap");
         }
         finally
         {
@@ -179,7 +175,7 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
-    // Swap / Restore
+    // Swap Language
     // ----------------------------
     private void SwapLanguage()
     {
@@ -191,7 +187,7 @@ public sealed class Plugin : IDalamudPlugin
         {
             string error = "Target language is the same as client language, swap aborted";
             ChatLog(error);
-            Log.Warning(error);
+            Log.Warning($"{Class} - {error}");
             return;
         }
 
@@ -202,9 +198,12 @@ public sealed class Plugin : IDalamudPlugin
         // Log swap informations
         string info = $"Swapped to {Enum.GetName(typeof(LanguageEnum), _config.TargetLanguage)}";
         ChatLog(info);
-        Log.Information(info);
+        Log.Information($"{Class} - {info}");
     }
 
+    // ----------------------------
+    // Restore Language
+    // ----------------------------
     private void RestoreLanguage()
     {
         // Check if already restored
@@ -217,7 +216,7 @@ public sealed class Plugin : IDalamudPlugin
         // Log restore informations
         string info = $"Restored to {Enum.GetName(typeof(LanguageEnum), _config.ClientLanguage)}";
         ChatLog(info);
-        Log.Information(info);
+        Log.Information($"{Class} - {info}");
     }
 
     // ----------------------------
@@ -225,7 +224,7 @@ public sealed class Plugin : IDalamudPlugin
     // ----------------------------
     private void DetectClientLanguage()
     {
-        // Detect client language from Dalamud
+        // Detect client language
         ClientLanguage lang = ClientState.ClientLanguage;
 
         // Map client language to configuration
@@ -239,8 +238,7 @@ public sealed class Plugin : IDalamudPlugin
         };
 
         // Log unrecognized language
-        if ((int)lang > 3)
-            Log.Warning($"Unrecognized client language: {lang}, defaulting to English");
+        if ((int)lang > 3) Log.Warning($"{Class} - Unrecognized client language: {lang}, defaulting to English");
 
         // Save configuration
         _config.Save();
@@ -286,7 +284,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to print chat log");
+            Log.Error(ex, $"{Class} - Failed to print chat log");
         }
     }
 
@@ -295,14 +293,14 @@ public sealed class Plugin : IDalamudPlugin
     // ----------------------------
     public void Dispose()
     {
+        // Set disposed flag
         _disposed = true;
 
         // Cancel any deferred swap
         Framework.Update -= DeferredSwap;
 
         // Restore language
-        if (_isSwapEnabled)
-            RestoreLanguage();
+        if (_isSwapEnabled) RestoreLanguage();
 
         // Remove command
         CommandManager.RemoveHandler(CommandName);
@@ -320,6 +318,7 @@ public sealed class Plugin : IDalamudPlugin
         _configWindow.Dispose();
 
         // Log plugin informations
-        Log.Information("=== LangSwap plugin unloaded ===");
+        Log.Information($"{Class} === LangSwap plugin unloaded ===");
     }
+
 }

@@ -7,10 +7,13 @@ using System;
 namespace LangSwap.translation;
 
 // ----------------------------
-// Excel data provider (for accessing game data via Lumina)
+// Excel data provider (accessing game data via Lumina)
 // ----------------------------
 public class ExcelProvider(Configuration config, IDataManager dataManager, IPluginLog log)
 {
+    // Constant
+    private const string Class = "[ExcelProvider.cs]";
+
     //
     // ========== BASE PARAMS ==========
     //
@@ -26,7 +29,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             ExcelSheet<BaseParam> clientSheet = dataManager.GetExcelSheet<BaseParam>(EnumToClientLang(clientLang));
             if (clientSheet == null)
             {
-                log.Warning($"BaseParam sheet is not available for language {clientLang}");
+                log.Warning($"{Class} - BaseParam sheet is not available for language {clientLang}");
                 return null;
             }
 
@@ -42,23 +45,18 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             }
 
             // Check if row ID is found
-            if (rowId == null)
-            {
-                return null;
-            }
+            if (rowId == null) return null;
 
             // Get the translated name using the row ID in target language
             ExcelSheet<BaseParam> targetSheet = dataManager.GetExcelSheet<BaseParam>(EnumToClientLang(targetLang));
-            if (targetSheet != null && targetSheet.TryGetRow(rowId.Value, out BaseParam translatedParam))
-            {
-                return translatedParam.Name.ToString();
-            }
+            if (targetSheet != null && targetSheet.TryGetRow(rowId.Value, out BaseParam translatedParam)) return translatedParam.Name.ToString();
 
+            // No match found
             return null;
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception while getting BaseParam {paramName} from {clientLang} to {targetLang}");
+            log.Error(ex, $"{Class} - Exception while getting BaseParam {paramName} from {clientLang} to {targetLang}");
             return null;
         }
     }
@@ -77,7 +75,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             // Validate action ID range
             if (actionId < 1 || actionId > config.MaxValidActionId)
             {
-                log.Warning($"Action ID {actionId} is out of valid range (1-{config.MaxValidActionId})");
+                log.Warning($"{Class} - Action ID {actionId} is out of valid range (1-{config.MaxValidActionId})");
                 return null;
             }
 
@@ -85,14 +83,14 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(targetLang));
             if (actionSheet == null)
             {
-                log.Warning($"Action sheet is not available for language {targetLang}");
+                log.Warning($"{Class} - Action sheet is not available for language {targetLang}");
                 return null;
             }
 
             // Try to get the action row
             if (!actionSheet.TryGetRow(actionId, out Lumina.Excel.Sheets.Action action))
             {
-                log.Warning($"Action {actionId} not found in sheet for language {targetLang}");
+                log.Warning($"{Class} - Action {actionId} not found in sheet for language {targetLang}");
                 return null;
             }
 
@@ -101,7 +99,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception while getting action {actionId} in language {targetLang}");
+            log.Error(ex, $"{Class} - Exception while getting action {actionId} in language {targetLang}");
             return null;
         }
     }
@@ -122,7 +120,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch
         {
-            log.Warning($"Could not extract {propertyName} for action {actionId}");
+            log.Warning($"{Class} - Could not extract {propertyName} for action {actionId}");
             return default;
         }
     }
@@ -148,8 +146,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         try
         {
             // Validate input
-            if (string.IsNullOrWhiteSpace(actionName))
-                return null;
+            if (string.IsNullOrWhiteSpace(actionName)) return null;
 
             // Normalize the search name for comparison
             string normalizedSearchName = actionName.Trim();
@@ -158,7 +155,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(clientLang));
             if (actionSheet == null)
             {
-                log.Warning($"Action sheet is not available for language {clientLang}");
+                log.Warning($"{Class} - Action sheet is not available for language {clientLang}");
                 return null;
             }
 
@@ -166,17 +163,13 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             foreach (Lumina.Excel.Sheets.Action action in actionSheet)
             {
                 // Skip invalid items
-                if (action.RowId == 0)
-                    continue;
+                if (action.RowId == 0) continue;
 
                 // Get action name in the target language
                 string actionNameInLang = action.Name.ToString() ?? string.Empty;
 
                 // Compare names (case-insensitive)
-                if (string.Equals(normalizedSearchName, actionNameInLang.Trim(), StringComparison.OrdinalIgnoreCase))
-                {
-                    return action.RowId;
-                }
+                if (string.Equals(normalizedSearchName, actionNameInLang.Trim(), StringComparison.OrdinalIgnoreCase)) return action.RowId;
             }
 
             // No match found
@@ -184,7 +177,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to get action ID for name {actionName} in language {clientLang}");
+            log.Error(ex, $"{Class} - Failed to get action ID for name {actionName} in language {clientLang}");
             return null;
         }
     }
@@ -203,7 +196,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             // Validate item ID range
             if (itemId < 1 || itemId > config.MaxValidItemId)
             {
-                log.Warning($"Item ID {itemId} is out of valid range (1-{config.MaxValidItemId})");
+                log.Warning($"{Class} - Item ID {itemId} is out of valid range (1-{config.MaxValidItemId})");
                 return null;
             }
 
@@ -211,14 +204,14 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(targetLang));
             if (itemSheet == null)
             {
-                log.Warning($"Item sheet is not available for language {targetLang}");
+                log.Warning($"{Class} - Item sheet is not available for language {targetLang}");
                 return null;
             }
 
             // Try to get the item row
             if (!itemSheet.TryGetRow(itemId, out Item item))
             {
-                log.Warning($"Item {itemId} not found in sheet for language {targetLang}");
+                log.Warning($"{Class} - Item {itemId} not found in sheet for language {targetLang}");
                 return null;
             }
 
@@ -227,7 +220,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception while getting item {itemId} in language {targetLang}");
+            log.Error(ex, $"{Class} - Exception while getting item {itemId} in language {targetLang}");
             return null;
         }
     }
@@ -248,7 +241,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch
         {
-            log.Warning($"Could not extract {propertyName} for item {itemId}");
+            log.Warning($"{Class} - Could not extract {propertyName} for item {itemId}");
             return default;
         }
     }
@@ -273,8 +266,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         try
         {
             // Validate input
-            if (string.IsNullOrWhiteSpace(itemName))
-                return null;
+            if (string.IsNullOrWhiteSpace(itemName)) return null;
 
             // Normalize the search name for comparison
             string normalizedSearchName = itemName.Trim();
@@ -283,7 +275,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(clientLang));
             if (itemSheet == null)
             {
-                log.Warning($"Item sheet is not available for language {clientLang}");
+                log.Warning($"{Class} - Item sheet is not available for language {clientLang}");
                 return null;
             }
 
@@ -291,17 +283,13 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             foreach (Item item in itemSheet)
             {
                 // Skip invalid items
-                if (item.RowId == 0)
-                    continue;
+                if (item.RowId == 0) continue;
 
                 // Get item name in the target language
                 string itemNameInLang = item.Name.ToString() ?? string.Empty;
 
                 // Compare names (case-insensitive)
-                if (string.Equals(normalizedSearchName, itemNameInLang.Trim(), StringComparison.OrdinalIgnoreCase))
-                {
-                    return item.RowId;
-                }
+                if (string.Equals(normalizedSearchName, itemNameInLang.Trim(), StringComparison.OrdinalIgnoreCase)) return item.RowId;
             }
 
             // No match found
@@ -309,7 +297,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to get item ID for name {itemName} in language {clientLang}");
+            log.Error(ex, $"{Class} - Failed to get item ID for name {itemName} in language {clientLang}");
             return null;
         }
     }
@@ -329,4 +317,5 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             _ => ClientLanguage.English
         };
     }
+
 }

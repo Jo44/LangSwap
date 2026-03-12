@@ -3,9 +3,8 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Hooking;
 using Dalamud.Memory;
 using Dalamud.Plugin.Services;
-using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.ui.hooks.@base;
 using System;
@@ -23,8 +22,12 @@ public unsafe class ActionDetailHook(
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
-    IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, log)
+    Utilities utilities,
+    IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, utilities, log)
 {
+    // Constant
+    private const string Class = "[ActionDetailHook.cs]";
+
     // Delegate function
     private delegate void* GenerateActionTooltipDelegate(AtkUnitBase* addonActionDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
@@ -59,11 +62,11 @@ public unsafe class ActionDetailHook(
             {
                 generateActionTooltipHook = gameInterop.HookFromAddress<GenerateActionTooltipDelegate>(generateActionTooltipAddr, GenerateActionTooltipDetour);
                 generateActionTooltipHook.Enable();
-                log.Debug($"GenerateActionTooltip hook enabled at 0x{generateActionTooltipAddr:X}");
+                log.Debug($"{Class} - GenerateActionTooltip hook enabled at 0x{generateActionTooltipAddr:X}");
             }
             else
             {
-                log.Warning("GenerateActionTooltip signature not found");
+                log.Warning($"{Class} - GenerateActionTooltip signature not found");
             }
 
             // Set enabled flag
@@ -71,28 +74,15 @@ public unsafe class ActionDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to enable ActionDetail hook");
+            log.Error(ex, $"{Class} - Failed to enable ActionDetail hook");
         }
     }
 
     // ----------------------------
-    // Swap to target language
+    // On language swap
     // ----------------------------
-    protected override void OnLanguageSwapped()
+    protected override void OnLanguageSwap()
     {
-        // Refresh action detail to apply translations
-        _translatedBytesCache.Clear();
-        RefreshActionDetail();
-    }
-
-    // ----------------------------
-    // Restore to original language
-    // ----------------------------
-    protected override void OnLanguageRestored()
-    {
-        // Clear current action ID
-        currentActionId = 0;
-
         // Refresh action detail to apply translations
         _translatedBytesCache.Clear();
         RefreshActionDetail();
@@ -122,7 +112,7 @@ public unsafe class ActionDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to refresh ActionDetail");
+            log.Error(ex, $"{Class} - Failed to refresh ActionDetail");
         }
     }
 
@@ -141,7 +131,7 @@ public unsafe class ActionDetailHook(
             LanguageEnum clientLang = (LanguageEnum)configuration.ClientLanguage;
 
             // Get action name from StringArrayData
-            string? actionName = ReadStringFromArray(stringArrayData, ActionNameField);
+            string? actionName = utilities.ReadStringFromArray(stringArrayData, ActionNameField);
 
             // Get action ID 
             currentActionId = translationCache.GetActionIdByName(actionName, clientLang) ?? 0;
@@ -169,37 +159,10 @@ public unsafe class ActionDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Exception in GenerateActionTooltip for action {currentActionId}");
+            log.Error(ex, $"{Class} - Exception in GenerateActionTooltip for action {currentActionId}");
         }
 
         return generateActionTooltipHook!.Original(addonActionDetail, numberArrayData, stringArrayData);
-    }
-
-    // ----------------------------
-    // Read string from StringArrayData at specified index
-    // ----------------------------
-    private string ReadStringFromArray(StringArrayData* stringArrayData, int index)
-    {
-        try
-        {
-            // Check for null pointer and valid index
-            if (stringArrayData == null || index >= stringArrayData->AtkArrayData.Size)
-                return string.Empty;
-
-            // Get memory address of the string
-            nint address = new(stringArrayData->StringArray[index]);
-            if (address == IntPtr.Zero)
-                return string.Empty;
-
-            // Read SeString from memory and convert to string
-            SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
-            return seString?.ToString() ?? string.Empty;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"Failed to read string at index {index}");
-            return string.Empty;
-        }
     }
 
     // ----------------------------
@@ -249,7 +212,7 @@ public unsafe class ActionDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to replace text with formatting at field {field}");
+            log.Error(ex, $"{Class} - Failed to replace text with formatting at field {field}");
             SafeSetString(stringArrayData, field, newText);
         }
     }
@@ -301,7 +264,7 @@ public unsafe class ActionDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Failed to safely set string at field {field}");
+            log.Error(ex, $"{Class} - Failed to safely set string at field {field}");
         }
     }
 
@@ -312,14 +275,14 @@ public unsafe class ActionDetailHook(
     {
         if (stringArrayData != null)
         {
-            log.Debug("=== StringArrayData Structure ===");
-            log.Debug($"Total Size: {stringArrayData->AtkArrayData.Size}");
+            log.Debug("{Class} === StringArrayData Structure ===");
+            log.Debug($"{Class} - Total Size: {stringArrayData->AtkArrayData.Size}");
 
             // Log each field with its content
             for (int i = 0; i < stringArrayData->AtkArrayData.Size; i++)
             {
                 // Read the string at this index
-                string text = ReadStringFromArray(stringArrayData, i);
+                string text = utilities.ReadStringFromArray(stringArrayData, i);
 
                 // Log all non-empty fields
                 if (!string.IsNullOrWhiteSpace(text))
@@ -330,11 +293,11 @@ public unsafe class ActionDetailHook(
                     // Replace line breaks for compact display
                     displayText = displayText.Replace("\n", " | ");
 
-                    log.Debug($"[{i,2}] {displayText}");
+                    log.Debug($"{Class} - [{i,2}] {displayText}");
                 }
             }
 
-            log.Debug("=== End of StringArrayData ===");
+            log.Debug("{Class} === End of StringArrayData ===");
         }
     }
 
@@ -353,11 +316,11 @@ public unsafe class ActionDetailHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug("ActionDetail hook disabled");
+            log.Debug($"{Class} - ActionDetail hook disabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to disable ActionDetail hook");
+            log.Error(ex, $"{Class} - Failed to disable ActionDetail hook");
         }
     }
 
@@ -378,14 +341,15 @@ public unsafe class ActionDetailHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug("ActionDetail hook disposed");
+            log.Debug($"{Class} - ActionDetail hook disposed");
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to dispose ActionDetail hook");
+            log.Error(ex, $"{Class} - Failed to dispose ActionDetail hook");
         }
 
         // Finalize
         GC.SuppressFinalize(this);
     }
+
 }

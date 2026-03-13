@@ -14,37 +14,41 @@ using System.Text;
 namespace LangSwap.ui.hooks;
 
 // ----------------------------
-// Action Detail Hook
+// Action Tooltip Hook
 // ----------------------------
-public unsafe class ActionDetailHook(
-    Configuration configuration,
+public unsafe class ActionTooltipHook(
+    Configuration config,
     IGameGui gameGui,
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, utilities, log)
+    IPluginLog log) : BaseHook(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log)
 {
-    // Constant
-    private const string Class = "[ActionDetailHook.cs]";
+    // Log
+    private const string Class = "[ActionTooltipHook.cs]";
+
+    // Action Detail Addon
+    private readonly string ActionDetailAddon = config.ActionDetailAddon;
+    private readonly int ActionNameField = config.ActionNameField;
+    private readonly int ActionDescriptionField = config.ActionDescriptionField;
 
     // Delegate function
-    private delegate void* GenerateActionTooltipDelegate(AtkUnitBase* addonActionDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
+    private delegate void* ActionTooltipDelegate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
     // Hook
-    private Hook<GenerateActionTooltipDelegate>? generateActionTooltipHook;
+    private Hook<ActionTooltipDelegate>? _actionTooltipHook;
+
+    // TODO : supprimer ça (=> déplacer dans Utilities à terme)
 
     // ID
     private uint currentActionId = 0;
 
     // Cache for translated bytes
-    private readonly Dictionary<string, byte[]> _translatedBytesCache = [];
+    private readonly Dictionary<string, byte[]> _bytesCache = [];
     private const int MaxCacheSize = 500;
 
-    // Action Detail Addon
-    private readonly string ActionDetailAddonName = configuration.ActionDetailAddonName;
-    private readonly int ActionNameField = configuration.ActionNameField;
-    private readonly int ActionDescriptionField = configuration.ActionDescriptionField;
+
 
     // ----------------------------
     // Enable the hook
@@ -56,25 +60,30 @@ public unsafe class ActionDetailHook(
 
         try
         {
-            // Hook GenerateActionTooltip (-> modify action tooltip datas when generating it)
-            nint generateActionTooltipAddr = sigScanner.ScanText(configuration.GenerateActionTooltipSig);
-            if (generateActionTooltipAddr != IntPtr.Zero)
+            // Get address from signature
+            nint actionTooltipAddr = sigScanner.ScanText(config.ActionTooltipSig);
+            if (actionTooltipAddr != IntPtr.Zero)
             {
-                generateActionTooltipHook = gameInterop.HookFromAddress<GenerateActionTooltipDelegate>(generateActionTooltipAddr, GenerateActionTooltipDetour);
-                generateActionTooltipHook.Enable();
-                log.Debug($"{Class} - GenerateActionTooltip hook enabled at 0x{generateActionTooltipAddr:X}");
+                // Get hook from address
+                _actionTooltipHook = gameInterop.HookFromAddress<ActionTooltipDelegate>(actionTooltipAddr, ActionTooltipDetour);
+
+                // Enable hook
+                _actionTooltipHook.Enable();
+
+                // Set enabled flag
+                isEnabled = true;
+
+                // Log
+                log.Debug($"{Class} - Action tooltip hook enabled at 0x{actionTooltipAddr:X}");
             }
             else
             {
-                log.Warning($"{Class} - GenerateActionTooltip signature not found");
+                log.Warning($"{Class} - Action tooltip signature not found");
             }
-
-            // Set enabled flag
-            isEnabled = true;
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to enable ActionDetail hook");
+            log.Error(ex, $"{Class} - Failed to enable action tooltip hook");
         }
     }
 
@@ -83,20 +92,15 @@ public unsafe class ActionDetailHook(
     // ----------------------------
     protected override void OnLanguageSwap()
     {
-        // Refresh action detail to apply translations
-        _translatedBytesCache.Clear();
-        RefreshActionDetail();
-    }
+        // Clear bytes cache
+        // TODO
+        // _bytesCache.Clear();
 
-    // ----------------------------
-    // Refresh the ActionDetail addon
-    // ----------------------------
-    private void RefreshActionDetail()
-    {
+        // Refresh action detail addon
         try
         {
             // Get pointer to ActionDetail addon
-            AtkUnitBasePtr actionDetailPtr = gameGui.GetAddonByName(ActionDetailAddonName);
+            AtkUnitBasePtr actionDetailPtr = gameGui.GetAddonByName(ActionDetailAddon);
             if (!actionDetailPtr.IsNull)
             {
                 // Get AtkUnitBase from pointer
@@ -112,35 +116,34 @@ public unsafe class ActionDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to refresh ActionDetail");
+            log.Error(ex, $"{Class} - Failed to refresh action detail addon");
         }
     }
 
     // ----------------------------
-    // On Generate Action Tooltip
-    // -> Modify action tooltip datas when generating it
+    // On action tooltip generation
     // ----------------------------
-    private void* GenerateActionTooltipDetour(AtkUnitBase* addonActionDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
+    private void* ActionTooltipDetour(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {
         try
         {
-            // TODO : TEST - Log the structure of StringArrayData for debugging
-            LogSADStructure(stringArrayData);
+            // Log the structure of StringArrayData for debugging
+            // utilities.LogSADStructure(stringArrayData);
 
             // Get client language
-            LanguageEnum clientLang = (LanguageEnum)configuration.ClientLanguage;
+            LanguageEnum clientLang = (LanguageEnum)config.ClientLanguage;
 
             // Get action name from StringArrayData
-            string? actionName = utilities.ReadStringFromArray(stringArrayData, ActionNameField);
+            string? actionName = utilities.ReadStringFromArrayData(stringArrayData, ActionNameField);
 
             // Get action ID 
             currentActionId = translationCache.GetActionIdByName(actionName, clientLang) ?? 0;
 
             // Modify texts in StringArrayData
-            if (isLanguageSwapped && currentActionId > 0 && currentActionId < configuration.MaxValidActionId)
+            if (isLanguageSwapped && currentActionId > 0 && currentActionId < config.MaxValidActionId)
             {
                 // Get target language
-                LanguageEnum targetLang = (LanguageEnum)configuration.TargetLanguage;
+                LanguageEnum targetLang = (LanguageEnum)config.TargetLanguage;
 
                 // Translate action name
                 string? translatedName = translationCache.GetActionName(currentActionId, targetLang);
@@ -159,10 +162,10 @@ public unsafe class ActionDetailHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Exception in GenerateActionTooltip for action {currentActionId}");
+            log.Error(ex, $"{Class} - Exception in ActionTooltipDetour");
         }
 
-        return generateActionTooltipHook!.Original(addonActionDetail, numberArrayData, stringArrayData);
+        return _actionTooltipHook!.Original(actionDetailAddon, numberArrayData, stringArrayData);
     }
 
     // ----------------------------
@@ -237,7 +240,7 @@ public unsafe class ActionDetailHook(
                 return;
 
             // Check cache first to avoid unnecessary encoding
-            if (!_translatedBytesCache.TryGetValue(text, out byte[]? bytes))
+            if (!_bytesCache.TryGetValue(text, out byte[]? bytes))
             {
                 // Get bytes of text
                 bytes = Encoding.UTF8.GetBytes(text + "\0");
@@ -247,15 +250,15 @@ public unsafe class ActionDetailHook(
                     return;
 
                 // Add to cache if size limit not exceeded
-                if (_translatedBytesCache.Count < MaxCacheSize)
+                if (_bytesCache.Count < MaxCacheSize)
                 {
-                    _translatedBytesCache[text] = bytes;
+                    _bytesCache[text] = bytes;
                 }
                 else
                 {
                     // Clear cache before if limit exceeded
-                    _translatedBytesCache.Clear();
-                    _translatedBytesCache[text] = bytes;
+                    _bytesCache.Clear();
+                    _bytesCache[text] = bytes;
                 }
             }
 
@@ -269,39 +272,6 @@ public unsafe class ActionDetailHook(
     }
 
     // ----------------------------
-    // Log the structure of StringArrayData for debugging
-    // ----------------------------
-    private void LogSADStructure(StringArrayData* stringArrayData)
-    {
-        if (stringArrayData != null)
-        {
-            log.Debug("{Class} === StringArrayData Structure ===");
-            log.Debug($"{Class} - Total Size: {stringArrayData->AtkArrayData.Size}");
-
-            // Log each field with its content
-            for (int i = 0; i < stringArrayData->AtkArrayData.Size; i++)
-            {
-                // Read the string at this index
-                string text = utilities.ReadStringFromArray(stringArrayData, i);
-
-                // Log all non-empty fields
-                if (!string.IsNullOrWhiteSpace(text))
-                {
-                    // Truncate long text for readability
-                    string displayText = text.Length > 100 ? text[..100] + "..." : text;
-
-                    // Replace line breaks for compact display
-                    displayText = displayText.Replace("\n", " | ");
-
-                    log.Debug($"{Class} - [{i,2}] {displayText}");
-                }
-            }
-
-            log.Debug("{Class} === End of StringArrayData ===");
-        }
-    }
-
-    // ----------------------------
     // Disable the hook
     // ----------------------------
     public override void Disable()
@@ -311,16 +281,16 @@ public unsafe class ActionDetailHook(
 
         try
         {
-            // Disable GenerateActionTooltip hook
-            generateActionTooltipHook?.Disable();
+            // Disable action tooltip hook
+            _actionTooltipHook?.Disable();
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug($"{Class} - ActionDetail hook disabled");
+            log.Debug($"{Class} - Action tooltip hook disabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to disable ActionDetail hook");
+            log.Error(ex, $"{Class} - Failed to disable action tooltip hook");
         }
     }
 
@@ -331,21 +301,22 @@ public unsafe class ActionDetailHook(
     {
         try
         {
-            // Dispose GenerateActionTooltip hook
-            generateActionTooltipHook?.Disable();
-            generateActionTooltipHook?.Dispose();
-            generateActionTooltipHook = null;
-
             // Clear cache
-            _translatedBytesCache.Clear();
+            // TODO
+            // _bytesCache.Clear();
+
+            // Dispose action tooltip hook
+            _actionTooltipHook?.Disable();
+            _actionTooltipHook?.Dispose();
+            _actionTooltipHook = null;
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug($"{Class} - ActionDetail hook disposed");
+            log.Debug($"{Class} - Action tooltip hook disposed");
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to dispose ActionDetail hook");
+            log.Error(ex, $"{Class} - Failed to dispose action tooltip hook");
         }
 
         // Finalize

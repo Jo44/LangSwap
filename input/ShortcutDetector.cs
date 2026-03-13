@@ -9,7 +9,7 @@ namespace LangSwap.input;
 // ----------------------------
 public class ShortcutDetector(Configuration config, IKeyState keyState, IPluginLog log)
 {
-    // Constant
+    // Log
     private const string Class = "[ShortcutDetector.cs]";
 
     // ----------------------------
@@ -44,10 +44,10 @@ public class ShortcutDetector(Configuration config, IKeyState keyState, IPluginL
         {
             // Attempt to convert vkCode to VirtualKey enum
             Type underlying = Enum.GetUnderlyingType(typeof(VirtualKey));
-            object converted;
+            VirtualKey converted;
             try
             {
-                converted = Convert.ChangeType(vkCode, underlying);
+                converted = (VirtualKey)Convert.ChangeType(vkCode, underlying);
             }
             catch
             {
@@ -56,7 +56,7 @@ public class ShortcutDetector(Configuration config, IKeyState keyState, IPluginL
             }
 
             // Check if the converted value is a defined VirtualKey
-            if (Enum.IsDefined(typeof(VirtualKey), converted))
+            if (Enum.IsDefined(converted))
             {
                 VirtualKey vk = (VirtualKey)Enum.ToObject(typeof(VirtualKey), converted);
                 if (keyState.IsVirtualKeyValid(vk))
@@ -73,7 +73,7 @@ public class ShortcutDetector(Configuration config, IKeyState keyState, IPluginL
         catch (Exception ex)
         {
             // Log exception and return false
-            log.Warning($"{Class} - ShortcutDetector.IsKeyDown exception for vk={vkCode}: {ex.Message}");
+            log.Warning($"{Class} - ShortcutDetector.IsKeyDown exception for vk = {vkCode} : {ex.Message}");
             return false;
         }
     }

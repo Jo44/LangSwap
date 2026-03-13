@@ -9,7 +9,7 @@ namespace LangSwap.ui.hooks.@base;
 // Base class for all hooks
 // ----------------------------
 public abstract class BaseHook(
-    Configuration configuration,
+    Configuration config,
     IGameGui gameGui,
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
@@ -17,11 +17,11 @@ public abstract class BaseHook(
     Utilities utilities,
     IPluginLog log) : IDisposable
 {
-    // Constant
+    // Log
     private const string Class = "[BaseHook.cs]";
 
     // Core components
-    protected readonly Configuration configuration = configuration;
+    protected readonly Configuration config = config;
     protected readonly IGameGui gameGui = gameGui;
     protected readonly IGameInteropProvider gameInterop = gameInterop;
     protected readonly ISigScanner sigScanner = sigScanner;
@@ -46,8 +46,10 @@ public abstract class BaseHook(
         // Prevent redundant swaps
         if (isLanguageSwapped) return;
 
-        // Set flag and log
+        // Set flag
         isLanguageSwapped = true;
+
+        // Log
         log.Debug($"{Class} - {GetType().Name} : Language swap enabled");
 
         // Call hook-specific behavior
@@ -62,8 +64,10 @@ public abstract class BaseHook(
         // Prevent redundant restores
         if (!isLanguageSwapped) return;
 
-        // Clear flag and log
+        // Clear flag
         isLanguageSwapped = false;
+
+        // Log
         log.Debug($"{Class} - {GetType().Name} : Language swap disabled");
 
         // Call hook-specific behavior

@@ -32,8 +32,8 @@ public class Configuration : IPluginConfiguration
 
     // Memory signatures
     public string CastBarSig { get; } = "48 83 EC 38 48 8B 92";
-    public string GenerateActionTooltipSig { get; } = "E8 ?? ?? ?? ?? 48 8B 43 28 48 8B AF";
-    public string GenerateItemTooltipSig { get; } = "48 89 5C 24 ?? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ?? 48 8B 42 ?? 4C 8B EA";
+    public string ActionTooltipSig { get; } = "E8 ?? ?? ?? ?? 48 8B 43 28 48 8B AF";
+    public string ItemTooltipSig { get; } = "48 89 5C 24 ?? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ?? 48 8B 42 ?? 4C 8B EA";
 
     // Miscellaneous
     public char GlamouredSymbol { get; } = '\uE03B'; // Mirage symbol
@@ -42,12 +42,12 @@ public class Configuration : IPluginConfiguration
     public int MaxValidItemId { get; } = 100000;
 
     // Action Detail Addon
-    public string ActionDetailAddonName { get; } = "ActionDetail";
+    public string ActionDetailAddon { get; } = "ActionDetail";
     public int ActionNameField { get; } = 0;
     public int ActionDescriptionField { get; } = 13;
 
     // Item Detail Addon
-    public string ItemDetailAddonName { get; } = "ItemDetail";
+    public string ItemDetailAddon { get; } = "ItemDetail";
     public int ItemNameField { get; } = 0;
     public int GlamourNameField { get; } = 1;
     public int ItemDescriptionField { get; } = 13;

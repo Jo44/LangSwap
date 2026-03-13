@@ -11,7 +11,7 @@ namespace LangSwap.translation;
 // ----------------------------
 public class ExcelProvider(Configuration config, IDataManager dataManager, IPluginLog log)
 {
-    // Constant
+    // Log
     private const string Class = "[ExcelProvider.cs]";
 
     //

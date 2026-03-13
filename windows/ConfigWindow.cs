@@ -15,7 +15,7 @@ namespace LangSwap.Windows;
 // ----------------------------
 public class ConfigWindow : Window, IDisposable
 {
-    // Constant
+    // Log
     private const string Class = "[ConfigWindow.cs]";
 
     // Core components

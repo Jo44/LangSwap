@@ -12,7 +12,7 @@ namespace LangSwap.ui;
 // Hook Manager
 // ----------------------------
 public class HookManager(
-    Configuration configuration,
+    Configuration config,
     IGameGui gameGui,
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
@@ -20,13 +20,13 @@ public class HookManager(
     Utilities utilities,
     IPluginLog log) : IDisposable
 {
-    // Constant
+    // Log
     private const string Class = "[HookManager.cs]";
 
     // Individual hooks
-    private readonly CastBarHook castBarHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
-    private readonly ActionDetailHook actionDetailHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
-    private readonly ItemDetailHook itemDetailHook = new(configuration, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly CastBarHook castBarHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly ActionTooltipHook actionTooltipHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly ItemTooltipHook itemTooltipHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
 
     // Active hooks
     private readonly HashSet<BaseHook> hooks = [];
@@ -37,11 +37,11 @@ public class HookManager(
     public void EnableAll()
     {
         // Add hooks if component is enabled
-        if (configuration.Castbars) // TODO : hooks.Add(castBarHook);
-        if (configuration.ActionTooltips) hooks.Add(actionDetailHook);
-        if (configuration.ItemTooltips) hooks.Add(itemDetailHook);
+        // TODO : if (config.Castbars) hooks.Add(castBarHook);
+        if (config.ActionTooltips) hooks.Add(actionTooltipHook);
+        if (config.ItemTooltips) hooks.Add(itemTooltipHook);
 
-        // Enable all hooks
+        // Enable all active hooks
         foreach (BaseHook hook in hooks)
         {
             try
@@ -68,13 +68,13 @@ public class HookManager(
                 case HookEnum.CastBar:
                     if (hooks.Add(castBarHook)) castBarHook.Enable();
                     break;
-                // Add action detail hook
+                // Add action tooltip hook
                 case HookEnum.ActionTooltip:
-                    if (hooks.Add(actionDetailHook)) actionDetailHook.Enable();
+                    if (hooks.Add(actionTooltipHook)) actionTooltipHook.Enable();
                     break;
-                // Add item detail hook
+                // Add item tooltip hook
                 case HookEnum.ItemTooltip:
-                    if (hooks.Add(itemDetailHook)) itemDetailHook.Enable();
+                    if (hooks.Add(itemTooltipHook)) itemTooltipHook.Enable();
                     break;
             }
         }
@@ -89,7 +89,7 @@ public class HookManager(
     // ----------------------------
     public void SwapLanguage()
     {
-        // Swap language for all hooks
+        // Swap language for all active hooks
         foreach (BaseHook hook in hooks)
         {
             try
@@ -108,7 +108,7 @@ public class HookManager(
     // ----------------------------
     public void RestoreLanguage()
     {
-        // Restore language for all hooks
+        // Restore language for all active hooks
         foreach (BaseHook hook in hooks)
         {
             try
@@ -135,19 +135,19 @@ public class HookManager(
                 case HookEnum.CastBar:
                     if (hooks.Remove(castBarHook)) castBarHook.Disable();
                     break;
-                // Remove action detail hook
+                // Remove action tooltip hook
                 case HookEnum.ActionTooltip:
-                    if (hooks.Remove(actionDetailHook)) actionDetailHook.Disable();
+                    if (hooks.Remove(actionTooltipHook)) actionTooltipHook.Disable();
                     break;
-                // Remove item detail hook
+                // Remove item tooltip hook
                 case HookEnum.ItemTooltip:
-                    if (hooks.Remove(itemDetailHook)) itemDetailHook.Disable();
+                    if (hooks.Remove(itemTooltipHook)) itemTooltipHook.Disable();
                     break;
             }
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to enable {hook}");
+            log.Error(ex, $"{Class} - Failed to disable {hook}");
         }
     }
 
@@ -156,7 +156,7 @@ public class HookManager(
     // ----------------------------
     public void DisableAll()
     {
-        // Disable all hooks
+        // Disable all active hooks
         foreach (BaseHook hook in hooks)
         {
             try
@@ -175,10 +175,10 @@ public class HookManager(
     // ----------------------------
     public void Dispose()
     {
-        // Disable all hooks
+        // Disable all active hooks
         DisableAll();
 
-        // Dispose all hooks
+        // Dispose all active hooks
         foreach (BaseHook hook in hooks)
         {
             try

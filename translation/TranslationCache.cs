@@ -8,7 +8,7 @@ namespace LangSwap.translation;
 // ----------------------------
 public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
 {
-    // Constant
+    // Log
     private const string Class = "[TranslationCache.cs]";
 
     // Base param cache
@@ -207,6 +207,7 @@ public class TranslationCache(ExcelProvider excelProvider, IPluginLog log)
         // Clear action caches
         actionNameCache.Clear();
         actionDescriptionCache.Clear();
+        actionIdByNameCache.Clear();
 
         // Clear item caches
         itemNameCache.Clear();

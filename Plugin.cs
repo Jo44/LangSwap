@@ -20,17 +20,19 @@ namespace LangSwap;
 // ----------------------------
 public sealed class Plugin : IDalamudPlugin
 {
+    // Log
+    private const string Class = "[Plugin.cs]";
+
     // Plugin services
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
-    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
 
-    // Constants
-    private const string Class = "[Plugin.cs]";
+    // Global constants
     private const string CommandName = "/langswap";
     private const int DeferredFrames = 2;
     private const byte LogTagColor = 45;
@@ -73,7 +75,7 @@ public sealed class Plugin : IDalamudPlugin
         _shortcutDetector = new(_config, KeyState, Log);
         _excelProvider = new(_config, dataManager, Log);
         _translationCache = new(_excelProvider, Log);
-        _utilities = new(Log);
+        _utilities = new(_config, Log);
         _hookManager = new(_config, gameGui, gameInterop, sigScanner, _translationCache, _utilities, Log);
         _configWindow = new(_config, _hookManager, this, _translationCache, Log);
 

@@ -12,15 +12,15 @@ namespace LangSwap.ui.hooks;
 /// Hook for translating cast bars (player, enemy, party)
 /// </summary>
 public unsafe class CastBarHook(
-    Configuration configuration,
+    Configuration config,
     IGameGui gameGui,
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : BaseHook(configuration, gameGui, gameInterop, sigScanner, translationCache, utilities, log)
+    IPluginLog log) : BaseHook(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log)
 {
-    // Constant
+    // Log
     private const string Class = "[CastBarHook.cs]";
 
     private delegate void UpdateCastBarDelegate(IntPtr castBarPtr, uint actionId, IntPtr actionNamePtr);
@@ -36,7 +36,7 @@ public unsafe class CastBarHook(
 
         try
         {
-            var updateCastBarAddr = sigScanner.ScanText(configuration.CastBarSig);
+            var updateCastBarAddr = sigScanner.ScanText(config.CastBarSig);
             if (updateCastBarAddr != IntPtr.Zero)
             {
                 updateCastBarHook = gameInterop.HookFromAddress<UpdateCastBarDelegate>(updateCastBarAddr, UpdateCastBarDetour);
@@ -89,9 +89,9 @@ public unsafe class CastBarHook(
             currentCastActionId = actionId;
             log.Debug($"{Class} - UpdateCastBar called: actionId={actionId}");
 
-            if (isLanguageSwapped && actionId > 0 && actionId < configuration.MaxValidActionId)
+            if (isLanguageSwapped && actionId > 0 && actionId < config.MaxValidActionId)
             {
-                var targetLang = (LanguageEnum)configuration.TargetLanguage;
+                var targetLang = (LanguageEnum)config.TargetLanguage;
                 var translatedName = translationCache.GetActionName(actionId, targetLang);
                 
                 if (!string.IsNullOrWhiteSpace(translatedName))
@@ -121,7 +121,7 @@ public unsafe class CastBarHook(
     {
         try
         {
-            if (currentCastActionId == 0 || currentCastActionId > configuration.MaxValidActionId)
+            if (currentCastActionId == 0 || currentCastActionId > config.MaxValidActionId)
                 return;
 
             for (var i = 0; i < castBar -> UldManager.NodeListCount; i++)
@@ -134,7 +134,7 @@ public unsafe class CastBarHook(
                 if (textNode -> NodeText.ToString().Length == 0)
                     continue;
 
-                var targetLang = (LanguageEnum)configuration.TargetLanguage;
+                var targetLang = (LanguageEnum)config.TargetLanguage;
                 var translatedName = translationCache.GetActionName(currentCastActionId, targetLang);
                 
                 if (!string.IsNullOrWhiteSpace(translatedName))

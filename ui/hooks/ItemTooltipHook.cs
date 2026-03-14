@@ -116,7 +116,7 @@ public unsafe partial class ItemTooltipHook(
     }
 
     // ----------------------------
-    // On item tooltip generation
+    // Item tooltip detour
     // ----------------------------
     private void* ItemTooltipDetour(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {

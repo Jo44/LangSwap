@@ -94,7 +94,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
 
         // Log plugin informations
-        Log.Debug($"{Class} - Configuration loaded :");
+        Log.Debug($"{Class} - Configuration :");
         Log.Debug($"{Class} - Client Language = {_config.ClientLanguage}");
         Log.Debug($"{Class} - Target Language = {_config.TargetLanguage}");
         Log.Debug($"{Class} - Primary Key = {_config.PrimaryKey}");

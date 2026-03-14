@@ -101,9 +101,9 @@ public sealed class Plugin : IDalamudPlugin
         Log.Debug($"{Class} - Ctrl = {_config.Ctrl}");
         Log.Debug($"{Class} - Alt = {_config.Alt}");
         Log.Debug($"{Class} - Shift = {_config.Shift}");
-        Log.Debug($"{Class} - Castbars = {_config.Castbars}");
-        Log.Debug($"{Class} - Action Tooltips = {_config.ActionTooltips}");
-        Log.Debug($"{Class} - Item Tooltips = {_config.ItemTooltips}");
+        Log.Debug($"{Class} - Action Tooltip = {_config.ActionTooltip}");
+        Log.Debug($"{Class} - Item Tooltip = {_config.ItemTooltip}");
+        Log.Debug($"{Class} - Target CastBar = {_config.TargetCastBar}");
         Log.Information($"{Class} === LangSwap plugin loaded ===");
     }
 

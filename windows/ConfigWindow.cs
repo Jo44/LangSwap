@@ -46,7 +46,7 @@ public class ConfigWindow : Window, IDisposable
                 ImGuiWindowFlags.NoScrollWithMouse;
 
         // Initialize window size
-        Size = new Vector2(450, 290);
+        Size = new Vector2(480, 290);
         SizeCondition = ImGuiCond.Always;
 
         // Initialize key names and values
@@ -74,9 +74,9 @@ public class ConfigWindow : Window, IDisposable
         bool shift = _config.Shift;
 
         // UI Components
-        bool castbars = _config.Castbars;
-        bool actionTooltips = _config.ActionTooltips;
-        bool itemTooltips = _config.ItemTooltips;
+        bool actionTooltip = _config.ActionTooltip;
+        bool itemTooltip = _config.ItemTooltip;
+        bool targetCastBar = _config.TargetCastBar;
 
         /// Draw UI
 
@@ -147,32 +147,32 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Text("Components :");
-        ImGui.SameLine(0, 10f);
-        if (ImGui.Checkbox("Castbars", ref castbars))
+        ImGui.SameLine(0, 10f);        
+        if (ImGui.Checkbox("Action tooltip", ref actionTooltip))
         {
-            _log.Information($"{Class} - Setting Castbars to {castbars}");
-            _config.Castbars = castbars;
+            _log.Information($"{Class} - Setting Action tooltip to {actionTooltip}");
+            _config.ActionTooltip = actionTooltip;
             _config.Save();
-            if (castbars) _hookManager.EnableHook(HookEnum.CastBar);
-            else _hookManager.DisableHook(HookEnum.CastBar);
-        }
-        ImGui.SameLine();
-        if (ImGui.Checkbox("Action tooltips", ref actionTooltips))
-        {
-            _log.Information($"{Class} - Setting Action tooltips to {actionTooltips}");
-            _config.ActionTooltips = actionTooltips;
-            _config.Save();
-            if (actionTooltips) _hookManager.EnableHook(HookEnum.ActionTooltip);
+            if (actionTooltip) _hookManager.EnableHook(HookEnum.ActionTooltip);
             else _hookManager.DisableHook(HookEnum.ActionTooltip);
         }
         ImGui.SameLine();
-        if (ImGui.Checkbox("Item tooltips", ref itemTooltips))
+        if (ImGui.Checkbox("Item tooltip", ref itemTooltip))
         {
-            _log.Information($"{Class} - Setting Item tooltips to {itemTooltips}");
-            _config.ItemTooltips = itemTooltips;
+            _log.Information($"{Class} - Setting Item tooltip to {itemTooltip}");
+            _config.ItemTooltip = itemTooltip;
             _config.Save();
-            if (itemTooltips) _hookManager.EnableHook(HookEnum.ItemTooltip);
+            if (itemTooltip) _hookManager.EnableHook(HookEnum.ItemTooltip);
             else _hookManager.DisableHook(HookEnum.ItemTooltip);
+        }
+        ImGui.SameLine();
+        if (ImGui.Checkbox("Target CastBar", ref targetCastBar))
+        {
+            _log.Information($"{Class} - Setting Target CastBar to {targetCastBar}");
+            _config.TargetCastBar = targetCastBar;
+            _config.Save();
+            if (targetCastBar) _hookManager.EnableHook(HookEnum.TargetCastBar);
+            else _hookManager.DisableHook(HookEnum.TargetCastBar);
         }
         ImGui.Spacing();
         ImGui.Spacing();

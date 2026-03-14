@@ -24,9 +24,9 @@ public class HookManager(
     private const string Class = "[HookManager.cs]";
 
     // Individual hooks
-    private readonly CastBarHook castBarHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
     private readonly ActionTooltipHook actionTooltipHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
     private readonly ItemTooltipHook itemTooltipHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly TargetCastBarHook targetCastBarHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
 
     // Active hooks
     private readonly HashSet<BaseHook> hooks = [];
@@ -37,9 +37,9 @@ public class HookManager(
     public void EnableAll()
     {
         // Add hook if component is enabled
-        if (config.Castbars) hooks.Add(castBarHook);
-        if (config.ActionTooltips) hooks.Add(actionTooltipHook);
-        if (config.ItemTooltips) hooks.Add(itemTooltipHook);
+        if (config.ActionTooltip) hooks.Add(actionTooltipHook);
+        if (config.ItemTooltip) hooks.Add(itemTooltipHook);
+        if (config.TargetCastBar) hooks.Add(targetCastBarHook);
 
         // Enable all active hooks
         foreach (BaseHook hook in hooks)
@@ -64,10 +64,6 @@ public class HookManager(
         {
             switch (hook)
             {
-                // Add cast bar hook
-                case HookEnum.CastBar:
-                    if (hooks.Add(castBarHook)) castBarHook.Enable();
-                    break;
                 // Add action tooltip hook
                 case HookEnum.ActionTooltip:
                     if (hooks.Add(actionTooltipHook)) actionTooltipHook.Enable();
@@ -75,6 +71,10 @@ public class HookManager(
                 // Add item tooltip hook
                 case HookEnum.ItemTooltip:
                     if (hooks.Add(itemTooltipHook)) itemTooltipHook.Enable();
+                    break;
+                // Add target castbar hook
+                case HookEnum.TargetCastBar:
+                    if (hooks.Add(targetCastBarHook)) targetCastBarHook.Enable();
                     break;
             }
         }
@@ -131,10 +131,6 @@ public class HookManager(
         {
             switch (hook)
             {
-                // Remove cast bar hook
-                case HookEnum.CastBar:
-                    if (hooks.Remove(castBarHook)) castBarHook.Disable();
-                    break;
                 // Remove action tooltip hook
                 case HookEnum.ActionTooltip:
                     if (hooks.Remove(actionTooltipHook)) actionTooltipHook.Disable();
@@ -142,6 +138,10 @@ public class HookManager(
                 // Remove item tooltip hook
                 case HookEnum.ItemTooltip:
                     if (hooks.Remove(itemTooltipHook)) itemTooltipHook.Disable();
+                    break;
+                // Remove target castbar hook
+                case HookEnum.TargetCastBar:
+                    if (hooks.Remove(targetCastBarHook)) targetCastBarHook.Disable();
                     break;
             }
         }

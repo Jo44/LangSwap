@@ -93,7 +93,7 @@ public unsafe partial class ItemTooltipHook(
         // Refresh item detail addon
         try
         {
-            // Get pointer to ItemDetail addon
+            // Get pointer to item detail addon
             AtkUnitBasePtr itemDetailPtr = gameGui.GetAddonByName(config.ItemDetailAddon);
             if (!itemDetailPtr.IsNull)
             {

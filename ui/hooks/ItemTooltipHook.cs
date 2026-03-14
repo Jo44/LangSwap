@@ -43,10 +43,10 @@ public unsafe partial class ItemTooltipHook(
     private static partial Regex StatLineRegex();
 
     // Delegate function
-    private delegate void* ItemTooltipOnUpdate(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
+    private delegate void* ItemTooltipDelegate(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
     // Hook
-    private Hook<ItemTooltipOnUpdate>? _itemTooltipHook;
+    private Hook<ItemTooltipDelegate>? _itemTooltipHook;
 
     // ----------------------------
     // Enable the hook
@@ -63,7 +63,7 @@ public unsafe partial class ItemTooltipHook(
             if (itemTooltipAddr != IntPtr.Zero)
             {
                 // Get hook from address
-                _itemTooltipHook = gameInterop.HookFromAddress<ItemTooltipOnUpdate>(itemTooltipAddr, ItemTooltipDetour);
+                _itemTooltipHook = gameInterop.HookFromAddress<ItemTooltipDelegate>(itemTooltipAddr, OnItemTooltipUpdate);
 
                 // Enable hook
                 _itemTooltipHook.Enable();
@@ -115,9 +115,9 @@ public unsafe partial class ItemTooltipHook(
     }
 
     // ----------------------------
-    // Item tooltip detour
+    // On item tooltip update
     // ----------------------------
-    private void* ItemTooltipDetour(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
+    private void* OnItemTooltipUpdate(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {
         try
         {

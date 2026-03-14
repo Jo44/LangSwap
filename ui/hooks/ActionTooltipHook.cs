@@ -29,10 +29,10 @@ public unsafe class ActionTooltipHook(
     private readonly int ActionDescriptionField = config.ActionDescriptionField;
 
     // Delegate function
-    private delegate void* ActionTooltipOnUpdate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
+    private delegate void* ActionTooltipDelegate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
     // Hook
-    private Hook<ActionTooltipOnUpdate>? _actionTooltipHook;
+    private Hook<ActionTooltipDelegate>? _actionTooltipHook;
 
     // ----------------------------
     // Enable the hook
@@ -49,7 +49,7 @@ public unsafe class ActionTooltipHook(
             if (actionTooltipAddr != IntPtr.Zero)
             {
                 // Get hook from address
-                _actionTooltipHook = gameInterop.HookFromAddress<ActionTooltipOnUpdate>(actionTooltipAddr, ActionTooltipDetour);
+                _actionTooltipHook = gameInterop.HookFromAddress<ActionTooltipDelegate>(actionTooltipAddr, OnActionTooltipUpdate);
 
                 // Enable hook
                 _actionTooltipHook.Enable();
@@ -101,9 +101,9 @@ public unsafe class ActionTooltipHook(
     }
 
     // ----------------------------
-    // Action tooltip detour
+    // On action tooltip update
     // ----------------------------
-    private void* ActionTooltipDetour(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
+    private void* OnActionTooltipUpdate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {
         try
         {

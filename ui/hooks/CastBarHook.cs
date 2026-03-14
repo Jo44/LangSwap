@@ -1,11 +1,14 @@
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.ui.hooks.@base;
+using Lumina.Data.Parsing;
 using System;
 
 namespace LangSwap.ui.hooks;
@@ -26,10 +29,10 @@ public unsafe class CastBarHook(
     private const string Class = "[CastBarHook.cs]";
 
     // Delegate function
-    private delegate void CastBarOnUpdate(AddonCastBar* castBar, void* a2);
+    private delegate void* CastBarDelegate(void* agentHud, void* numberArray, void* stringArray, StatusManager* statusManager, GameObject* target, void* isLocalPlayerAndRollPlaying);
 
     // Hook
-    private Hook<CastBarOnUpdate>? _castBarHook;
+    private Hook<CastBarDelegate>? _castBarHook;
 
     // ----------------------------
     // Enable the hook
@@ -42,11 +45,12 @@ public unsafe class CastBarHook(
         try
         {
             // Get address from signature
-            nint castBarAddr = sigScanner.ScanText(config.CastBarSig);
+            // TODO : externaliser la signature
+            nint castBarAddr = sigScanner.ScanText("4C 8B DC 53 48 81 EC 30 03 00 00");
             if (castBarAddr != IntPtr.Zero)
             {
                 // Get hook from address
-                _castBarHook = gameInterop.HookFromAddress<CastBarOnUpdate>(castBarAddr, CastBarDetour);
+                _castBarHook = gameInterop.HookFromAddress<CastBarDelegate>(castBarAddr, OnCastBarUpdate);
 
                 // Enable hook
                 _castBarHook.Enable();
@@ -102,14 +106,15 @@ public unsafe class CastBarHook(
     }
 
     // ----------------------------
-    // Cast bar detour
+    // On cast bar update
     // ----------------------------
-    private void CastBarDetour(AddonCastBar* castBar, void* a2)
+    private void* OnCastBarUpdate(void* agentHud, void* numberArray, void* stringArray, StatusManager* statusManager, GameObject* target, void* isLocalPlayerAndRolePlaying)
     {
         // TODO
         log.Debug($"CAST BAR DETOUR");
 
-        _castBarHook!.Original(castBar, a2);
+        // Call original function
+        return _castBarHook!.Original(agentHud, numberArray, stringArray, statusManager, target, isLocalPlayerAndRolePlaying);
     }
 
     // ----------------------------

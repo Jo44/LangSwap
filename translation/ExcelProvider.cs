@@ -19,7 +19,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     //
 
     // ----------------------------
-    // Get base param name by name
+    // Get base param by name
     // ----------------------------
     public string? GetBaseParamName(string paramName, LanguageEnum clientLang, LanguageEnum targetLang)
     {
@@ -66,7 +66,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     //
 
     // ----------------------------
-    // Get action data
+    // Get action
     // ----------------------------
     private Lumina.Excel.Sheets.Action? GetAction(uint actionId, LanguageEnum targetLang)
     {
@@ -105,23 +105,41 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     }
 
     // ----------------------------
-    // Get action property
+    // Get action transient
     // ----------------------------
-    private T? GetActionProperty<T>(uint actionId, LanguageEnum lang, Func<Lumina.Excel.Sheets.Action, T?> propertySelector, string propertyName)
+    private Lumina.Excel.Sheets.ActionTransient? GetActionTransient(uint actionId, LanguageEnum targetLang)
     {
-        // Get the action
-        Lumina.Excel.Sheets.Action? action = GetAction(actionId, lang);
-        if (action == null) return default;
-
-        // Extract the requested property using the provided selector
         try
         {
-            return propertySelector(action.Value);
+            // Validate action transient ID range
+            if (actionId < 1 || actionId > config.MaxValidActionId)
+            {
+                log.Warning($"{Class} - Action transient ID {actionId} is out of valid range (1-{config.MaxValidActionId})");
+                return null;
+            }
+
+            // Access the action transient sheet for the specified language
+            ExcelSheet<Lumina.Excel.Sheets.ActionTransient> actionTransientSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.ActionTransient>(EnumToClientLang(targetLang));
+            if (actionTransientSheet == null)
+            {
+                log.Warning($"{Class} - Action transient sheet is not available for language {targetLang}");
+                return null;
+            }
+
+            // Try to get the action transient row
+            if (!actionTransientSheet.TryGetRow(actionId, out Lumina.Excel.Sheets.ActionTransient actionTransient))
+            {
+                log.Warning($"{Class} - Action transient {actionId} not found in sheet for language {targetLang}");
+                return null;
+            }
+
+            // Return the found action transient
+            return actionTransient;
         }
-        catch
+        catch (Exception ex)
         {
-            log.Warning($"{Class} - Could not extract {propertyName} for action {actionId}");
-            return default;
+            log.Error(ex, $"{Class} - Exception while getting action transient {actionId} in language {targetLang}");
+            return null;
         }
     }
 
@@ -129,14 +147,27 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // Get action name
     // ----------------------------
     public string? GetActionName(uint actionId, LanguageEnum targetLang)
-        => GetActionProperty(actionId, targetLang, action => action.Name.ToString(), "name");
+    {
+        // Get the action
+        Lumina.Excel.Sheets.Action? action = GetAction(actionId, targetLang);
+        if (action == null) return default;
+
+        // Return the action name
+        return action.Value.Name.ToString();
+    }
 
     // ----------------------------
     // Get action description
     // ----------------------------
     public string? GetActionDescription(uint actionId, LanguageEnum targetLang)
-        => GetActionProperty(actionId, targetLang, action => action.Name.ToString(), "name");
-    // TODO : get description
+    {
+        // Get the action transient
+        Lumina.Excel.Sheets.ActionTransient? actionTransient = GetActionTransient(actionId, targetLang);
+        if (actionTransient == null) return default;
+
+        // Return the action description
+        return actionTransient.Value.Description.ToString();
+    }
 
     // ----------------------------
     // Get action ID by name (reverse lookup)
@@ -187,7 +218,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     //
 
     // ----------------------------
-    // Get item data
+    // Get item
     // ----------------------------
     private Item? GetItem(uint itemId, LanguageEnum targetLang)
     {
@@ -226,37 +257,30 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     }
 
     // ----------------------------
-    // Get item property
-    // ----------------------------
-    private T? GetItemProperty<T>(uint itemId, LanguageEnum lang, Func<Item, T?> propertySelector, string propertyName)
-    {
-        // Get the item
-        Item? item = GetItem(itemId, lang);
-        if (item == null) return default;
-
-        // Extract the requested property using the provided selector
-        try
-        {
-            return propertySelector(item.Value);
-        }
-        catch
-        {
-            log.Warning($"{Class} - Could not extract {propertyName} for item {itemId}");
-            return default;
-        }
-    }
-
-    // ----------------------------
     // Get item name
     // ----------------------------
     public string? GetItemName(uint itemId, LanguageEnum targetLang)
-        => GetItemProperty(itemId, targetLang, item => item.Name.ToString(), "name");
+    {
+        // Get item
+        Item? item = GetItem(itemId, targetLang);
+        if (item == null) return null;
+
+        // Return item name
+        return item.Value.Name.ToString();
+    }
 
     // ----------------------------
     // Get item description
     // ----------------------------
     public string? GetItemDescription(uint itemId, LanguageEnum targetLang)
-        => GetItemProperty(itemId, targetLang, item => item.Description.ToString(), "description");
+    {
+        // Get item
+        Item? item = GetItem(itemId, targetLang);
+        if (item == null) return null;
+
+        // Return item description
+        return item.Value.Description.ToString();
+    }
 
     // ----------------------------
     // Get item ID by name (reverse lookup)

@@ -41,6 +41,9 @@ public class Configuration : IPluginConfiguration
     public int MaxValidActionId { get; } = 100000;
     public int MaxValidItemId { get; } = 100000;
 
+    // CastBar Addon
+    public string CastBarAddon { get; } = "CastBar";
+
     // Action Detail Addon
     public string ActionDetailAddon { get; } = "ActionDetail";
     public int ActionNameField { get; } = 0;

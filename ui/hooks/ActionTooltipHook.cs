@@ -80,7 +80,7 @@ public unsafe class ActionTooltipHook(
         // Refresh action detail addon
         try
         {
-            // Get pointer to ActionDetail addon
+            // Get pointer to action detail addon
             AtkUnitBasePtr actionDetailPtr = gameGui.GetAddonByName(ActionDetailAddon);
             if (!actionDetailPtr.IsNull)
             {

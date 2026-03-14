@@ -36,8 +36,8 @@ public class HookManager(
     // ----------------------------
     public void EnableAll()
     {
-        // Add hooks if component is enabled
-        // TODO : if (config.Castbars) hooks.Add(castBarHook);
+        // Add hook if component is enabled
+        if (config.Castbars) hooks.Add(castBarHook);
         if (config.ActionTooltips) hooks.Add(actionTooltipHook);
         if (config.ItemTooltips) hooks.Add(itemTooltipHook);
 

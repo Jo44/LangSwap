@@ -1,13 +1,11 @@
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
-using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.ui.hooks.@base;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -93,10 +91,6 @@ public unsafe partial class ItemTooltipHook(
     // ----------------------------
     protected override void OnLanguageSwap()
     {
-        // Clear bytes cache
-        // TODO
-        // _bytesCache.Clear();
-
         // Refresh item detail addon
         try
         {
@@ -131,23 +125,6 @@ public unsafe partial class ItemTooltipHook(
             // Log the structure of StringArrayData for debugging
             // utilities.LogSADStructure(stringArrayData);
 
-            // IDs
-            uint itemId = 0;
-            uint glamourId = 0;
-
-            // HQ flags
-            bool isHighQuality = false;
-            bool isHighQualityGlamour = false;
-
-            // Translated texts
-            string translatedItemName = string.Empty;
-            string translatedGlamourName = string.Empty;
-            string translatedItemDescription = string.Empty;
-            string translatedEffects = string.Empty;
-            List<string> translatedBonuses = [];
-            List<string> translatedMateriaNames = [];
-            List<string> translatedMateriaStats = [];
-
             // Check if language is swapped
             if (isLanguageSwapped && stringArrayData != null)
             {
@@ -159,49 +136,95 @@ public unsafe partial class ItemTooltipHook(
 
                 // Get item name
                 string itemName = utilities.ReadStringFromArrayData(stringArrayData, ItemNameField);
-                if (!itemName.IsNullOrEmpty())
+                if (!string.IsNullOrWhiteSpace(itemName))
                 {
                     // Check for high quality symbol in item name
-                    isHighQuality = utilities.IsHighQuality(itemName);
+                    bool isHighQualityItem = utilities.IsHighQuality(itemName);
 
                     // Remove it temporarily for ID lookup
-                    if (isHighQuality) itemName = utilities.UnsetHighQuality(itemName);
+                    if (isHighQualityItem) itemName = utilities.UnsetHighQuality(itemName);
 
                     // Get item ID
-                    itemId = translationCache.GetItemIdByName(itemName, clientLang) ?? 0;
+                    uint itemId = translationCache.GetItemIdByName(itemName, clientLang) ?? 0;
                     if (itemId > 0 && itemId <= config.MaxValidItemId)
                     {
+                        /* Item name */
+
                         // Translate item name
-                        translatedItemName = TranslateItemName(itemId, isHighQuality, targetLang);
+                        string translatedItemName = TranslateItemName(itemId, isHighQualityItem, targetLang);
+
+                        // Apply translated item name
+                        if (!string.IsNullOrWhiteSpace(translatedItemName))
+                        {
+                            if (!utilities.WriteStringToArrayData(stringArrayData, ItemNameField, translatedItemName))
+                            {
+                                log.Error($"{Class} - Failed to write translated item name ({translatedItemName}) to field {ItemNameField}");
+                            }
+                        }
+
+                        /* Glamour name */
 
                         // Get glamour name
                         string glamourName = utilities.ReadStringFromArrayData(stringArrayData, GlamourNameField);
-                        if (!glamourName.IsNullOrEmpty())
+                        if (!string.IsNullOrWhiteSpace(glamourName))
                         {
                             // Check for high quality symbol in glamour name
-                            isHighQualityGlamour = utilities.IsHighQuality(glamourName);
+                            bool isHighQualityGlamour = utilities.IsHighQuality(glamourName);
 
                             // Remove symbols temporarily for ID lookup
                             glamourName = utilities.UnsetGlamour(glamourName);
                             if (isHighQualityGlamour) glamourName = utilities.UnsetHighQuality(glamourName);
 
                             // Get glamour ID
-                            glamourId = translationCache.GetItemIdByName(glamourName, clientLang) ?? 0;
+                            uint glamourId = translationCache.GetItemIdByName(glamourName, clientLang) ?? 0;
                             if (glamourId > 0 && glamourId <= config.MaxValidItemId)
                             {
                                 // Translate glamour name
-                                translatedGlamourName = TranslateGlamourName(glamourId, isHighQualityGlamour, targetLang);
+                                string translatedGlamourName = TranslateGlamourName(glamourId, isHighQualityGlamour, targetLang);
+
+                                // Apply translated glamour name
+                                if (!string.IsNullOrWhiteSpace(translatedGlamourName))
+                                {
+                                    if (!utilities.WriteStringToArrayData(stringArrayData, GlamourNameField, translatedGlamourName))
+                                    {
+                                        log.Error($"{Class} - Failed to write translated glamour name ({translatedGlamourName}) to field {GlamourNameField}");
+                                    }
+                                }
                             }
                         }
 
+                        /* Description */
+
                         // Translate description
-                        translatedItemDescription = TranslateDescription(itemId, targetLang);
+                        string translatedDescription = TranslateDescription(itemId, targetLang);
+
+                        // Apply translated description
+                        if (!string.IsNullOrWhiteSpace(translatedDescription))
+                        {
+                            if (!utilities.WriteStringToArrayData(stringArrayData, ItemDescriptionField, translatedDescription))
+                            {
+                                log.Error($"{Class} - Failed to write translated description ({translatedDescription}) to field {ItemDescriptionField}");
+                            }
+                        }
+
+                        /* Effects */
 
                         // Get effects
                         string effects = utilities.ReadStringFromArrayData(stringArrayData, ItemEffectsField);
 
                         // Translate effects
-                        translatedEffects = TranslateEffects(effects, clientLang, targetLang);
+                        string translatedEffects = TranslateEffects(effects, clientLang, targetLang);
+
+                        // Apply translated effects
+                        if (!string.IsNullOrWhiteSpace(translatedEffects))
+                        {
+                            if (!utilities.WriteStringToArrayData(stringArrayData, ItemEffectsField, translatedEffects))
+                            {
+                                log.Error($"{Class} - Failed to write translated effects ({translatedEffects}) to field {ItemEffectsField}");
+                            }
+                        }
+                        
+                        /* Bonuses */
 
                         // Translate bonuses
                         for (int i = ItemBonusesStartField; i <= ItemBonusesEndField; i++)
@@ -210,8 +233,19 @@ public unsafe partial class ItemTooltipHook(
                             string bonus = utilities.ReadStringFromArrayData(stringArrayData, i);
 
                             // Translate bonus
-                            translatedBonuses.Add(TranslateBonus(bonus, clientLang, targetLang));
+                            string translatedBonus = TranslateBonus(bonus, clientLang, targetLang);
+
+                            // Apply translated bonus
+                            if (!string.IsNullOrWhiteSpace(translatedBonus))
+                            {
+                                if (!utilities.WriteStringToArrayData(stringArrayData, i, translatedBonus))
+                                {
+                                    log.Error($"{Class} - Failed to write translated bonus ({translatedBonus}) to field {i}");
+                                }
+                            }
                         }
+
+                        /* Materia names */
 
                         // Translate materia names
                         for (int j = ItemMateriaNameStartField; j <= ItemMateriaNameEndField; j++)
@@ -226,15 +260,18 @@ public unsafe partial class ItemTooltipHook(
                                 // Translate materia name
                                 string translatedMateriaName = TranslateMateriaName(materiaId, targetLang);
 
-                                // Add to list
-                                translatedMateriaNames.Add(translatedMateriaName);
-                            }
-                            else
-                            {
-                                // No valid materia ID found
-                                translatedMateriaNames.Add(string.Empty);
+                                // Apply translated materia name
+                                if (!string.IsNullOrWhiteSpace(translatedMateriaName))
+                                {
+                                    if (!utilities.WriteStringToArrayData(stringArrayData, j, translatedMateriaName))
+                                    {
+                                        log.Error($"{Class} - Failed to write translated materia name ({translatedMateriaName}) to field {j}");
+                                    }
+                                }
                             }
                         }
+
+                        /* Materia stats */
 
                         // Translate materia stats
                         for (int k = ItemMateriaStatStartField; k <= ItemMateriaStatEndField; k++)
@@ -245,12 +282,15 @@ public unsafe partial class ItemTooltipHook(
                             // Translate materia stat
                             string translatedMateriaStat = TranslateMateriaStat(materiaStat, clientLang, targetLang);
 
-                            // Add to list
-                            translatedMateriaStats.Add(translatedMateriaStat);
+                            // Apply translated materia stat
+                            if (!string.IsNullOrWhiteSpace(translatedMateriaStat))
+                            {
+                                if (!utilities.WriteStringToArrayData(stringArrayData, k, translatedMateriaStat))
+                                {
+                                    log.Error($"{Class} - Failed to write translated materia stat ({translatedMateriaStat}) to field {k}");
+                                }
+                            }
                         }
-
-                        // Modify the StringArrayData with translated texts
-                        // TODO
                     }
                 }
             }
@@ -330,8 +370,16 @@ public unsafe partial class ItemTooltipHook(
                 string.IsNullOrWhiteSpace(line) ? line : TranslateStat(line, clientLang, targetLang)
             )];
 
-            // Join translated lines back together
-            translatedEffects = string.Join("\n", translatedLines);
+            // Reconstruct the translated effects
+            for (int i = 0; i < translatedLines.Length; i++)
+            {
+                // Add line break if needed
+                if (i > 0) translatedEffects += "\n";
+
+                // Use translated line if available, otherwise fallback to original line
+                if (!string.IsNullOrWhiteSpace(translatedLines[i])) translatedEffects += translatedLines[i];
+                else translatedEffects += lines[i];
+            }
         }
 
         // Return translated effects
@@ -361,7 +409,7 @@ public unsafe partial class ItemTooltipHook(
     // ----------------------------
     private string TranslateMateriaName(uint materiaId, LanguageEnum targetLang)
     {
-        // Translate using item name translation
+        // Get translated materia name from materia ID
         string translatedMateriaName = translationCache.GetItemName(materiaId, targetLang) ?? string.Empty;
 
         // Return translated materia name
@@ -373,7 +421,7 @@ public unsafe partial class ItemTooltipHook(
     // ----------------------------
     private string TranslateMateriaStat(string materiaStat, LanguageEnum clientLang, LanguageEnum targetLang)
     {
-        // Initialize translated bonus
+        // Initialize translated materia stat
         string translatedMateriaStat = string.Empty;
 
         // Only translate if line contains a stat format (e.g. "+10 Strength")
@@ -398,16 +446,16 @@ public unsafe partial class ItemTooltipHook(
         int plusIndex = stat.IndexOf('+');
         if (plusIndex > 0)
         {
-            // Get stat name and the rest of the line
+            // Split stat name and stat value parts
             string statName = stat[..plusIndex].Trim();
-            string valuePart = stat[plusIndex..];
+            string statValue = stat[plusIndex..];
 
             // Translate stat name
             string translatedStatName = translationCache.GetBaseParamName(statName, clientLang, targetLang) ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(translatedStatName))
             {
                 // Reconstruct the translated line
-                translatedStat = $"{translatedStatName} {valuePart}";
+                translatedStat = $"{translatedStatName} {statValue}";
             }
         }
 
@@ -445,10 +493,6 @@ public unsafe partial class ItemTooltipHook(
     {
         try
         {
-            // Clear cache
-            // TODO
-            // _bytesCache.Clear();
-
             // Dispose item tooltip hook
             _itemTooltipHook?.Disable();
             _itemTooltipHook?.Dispose();

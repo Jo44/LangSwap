@@ -94,7 +94,6 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
 
         // Log plugin informations
-        Log.Information($"{Class} === LangSwap plugin loaded ===");
         Log.Debug($"{Class} - Configuration loaded :");
         Log.Debug($"{Class} - Client Language = {_config.ClientLanguage}");
         Log.Debug($"{Class} - Target Language = {_config.TargetLanguage}");
@@ -105,6 +104,7 @@ public sealed class Plugin : IDalamudPlugin
         Log.Debug($"{Class} - Castbars = {_config.Castbars}");
         Log.Debug($"{Class} - Action Tooltips = {_config.ActionTooltips}");
         Log.Debug($"{Class} - Item Tooltips = {_config.ItemTooltips}");
+        Log.Information($"{Class} === LangSwap plugin loaded ===");
     }
 
     // ----------------------------
@@ -267,7 +267,7 @@ public sealed class Plugin : IDalamudPlugin
     private static void ChatLog(string message)
     {
         // Check for empty message
-        if (string.IsNullOrEmpty(message)) return;
+        if (string.IsNullOrWhiteSpace(message)) return;
 
         try
         {

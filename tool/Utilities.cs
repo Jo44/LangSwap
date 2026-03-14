@@ -1,4 +1,5 @@
 using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
@@ -25,34 +26,133 @@ public unsafe class Utilities(
     // ----------------------------
     public string ReadStringFromArrayData(StringArrayData* stringArrayData, int index)
     {
+        // Itinialize result
+        string result = string.Empty;
+
         try
         {
             // Check for null pointer and valid index
-            if (stringArrayData == null || index >= stringArrayData -> AtkArrayData.Size) return string.Empty;
-
-            // Get memory address of the string
-            nint address = new(stringArrayData -> StringArray[index]);
-            if (address == IntPtr.Zero) return string.Empty;
-
-            // Read SeString from memory
-            SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
-
-            // Convert to string
-            return seString?.ToString().Trim() ?? string.Empty;
+            if (stringArrayData != null && index < stringArrayData -> AtkArrayData.Size)
+            {
+                // Get memory address of the string
+                nint address = new(stringArrayData -> StringArray[index]);
+                if (address != IntPtr.Zero)
+                {
+                    // Get SeString from memory address
+                    SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
+                    if (seString != null)
+                    {
+                        // Get string value from SeString
+                        result = seString.ToString().Trim();
+                    }
+                    else
+                    {
+                        // SeString is null
+                        throw new Exception("Invalid SeString");
+                    }
+                }
+            }
+            else
+            {
+                // Null pointer or invalid index
+                throw new Exception("Null pointer or invalid index");
+            }
         }
         catch (Exception ex)
         {
             log.Error(ex, $"{Class} - Failed to read string at index {index}");
-            return string.Empty;
         }
+
+        // Return result
+        return result;
     }
 
     // ----------------------------
     // Write string to StringArrayData at specified index
     // ----------------------------
-    public void WriteStringToArrayData(StringArrayData* stringArrayData, int index, string newValue)
+    public bool WriteStringToArrayData(StringArrayData* stringArrayData, int index, string translatedText)
     {
-        // TODO
+        // Itinialize result
+        bool result = false;
+
+        try
+        {
+            // Check if translated text is not null or empty
+            if (!string.IsNullOrWhiteSpace(translatedText))
+            {
+                // Check for null pointer and valid index
+                if (stringArrayData != null && index < stringArrayData -> AtkArrayData.Size)
+                {
+                    // Get memory address of the string
+                    nint address = new(stringArrayData -> StringArray[index]);
+                    if (address != IntPtr.Zero)
+                    {
+                        // Get SeString from memory address
+                        SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
+                        if (seString != null)
+                        {
+                            // Prepare a new SeString builder
+                            SeStringBuilder builder = new();
+                            bool textReplaced = false;
+
+                            // Iterate through the payloads of the original SeString
+                            foreach (Payload payload in seString.Payloads)
+                            {
+                                if (!textReplaced && payload is TextPayload textPayload)
+                                {
+                                    // Replace first TextPayload with translated text
+                                    builder.AddText(translatedText);
+
+                                    // Flag to indicate text has been replaced
+                                    textReplaced = true;
+                                }
+                                else
+                                {
+                                    // Clean other payloads of any text
+                                    if (payload is TextPayload otherTextPayload)
+                                    {
+                                        otherTextPayload.Text = "";
+                                    }
+                                    // Keep them in same order
+                                    builder.Add(payload);
+                                }
+                            }
+
+                            // Encode the modified SeString
+                            byte[] bytes = builder.Build().Encode();
+
+                            // Write the new bytes into StringArrayData at the specified index
+                            stringArrayData -> SetValue(index, bytes, false, true, false);
+
+                            // Set result to true
+                            result = true;
+                        }
+                        else
+                        {
+                            // SeString is null
+                            throw new Exception("Invalid SeString");
+                        }
+                    }
+                    else
+                    {
+                        // Memory address is null
+                        throw new Exception("Invalid memory address");
+                    }
+                }
+                else
+                {
+                    // Null pointer or invalid index
+                    throw new Exception("Null pointer or invalid index");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Failed to write string at index {index}");
+        }
+
+        // Return result
+        return result;
     }
 
     // ----------------------------
@@ -61,7 +161,7 @@ public unsafe class Utilities(
     public bool IsHighQuality(string text)
     {
         bool isHighQuality = false;
-        if (!string.IsNullOrEmpty(text)) isHighQuality = text.Contains(HighQualitySymbol);
+        if (!string.IsNullOrWhiteSpace(text)) isHighQuality = text.Contains(HighQualitySymbol);
         return isHighQuality;
     }
 
@@ -70,7 +170,7 @@ public unsafe class Utilities(
     // ----------------------------
     public string SetHighQuality(string text)
     {
-        if (!string.IsNullOrEmpty(text)) text = text + " " + HighQualitySymbol;
+        if (!string.IsNullOrWhiteSpace(text)) text = text + " " + HighQualitySymbol;
         return text;
     }
 
@@ -79,7 +179,7 @@ public unsafe class Utilities(
     // ----------------------------
     public string UnsetHighQuality(string text)
     {
-        if (!string.IsNullOrEmpty(text)) text = text.Replace(HighQualitySymbol.ToString(), "").Trim();
+        if (!string.IsNullOrWhiteSpace(text)) text = text.Replace(HighQualitySymbol.ToString(), "").Trim();
         return text;
     }
 
@@ -88,7 +188,7 @@ public unsafe class Utilities(
     // ----------------------------
     public string SetGlamour(string text)
     {
-        if (!string.IsNullOrEmpty(text)) text = GlamouredSymbol + " " + text;
+        if (!string.IsNullOrWhiteSpace(text)) text = GlamouredSymbol + " " + text;
         return text;
     }
 
@@ -97,7 +197,7 @@ public unsafe class Utilities(
     // ----------------------------
     public string UnsetGlamour(string text)
     {
-        if (!string.IsNullOrEmpty(text)) text = text.Replace(GlamouredSymbol.ToString(), "").Trim();
+        if (!string.IsNullOrWhiteSpace(text)) text = text.Replace(GlamouredSymbol.ToString(), "").Trim();
         return text;
     }
 

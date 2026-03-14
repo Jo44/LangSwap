@@ -236,7 +236,7 @@ public unsafe class ActionTooltipHook(
                 return;
 
             // Check for empty or null text
-            if (string.IsNullOrEmpty(text))
+            if (string.IsNullOrWhiteSpace(text))
                 return;
 
             // Check cache first to avoid unnecessary encoding

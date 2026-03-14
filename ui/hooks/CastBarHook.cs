@@ -1,6 +1,7 @@
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.tool;
 using LangSwap.translation;
@@ -24,14 +25,11 @@ public unsafe class CastBarHook(
     // Log
     private const string Class = "[CastBarHook.cs]";
 
-    // CastBar Addon
-    private readonly string CastBarAddon = config.CastBarAddon;
-
     // Delegate function
-    private delegate void CastBarDelegate(IntPtr castBarPtr, uint actionId, IntPtr actionNamePtr);
+    private delegate void CastBarOnUpdate(AddonCastBar* castBar, void* a2);
 
     // Hook
-    private Hook<CastBarDelegate>? _castBarHook;
+    private Hook<CastBarOnUpdate>? _castBarHook;
 
     // ----------------------------
     // Enable the hook
@@ -48,7 +46,7 @@ public unsafe class CastBarHook(
             if (castBarAddr != IntPtr.Zero)
             {
                 // Get hook from address
-                _castBarHook = gameInterop.HookFromAddress<CastBarDelegate>(castBarAddr, CastBarDetour);
+                _castBarHook = gameInterop.HookFromAddress<CastBarOnUpdate>(castBarAddr, CastBarDetour);
 
                 // Enable hook
                 _castBarHook.Enable();
@@ -77,11 +75,13 @@ public unsafe class CastBarHook(
     // ----------------------------
     protected override void OnLanguageSwap()
     {
+        // TODO : 2 addon à modifier => CastBar et TargetCastBar
+
         // Refresh cast bar addon
         try
         {
             // Get pointer to cast bar addon
-            AtkUnitBasePtr castBarPtr = gameGui.GetAddonByName(CastBarAddon);
+            AtkUnitBasePtr castBarPtr = gameGui.GetAddonByName(config.CastBarAddon);
             if (!castBarPtr.IsNull)
             {
                 // Get AtkUnitBase from pointer
@@ -104,40 +104,12 @@ public unsafe class CastBarHook(
     // ----------------------------
     // Cast bar detour
     // ----------------------------
-    private void CastBarDetour(IntPtr castBarPtr, uint actionId, IntPtr actionNamePtr)
+    private void CastBarDetour(AddonCastBar* castBar, void* a2)
     {
         // TODO
-        try
-        {
-            uint currentCastActionId = actionId;
-            log.Debug($"{Class} - UpdateCastBar called: actionId={actionId}");
+        log.Debug($"CAST BAR DETOUR");
 
-            if (isLanguageSwapped && actionId > 0 && actionId < config.MaxValidActionId)
-            {
-                LanguageEnum targetLang = (LanguageEnum)config.TargetLanguage;
-                string translatedName = translationCache.GetActionName(actionId, targetLang) ?? string.Empty;
-                
-                if (!string.IsNullOrWhiteSpace(translatedName))
-                {
-                    log.Information($"{Class} - Translating cast bar action {actionId} to: {translatedName}");
-                    
-                    byte[] translatedBytes = System.Text.Encoding.UTF8.GetBytes(translatedName + "\0");
-                    unsafe
-                    {
-                        fixed (byte* ptr = translatedBytes)
-                        {
-                            actionNamePtr = new IntPtr(ptr);
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Exception in UpdateCastBar for action {actionId}");
-        }
-
-        _castBarHook!.Original(castBarPtr, actionId, actionNamePtr);
+        _castBarHook!.Original(castBar, a2);
     }
 
     // ----------------------------

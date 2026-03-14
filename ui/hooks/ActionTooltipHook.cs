@@ -24,16 +24,15 @@ public unsafe class ActionTooltipHook(
     // Log
     private const string Class = "[ActionTooltipHook.cs]";
 
-    // Action Detail Addon
-    private readonly string ActionDetailAddon = config.ActionDetailAddon;
+    // Action detail fields
     private readonly int ActionNameField = config.ActionNameField;
     private readonly int ActionDescriptionField = config.ActionDescriptionField;
 
     // Delegate function
-    private delegate void* ActionTooltipDelegate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
+    private delegate void* ActionTooltipOnUpdate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
     // Hook
-    private Hook<ActionTooltipDelegate>? _actionTooltipHook;
+    private Hook<ActionTooltipOnUpdate>? _actionTooltipHook;
 
     // ----------------------------
     // Enable the hook
@@ -50,7 +49,7 @@ public unsafe class ActionTooltipHook(
             if (actionTooltipAddr != IntPtr.Zero)
             {
                 // Get hook from address
-                _actionTooltipHook = gameInterop.HookFromAddress<ActionTooltipDelegate>(actionTooltipAddr, ActionTooltipDetour);
+                _actionTooltipHook = gameInterop.HookFromAddress<ActionTooltipOnUpdate>(actionTooltipAddr, ActionTooltipDetour);
 
                 // Enable hook
                 _actionTooltipHook.Enable();
@@ -81,7 +80,7 @@ public unsafe class ActionTooltipHook(
         try
         {
             // Get pointer to action detail addon
-            AtkUnitBasePtr actionDetailPtr = gameGui.GetAddonByName(ActionDetailAddon);
+            AtkUnitBasePtr actionDetailPtr = gameGui.GetAddonByName(config.ActionDetailAddon);
             if (!actionDetailPtr.IsNull)
             {
                 // Get AtkUnitBase from pointer

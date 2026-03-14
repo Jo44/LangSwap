@@ -26,8 +26,7 @@ public unsafe partial class ItemTooltipHook(
     // Log
     private const string Class = "[ItemTooltipHook.cs]";
 
-    // Item Detail Addon
-    private readonly string ItemDetailAddon = config.ItemDetailAddon;
+    // Item detail fields
     private readonly int ItemNameField = config.ItemNameField;
     private readonly int GlamourNameField = config.GlamourNameField;
     private readonly int ItemDescriptionField = config.ItemDescriptionField;
@@ -44,10 +43,10 @@ public unsafe partial class ItemTooltipHook(
     private static partial Regex StatLineRegex();
 
     // Delegate function
-    private delegate void* ItemTooltipDelegate(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
+    private delegate void* ItemTooltipOnUpdate(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
     // Hook
-    private Hook<ItemTooltipDelegate>? _itemTooltipHook;
+    private Hook<ItemTooltipOnUpdate>? _itemTooltipHook;
 
     // ----------------------------
     // Enable the hook
@@ -64,7 +63,7 @@ public unsafe partial class ItemTooltipHook(
             if (itemTooltipAddr != IntPtr.Zero)
             {
                 // Get hook from address
-                _itemTooltipHook = gameInterop.HookFromAddress<ItemTooltipDelegate>(itemTooltipAddr, ItemTooltipDetour);
+                _itemTooltipHook = gameInterop.HookFromAddress<ItemTooltipOnUpdate>(itemTooltipAddr, ItemTooltipDetour);
 
                 // Enable hook
                 _itemTooltipHook.Enable();
@@ -95,7 +94,7 @@ public unsafe partial class ItemTooltipHook(
         try
         {
             // Get pointer to ItemDetail addon
-            AtkUnitBasePtr itemDetailPtr = gameGui.GetAddonByName(ItemDetailAddon);
+            AtkUnitBasePtr itemDetailPtr = gameGui.GetAddonByName(config.ItemDetailAddon);
             if (!itemDetailPtr.IsNull)
             {
                 // Get AtkUnitBase from pointer

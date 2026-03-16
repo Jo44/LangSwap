@@ -13,8 +13,8 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 
 ## Default values
 - Target language: `English`
-- Shortcut: `Alt + Y`
-- Components: `Castbars`, `Action tooltips` and `Item tooltips`
+- Keyboard shortcut: `Alt + Y`
+- UI Components: `Action tooltip` / `Item tooltip` / `AlliesCastBars` / `EnemiesCastBars`
 
 ## Usage
 1. Open the plugin manager in FFXIV

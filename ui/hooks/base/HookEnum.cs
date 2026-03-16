@@ -7,7 +7,8 @@
     {
         ActionTooltip = 0,
         ItemTooltip = 1,
-        TargetCastBar = 2
+        AlliesCastBars = 2,
+        EnemiesCastBars = 3
     }
 
 }

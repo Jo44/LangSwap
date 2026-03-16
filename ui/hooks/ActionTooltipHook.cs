@@ -1,3 +1,4 @@
+using Dalamud.Game;
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
@@ -13,13 +14,16 @@ namespace LangSwap.ui.hooks;
 // Action Tooltip Hook
 // ----------------------------
 public unsafe class ActionTooltipHook(
+    IClientState clientState,
     Configuration config,
+    IFramework framework,
     IGameGui gameGui,
     IGameInteropProvider gameInterop,
+    IObjectTable objectTable,
     ISigScanner sigScanner,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : BaseHook(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log)
+    IPluginLog log) : BaseHook(clientState, config, framework, gameGui, gameInterop, objectTable, sigScanner, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[ActionTooltipHook.cs]";
@@ -160,9 +164,10 @@ public unsafe class ActionTooltipHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Exception in ActionTooltipDetour");
+            log.Error(ex, $"{Class} - Exception in OnActionTooltipUpdate");
         }
 
+        // Call original function with modified data
         return _actionTooltipHook!.Original(actionDetailAddon, numberArrayData, stringArrayData);
     }
 

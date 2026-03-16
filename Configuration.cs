@@ -28,18 +28,12 @@ public class Configuration : IPluginConfiguration
     // UI components
     public bool ActionTooltip { get; set; } = true;
     public bool ItemTooltip { get; set; } = true;
-    public bool TargetCastBar { get; set; } = true;
+    public bool AlliesCastBars { get; set; } = true;
+    public bool EnemiesCastBars { get; set; } = true;
 
     // Memory signatures
     public string ActionTooltipSig { get; } = "E8 ?? ?? ?? ?? 48 8B 43 28 48 8B AF";
     public string ItemTooltipSig { get; } = "48 89 5C 24 ?? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ?? 48 8B 42 ?? 4C 8B EA";
-    public string TargetCastBarSig { get; } = "4C 8B DC 53 48 81 EC 30 03 00 00";
-
-    // Miscellaneous
-    public char GlamouredSymbol { get; } = '\uE03B'; // Mirage symbol
-    public char HighQualitySymbol { get; } = '\uE03C'; // HQ symbol
-    public int MaxValidActionId { get; } = 100000;
-    public int MaxValidItemId { get; } = 100000;
 
     // Action Detail Addon
     public string ActionDetailAddon { get; } = "ActionDetail";
@@ -59,9 +53,20 @@ public class Configuration : IPluginConfiguration
     public int ItemMateriaStatStartField { get; } = 58;
     public int ItemMateriaStatEndField { get; } = 62;
 
-    // Target CastBar Addon
+    // Allies CastBar Addons
+    public string CastBarAddon { get; } = "_CastBar";
+    public string PartyListAddon { get; } = "_PartyList";
+
+    // Enemies CastBar Addons
     public string TargetCastBarAddon { get; } = "_TargetInfoCastBar";
     public string FocusCastBarAddon { get; } = "_FocusTargetInfo";
+    public string EnemyListAddon { get; } = "_EnemyList";
+
+    // Miscellaneous
+    public int MaxValidActionId { get; } = 100000;
+    public int MaxValidItemId { get; } = 100000;
+    public char GlamouredSymbol { get; } = '\uE03B'; // Mirage symbol
+    public char HighQualitySymbol { get; } = '\uE03C'; // HQ symbol
 
     // Save configuration
     public void Save()

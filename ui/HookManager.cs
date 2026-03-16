@@ -12,9 +12,12 @@ namespace LangSwap.ui;
 // Hook Manager
 // ----------------------------
 public class HookManager(
+    IClientState clientState,
     Configuration config,
+    IFramework framework,
     IGameGui gameGui,
     IGameInteropProvider gameInterop,
+    IObjectTable objectTable,
     ISigScanner sigScanner,
     TranslationCache translationCache,
     Utilities utilities,
@@ -24,9 +27,9 @@ public class HookManager(
     private const string Class = "[HookManager.cs]";
 
     // Individual hooks
-    private readonly ActionTooltipHook actionTooltipHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
-    private readonly ItemTooltipHook itemTooltipHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
-    private readonly TargetCastBarHook targetCastBarHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly ActionTooltipHook actionTooltipHook = new(clientState, config, framework, gameGui, gameInterop, objectTable, sigScanner, translationCache, utilities, log);
+    private readonly ItemTooltipHook itemTooltipHook = new(clientState, config, framework, gameGui, gameInterop, objectTable, sigScanner, translationCache, utilities, log);
+    private readonly EnemiesCastBarsHook enemiesCastBarsHook = new(clientState, config, framework, gameGui, gameInterop, objectTable, sigScanner, translationCache, utilities, log);
 
     // Active hooks
     private readonly HashSet<BaseHook> hooks = [];
@@ -39,7 +42,7 @@ public class HookManager(
         // Add hook if component is enabled
         if (config.ActionTooltip) hooks.Add(actionTooltipHook);
         if (config.ItemTooltip) hooks.Add(itemTooltipHook);
-        if (config.TargetCastBar) hooks.Add(targetCastBarHook);
+        if (config.EnemiesCastBars) hooks.Add(enemiesCastBarsHook);
 
         // Enable all active hooks
         foreach (BaseHook hook in hooks)
@@ -72,9 +75,9 @@ public class HookManager(
                 case HookEnum.ItemTooltip:
                     if (hooks.Add(itemTooltipHook)) itemTooltipHook.Enable();
                     break;
-                // Add target castbar hook
-                case HookEnum.TargetCastBar:
-                    if (hooks.Add(targetCastBarHook)) targetCastBarHook.Enable();
+                // Add enemies castbars hook
+                case HookEnum.EnemiesCastBars:
+                    if (hooks.Add(enemiesCastBarsHook)) enemiesCastBarsHook.Enable();
                     break;
             }
         }
@@ -139,9 +142,9 @@ public class HookManager(
                 case HookEnum.ItemTooltip:
                     if (hooks.Remove(itemTooltipHook)) itemTooltipHook.Disable();
                     break;
-                // Remove target castbar hook
-                case HookEnum.TargetCastBar:
-                    if (hooks.Remove(targetCastBarHook)) targetCastBarHook.Disable();
+                // Remove enemies castbars hook
+                case HookEnum.EnemiesCastBars:
+                    if (hooks.Remove(enemiesCastBarsHook)) enemiesCastBarsHook.Disable();
                     break;
             }
         }

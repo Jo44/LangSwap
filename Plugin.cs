@@ -30,6 +30,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+    [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
 
     // Global constants
@@ -76,7 +77,7 @@ public sealed class Plugin : IDalamudPlugin
         _excelProvider = new(_config, dataManager, Log);
         _translationCache = new(_excelProvider, Log);
         _utilities = new(_config, Log);
-        _hookManager = new(_config, gameGui, gameInterop, sigScanner, _translationCache, _utilities, Log);
+        _hookManager = new(ClientState, _config, Framework, gameGui, gameInterop, ObjectTable, sigScanner, _translationCache, _utilities, Log);
         _configWindow = new(_config, _hookManager, this, _translationCache, Log);
 
         // Register window
@@ -103,7 +104,8 @@ public sealed class Plugin : IDalamudPlugin
         Log.Debug($"{Class} - Shift = {_config.Shift}");
         Log.Debug($"{Class} - Action Tooltip = {_config.ActionTooltip}");
         Log.Debug($"{Class} - Item Tooltip = {_config.ItemTooltip}");
-        Log.Debug($"{Class} - Target CastBar = {_config.TargetCastBar}");
+        Log.Debug($"{Class} - Allies CastBars = {_config.AlliesCastBars}");
+        Log.Debug($"{Class} - Enemies CastBars = {_config.EnemiesCastBars}");
         Log.Information($"{Class} === LangSwap plugin loaded ===");
     }
 

@@ -46,7 +46,7 @@ public class ConfigWindow : Window, IDisposable
                 ImGuiWindowFlags.NoScrollWithMouse;
 
         // Initialize window size
-        Size = new Vector2(480, 290);
+        Size = new Vector2(400, 340);
         SizeCondition = ImGuiCond.Always;
 
         // Initialize key names and values
@@ -76,7 +76,8 @@ public class ConfigWindow : Window, IDisposable
         // UI Components
         bool actionTooltip = _config.ActionTooltip;
         bool itemTooltip = _config.ItemTooltip;
-        bool targetCastBar = _config.TargetCastBar;
+        bool alliesCastBars = _config.AlliesCastBars;
+        bool enemiesCastBars = _config.EnemiesCastBars;
 
         /// Draw UI
 
@@ -125,14 +126,14 @@ public class ConfigWindow : Window, IDisposable
             _config.Ctrl = ctrl;
             _config.Save();
         }
-        ImGui.SameLine();
+        ImGui.SameLine(0, 10f);
         if (ImGui.Checkbox("Alt", ref alt))
         {
             _log.Information($"{Class} - Setting Alt to {alt}");
             _config.Alt = alt;
             _config.Save();
         }
-        ImGui.SameLine();
+        ImGui.SameLine(0, 10f);
         if (ImGui.Checkbox("Shift", ref shift))
         {
             _log.Information($"{Class} - Setting Shift to {shift}");
@@ -143,11 +144,12 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Separator();
 
-        // Components
+        // UI Components
         ImGui.Spacing();
         ImGui.Spacing();
-        ImGui.Text("Components :");
-        ImGui.SameLine(0, 10f);        
+        ImGui.Text("UI Components :");
+        ImGui.Spacing();
+        ImGui.SameLine(0, 5f);
         if (ImGui.Checkbox("Action tooltip", ref actionTooltip))
         {
             _log.Information($"{Class} - Setting Action tooltip to {actionTooltip}");
@@ -156,7 +158,7 @@ public class ConfigWindow : Window, IDisposable
             if (actionTooltip) _hookManager.EnableHook(HookEnum.ActionTooltip);
             else _hookManager.DisableHook(HookEnum.ActionTooltip);
         }
-        ImGui.SameLine();
+        ImGui.SameLine(0, 25f);
         if (ImGui.Checkbox("Item tooltip", ref itemTooltip))
         {
             _log.Information($"{Class} - Setting Item tooltip to {itemTooltip}");
@@ -165,14 +167,24 @@ public class ConfigWindow : Window, IDisposable
             if (itemTooltip) _hookManager.EnableHook(HookEnum.ItemTooltip);
             else _hookManager.DisableHook(HookEnum.ItemTooltip);
         }
-        ImGui.SameLine();
-        if (ImGui.Checkbox("Target CastBar", ref targetCastBar))
+        ImGui.Spacing();
+        ImGui.SameLine(0, 5f);
+        if (ImGui.Checkbox("Allies CastBars", ref alliesCastBars))
         {
-            _log.Information($"{Class} - Setting Target CastBar to {targetCastBar}");
-            _config.TargetCastBar = targetCastBar;
+            _log.Information($"{Class} - Setting Allies CastBars to {alliesCastBars}");
+            _config.AlliesCastBars = alliesCastBars;
             _config.Save();
-            if (targetCastBar) _hookManager.EnableHook(HookEnum.TargetCastBar);
-            else _hookManager.DisableHook(HookEnum.TargetCastBar);
+            if (alliesCastBars) _hookManager.EnableHook(HookEnum.AlliesCastBars);
+            else _hookManager.DisableHook(HookEnum.AlliesCastBars);
+        }
+        ImGui.SameLine(0, 20f);
+        if (ImGui.Checkbox("Enemies CastBars", ref enemiesCastBars))
+        {
+            _log.Information($"{Class} - Setting Enemies CastBars to {enemiesCastBars}");
+            _config.EnemiesCastBars = enemiesCastBars;
+            _config.Save();
+            if (enemiesCastBars) _hookManager.EnableHook(HookEnum.EnemiesCastBars);
+            else _hookManager.DisableHook(HookEnum.EnemiesCastBars);
         }
         ImGui.Spacing();
         ImGui.Spacing();

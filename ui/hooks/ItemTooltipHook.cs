@@ -15,13 +15,16 @@ namespace LangSwap.ui.hooks;
 // Item Tooltip Hook
 // ----------------------------
 public unsafe partial class ItemTooltipHook(
+IClientState clientState,
     Configuration config,
+    IFramework framework,
     IGameGui gameGui,
     IGameInteropProvider gameInterop,
+    IObjectTable objectTable,
     ISigScanner sigScanner,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : BaseHook(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log)
+    IPluginLog log) : BaseHook(clientState, config, framework, gameGui, gameInterop, objectTable, sigScanner, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[ItemTooltipHook.cs]";
@@ -296,10 +299,10 @@ public unsafe partial class ItemTooltipHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Exception in ItemTooltipDetour");
+            log.Error(ex, $"{Class} - Exception in OnItemTooltipUpdate");
         }
 
-        // Call original to generate the tooltip
+        // Call original function with modified data
         return _itemTooltipHook!.Original(itemDetailAddon, numberArrayData, stringArrayData);
     }
 

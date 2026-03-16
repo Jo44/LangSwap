@@ -129,24 +129,31 @@ public unsafe class EnemiesCastBarsHook(
             if (player == null) return;
 
             // Iterate through all objects in object table
-            foreach (var obj in objectTable)
+            foreach (IGameObject obj in objectTable)
             {
+                // Skip if object is null
                 if (obj == null) continue;
-             
+
+                // Skip if object is not a battle NPC
                 if (obj.ObjectKind != ObjectKind.BattleNpc) continue;
 
+                // Skip if object is not a battle character
                 if (obj is not IBattleChara battleChara) continue;
 
+                // Skip if object is not targeting the player and not in enmity list
                 if (battleChara.TargetObjectId != player.GameObjectId && !IsInEnmityList(battleChara)) continue;
 
+                // Check if the battle character is casting
                 if (battleChara.IsCasting)
                 {
+                    // Get the current action ID being cast
                     uint actionId = (uint)battleChara.CastActionId;
-
                     if (actionId > 0)
                     {
+                        // Check if this is a new cast or the same as the last one
                         if (!_lastCasts.TryGetValue(battleChara.GameObjectId, out uint lastActionId) || lastActionId != actionId)
                         {
+                            // Update the last cast for this character
                             _lastCasts[battleChara.GameObjectId] = actionId;
                             log.Debug($"{Class} - {battleChara.Name} ({battleChara.EntityId}) casting ActionId={actionId}");
                         }
@@ -154,6 +161,7 @@ public unsafe class EnemiesCastBarsHook(
                 }
                 else
                 {
+                    // Remove from last casts if not casting
                     _lastCasts.Remove(battleChara.GameObjectId);
                 }
             }

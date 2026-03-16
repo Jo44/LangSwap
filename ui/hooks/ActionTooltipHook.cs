@@ -14,19 +14,19 @@ namespace LangSwap.ui.hooks;
 // Action Tooltip Hook
 // ----------------------------
 public unsafe class ActionTooltipHook(
-    IClientState clientState,
     Configuration config,
-    IFramework framework,
     IGameGui gameGui,
     IGameInteropProvider gameInterop,
-    IObjectTable objectTable,
     ISigScanner sigScanner,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : BaseHook(clientState, config, framework, gameGui, gameInterop, objectTable, sigScanner, translationCache, utilities, log)
+    IPluginLog log) : BaseHook(config, gameGui, gameInterop, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[ActionTooltipHook.cs]";
+
+    // Core component
+    private readonly ISigScanner sigScanner = sigScanner;
 
     // Action detail fields
     private readonly int ActionNameField = config.ActionNameField;

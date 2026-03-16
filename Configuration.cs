@@ -58,6 +58,7 @@ public class Configuration : IPluginConfiguration
     public string PartyListAddon { get; } = "_PartyList";
 
     // Enemies CastBar Addons
+    public string TargetInfoAddon { get; } = "_TargetInfo";
     public string TargetCastBarAddon { get; } = "_TargetInfoCastBar";
     public string FocusCastBarAddon { get; } = "_FocusTargetInfo";
     public string EnemyListAddon { get; } = "_EnemyList";

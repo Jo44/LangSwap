@@ -1,3 +1,5 @@
+using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.NativeWrapper;
@@ -15,22 +17,27 @@ namespace LangSwap.ui.hooks;
 // Enemies CastBars Hook
 // ----------------------------
 public unsafe class EnemiesCastBarsHook(
-    IClientState clientState,
+    IAddonLifecycle addonLifecycle,
     Configuration config,
     IFramework framework,
     IGameGui gameGui,
     IGameInteropProvider gameInterop,
     IObjectTable objectTable,
-    ISigScanner sigScanner,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : BaseHook(clientState, config, framework, gameGui, gameInterop, objectTable, sigScanner, translationCache, utilities, log)
+    IPluginLog log) : BaseHook(config, gameGui, gameInterop, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[EnemiesCastBarsHook.cs]";
 
+    // Core components
+    private readonly IAddonLifecycle _addonLifecycle = addonLifecycle;
+    protected readonly IFramework framework = framework;
+    protected readonly IObjectTable objectTable = objectTable;
+
     // Last casts
     private readonly Dictionary<ulong, uint> _lastCasts = [];
+    private uint _currentTargetActionId = 0;
 
     // ----------------------------
     // Enable the hook
@@ -42,8 +49,11 @@ public unsafe class EnemiesCastBarsHook(
 
         try
         {
-            // Subscribe to framework update
+            // Subscribe to framework update for tracking casts
             framework.Update += OnFrameworkUpdate;
+
+            // Subscribe to addon lifecycle for updating text
+            _addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
 
             // Set enabled flag
             isEnabled = true;
@@ -121,54 +131,123 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     private void OnFrameworkUpdate(IFramework framework)
     {
-        // TODO : continue
         try
         {
-            // Get local player
-            var player = objectTable.LocalPlayer;
-            if (player == null) return;
-
-            // Iterate through all objects in object table
-            foreach (IGameObject obj in objectTable)
+            // Only if language is swapped
+            if (isLanguageSwapped)
             {
-                // Skip if object is null
-                if (obj == null) continue;
-
-                // Skip if object is not a battle NPC
-                if (obj.ObjectKind != ObjectKind.BattleNpc) continue;
-
-                // Skip if object is not a battle character
-                if (obj is not IBattleChara battleChara) continue;
-
-                // Skip if object is not targeting the player and not in enmity list
-                if (battleChara.TargetObjectId != player.GameObjectId && !IsInEnmityList(battleChara)) continue;
-
-                // Check if the battle character is casting
-                if (battleChara.IsCasting)
+                // Get local player
+                var player = objectTable.LocalPlayer;
+                if (player == null)
                 {
-                    // Get the current action ID being cast
-                    uint actionId = (uint)battleChara.CastActionId;
-                    if (actionId > 0)
+                    _currentTargetActionId = 0;
+                    return;
+                }
+
+                // Check if player has a target that is casting
+                bool foundTargetCasting = false;
+
+                // Iterate through all objects in object table
+                foreach (IGameObject obj in objectTable)
+                {
+                    // Skip if object is null
+                    if (obj == null) continue;
+
+                    // Skip if object is not a battle NPC
+                    if (obj.ObjectKind != ObjectKind.BattleNpc) continue;
+
+                    // Skip if object is not a battle character
+                    if (obj is not IBattleChara battleChara) continue;
+
+                    // Check if this is the player's target
+                    bool isPlayerTarget = player.TargetObjectId == battleChara.GameObjectId;
+
+                    // Skip if player is not targeting the battle character and is not in enmity list
+                    if (!isPlayerTarget && !IsInEnmityList(battleChara)) continue;
+
+                    // Check if the battle character is casting
+                    if (battleChara.IsCasting)
                     {
-                        // Check if this is a new cast or the same as the last one
-                        if (!_lastCasts.TryGetValue(battleChara.GameObjectId, out uint lastActionId) || lastActionId != actionId)
+                        // Get the current action ID being cast
+                        uint actionId = (uint)battleChara.CastActionId;
+                        if (actionId > 0)
                         {
-                            // Update the last cast for this character
-                            _lastCasts[battleChara.GameObjectId] = actionId;
-                            log.Debug($"{Class} - {battleChara.Name} ({battleChara.EntityId}) casting ActionId={actionId}");
+                            // Check if this is a new cast
+                            if (!_lastCasts.TryGetValue(battleChara.GameObjectId, out uint lastActionId) || lastActionId != actionId)
+                            {
+                                _lastCasts[battleChara.GameObjectId] = actionId;
+                                log.Debug($"{Class} - {battleChara.Name} ({battleChara.EntityId}) casting ActionId={actionId}");
+                            }
+
+                            // Store current target action ID
+                            if (isPlayerTarget)
+                            {
+                                _currentTargetActionId = actionId;
+                                foundTargetCasting = true;
+                            }
                         }
                     }
+                    else
+                    {
+                        _lastCasts.Remove(battleChara.GameObjectId);
+                    }
                 }
-                else
+
+                // Reset if target is not casting
+                if (!foundTargetCasting)
                 {
-                    // Remove from last casts if not casting
-                    _lastCasts.Remove(battleChara.GameObjectId);
+                    _currentTargetActionId = 0;
                 }
+            }
+            else
+            {
+                _currentTargetActionId = 0;
             }
         }
         catch (Exception ex)
         {
             log.Error(ex, $"{Class} - Error in OnFrameworkUpdate");
+        }
+    }
+
+    // ----------------------------
+    // On target cast bar update (addon lifecycle)
+    // ----------------------------
+    private void OnTargetCastBarUpdate(AddonEvent type, AddonArgs args)
+    {
+        try
+        {
+            // Only if language is swapped and we have an action ID to translate
+            if (!isLanguageSwapped || _currentTargetActionId == 0) return;
+
+            // Get translated action name
+            string? translatedName = translationCache.GetActionName(_currentTargetActionId, (LanguageEnum)config.TargetLanguage);
+            if (translatedName == null) return;
+
+            // Get cast bar addon
+            var castBarPtr = (AtkUnitBasePtr)args.Addon;
+            if (castBarPtr.IsNull) return;
+
+            AtkUnitBase* castBar = (AtkUnitBase*)castBarPtr.Address;
+            if (castBar == null || !castBar->IsVisible) return;
+
+            // Find and update the text node
+            for (int i = 0; i < castBar->UldManager.NodeListCount; i++)
+            {
+                var node = castBar->UldManager.NodeList[i];
+                if (node == null || node->Type != NodeType.Text) continue;
+
+                var textNode = (AtkTextNode*)node;
+                if (textNode != null && textNode->NodeText.Length > 0)
+                {
+                    textNode->SetText(translatedName);
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Error in OnTargetCastBarUpdate");
         }
     }
 
@@ -202,6 +281,9 @@ public unsafe class EnemiesCastBarsHook(
             // Unsubscribe from framework update
             framework.Update -= OnFrameworkUpdate;
 
+            // Unsubscribe from addon lifecycle
+            _addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+
             // Set disabled flag
             isEnabled = false;
             log.Debug($"{Class} - Enemies castbars hook disabled");
@@ -221,6 +303,9 @@ public unsafe class EnemiesCastBarsHook(
         {
             // Unsubscribe from framework update
             framework.Update -= OnFrameworkUpdate;
+
+            // Unsubscribe from addon lifecycle
+            _addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
 
             // Set disabled flag
             isEnabled = false;

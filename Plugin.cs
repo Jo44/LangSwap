@@ -24,14 +24,19 @@ public sealed class Plugin : IDalamudPlugin
     private const string Class = "[Plugin.cs]";
 
     // Plugin services
+    [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
+    [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
+    [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+    [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
 
     // Global constants
     private const string CommandName = "/langswap";
@@ -61,7 +66,7 @@ public sealed class Plugin : IDalamudPlugin
     // ----------------------------
     // Initialization
     // ----------------------------
-    public Plugin(IDataManager dataManager, IGameGui gameGui, IGameInteropProvider gameInterop, ISigScanner sigScanner)
+    public Plugin()
     {
         // Log plugin initialization
         Log.Information($"{Class} === LangSwap plugin initialization ===");
@@ -74,10 +79,10 @@ public sealed class Plugin : IDalamudPlugin
 
         // Initialize core components
         _shortcutDetector = new(_config, KeyState, Log);
-        _excelProvider = new(_config, dataManager, Log);
+        _excelProvider = new(_config, DataManager, Log);
         _translationCache = new(_excelProvider, Log);
         _utilities = new(_config, Log);
-        _hookManager = new(ClientState, _config, Framework, gameGui, gameInterop, ObjectTable, sigScanner, _translationCache, _utilities, Log);
+        _hookManager = new(AddonLifecycle, _config, Framework, GameGui, GameInterop, ObjectTable, SigScanner, _translationCache, _utilities, Log);
         _configWindow = new(_config, _hookManager, this, _translationCache, Log);
 
         // Register window

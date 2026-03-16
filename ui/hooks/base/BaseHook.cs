@@ -9,13 +9,9 @@ namespace LangSwap.ui.hooks.@base;
 // Base class for all hooks
 // ----------------------------
 public abstract class BaseHook(
-    IClientState clientState,
     Configuration config,
-    IFramework framework,
     IGameGui gameGui,
     IGameInteropProvider gameInterop,
-    IObjectTable objectTable,
-    ISigScanner sigScanner,
     TranslationCache translationCache,
     Utilities utilities,
     IPluginLog log) : IDisposable
@@ -24,13 +20,9 @@ public abstract class BaseHook(
     private const string Class = "[BaseHook.cs]";
 
     // Core components
-    protected readonly IClientState clientState = clientState;
     protected readonly Configuration config = config;
-    protected readonly IFramework framework = framework;
     protected readonly IGameGui gameGui = gameGui;
     protected readonly IGameInteropProvider gameInterop = gameInterop;
-    protected readonly IObjectTable objectTable = objectTable;
-    protected readonly ISigScanner sigScanner = sigScanner;
     protected readonly TranslationCache translationCache = translationCache;
     protected readonly Utilities utilities = utilities;
     protected readonly IPluginLog log = log;

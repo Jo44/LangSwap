@@ -31,9 +31,9 @@ public unsafe class EnemiesCastBarsHook(
     private const string Class = "[EnemiesCastBarsHook.cs]";
 
     // Core components
-    private readonly IAddonLifecycle _addonLifecycle = addonLifecycle;
-    protected readonly IFramework framework = framework;
-    protected readonly IObjectTable objectTable = objectTable;
+    private readonly IAddonLifecycle addonLifecycle = addonLifecycle;
+    private readonly IFramework framework = framework;
+    private readonly IObjectTable objectTable = objectTable;
 
     // Last casts
     private readonly Dictionary<ulong, uint> _lastCasts = [];
@@ -53,7 +53,7 @@ public unsafe class EnemiesCastBarsHook(
             framework.Update += OnFrameworkUpdate;
 
             // Subscribe to addon lifecycle for updating text
-            _addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
 
             // Set enabled flag
             isEnabled = true;
@@ -282,7 +282,7 @@ public unsafe class EnemiesCastBarsHook(
             framework.Update -= OnFrameworkUpdate;
 
             // Unsubscribe from addon lifecycle
-            _addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
 
             // Set disabled flag
             isEnabled = false;
@@ -305,7 +305,7 @@ public unsafe class EnemiesCastBarsHook(
             framework.Update -= OnFrameworkUpdate;
 
             // Unsubscribe from addon lifecycle
-            _addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
 
             // Set disabled flag
             isEnabled = false;

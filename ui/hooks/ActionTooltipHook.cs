@@ -1,4 +1,3 @@
-using Dalamud.Game.NativeWrapper;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
@@ -12,13 +11,20 @@ namespace LangSwap.ui.hooks;
 // ----------------------------
 // Action Tooltip Hook
 // ----------------------------
-public unsafe class ActionTooltipHook : BaseHook
+public unsafe class ActionTooltipHook(
+    Configuration config,
+    IGameInteropProvider gameInterop,
+    ISigScanner sigScanner,
+    TranslationCache translationCache,
+    Utilities utilities,
+    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[ActionTooltipHook.cs]";
 
     // Core component
-    private readonly ISigScanner sigScanner;
+    private readonly IGameInteropProvider gameInterop = gameInterop;
+    private readonly ISigScanner sigScanner = sigScanner;
 
     // Delegate function
     private delegate void* ActionTooltipDelegate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
@@ -27,58 +33,11 @@ public unsafe class ActionTooltipHook : BaseHook
     private Hook<ActionTooltipDelegate>? _actionTooltipHook;
 
     // Action detail addon
-    private readonly AtkUnitBase* actionDetailAddon;
+    private readonly AtkUnitBase* actionDetailAddon = utilities.GetAddon(config.ActionDetailAddon, "action detail");
 
     // Action detail fields
-    private readonly int actionNameField;
-    private readonly int actionDescriptionField;
-
-    // ----------------------------
-    // Constructor
-    // ----------------------------
-    public ActionTooltipHook(
-        Configuration config,
-        IGameGui gameGui,
-        IGameInteropProvider gameInterop,
-        ISigScanner sigScanner,
-        TranslationCache translationCache,
-        Utilities utilities,
-        IPluginLog log) : base(config, gameGui, gameInterop, translationCache, utilities, log)
-    {
-        // Assign core component
-        this.sigScanner = sigScanner;
-
-        // Get action detail addon
-        actionDetailAddon = GetActionDetailAddon();
-
-        // Initialize action detail fields
-        actionNameField = config.ActionNameField;
-        actionDescriptionField = config.ActionDescriptionField;
-    }
-
-    // ----------------------------
-    // Get action detail addon
-    // ----------------------------
-    private AtkUnitBase* GetActionDetailAddon()
-    {
-        // Initialize
-        AtkUnitBase* actionDetail = null;
-        try
-        {
-            // Get pointer from name
-            AtkUnitBasePtr actionDetailPtr = gameGui.GetAddonByName(config.ActionDetailAddon);
-            if (!actionDetailPtr.IsNull)
-            {
-                // Get addon from pointer
-                actionDetail = (AtkUnitBase*)actionDetailPtr.Address;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to get action detail addon");
-        }
-        return actionDetail;
-    }
+    private readonly int actionNameField = config.ActionNameField;
+    private readonly int actionDescriptionField = config.ActionDescriptionField;
 
     // ----------------------------
     // Enable the hook
@@ -123,19 +82,7 @@ public unsafe class ActionTooltipHook : BaseHook
     protected override void OnLanguageSwap()
     {
         // Refresh action detail addon
-        try
-        {
-            // Only refresh if the addon is currently visible
-            if (actionDetailAddon != null && actionDetailAddon -> IsVisible)
-            {
-                actionDetailAddon -> Hide(true, false, 0);
-                actionDetailAddon -> Show(true, 0);
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to refresh action detail addon");
-        }
+        utilities.RefreshAddon(actionDetailAddon, "action detail");
     }
 
     // ----------------------------

@@ -84,8 +84,8 @@ public sealed class Plugin : IDalamudPlugin
             _shortcutDetector = new(_config, KeyState, Log);
             _excelProvider = new(_config, DataManager, Log);
             _translationCache = new(_excelProvider, Log);
-            _utilities = new(_config, Log);
-            _hookManager = new(AddonLifecycle, _config, Framework, GameGui, GameInterop, ObjectTable, SigScanner, TargetManager, _translationCache, _utilities, Log);
+            _utilities = new(_config, GameGui, Log);
+            _hookManager = new(AddonLifecycle, _config, Framework, GameInterop, ObjectTable, SigScanner, TargetManager, _translationCache, _utilities, Log);
             _configWindow = new(_config, _hookManager, this, _translationCache, Log);
 
             // Register window

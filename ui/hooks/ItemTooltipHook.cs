@@ -1,4 +1,3 @@
-using Dalamud.Game.NativeWrapper;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
@@ -14,13 +13,20 @@ namespace LangSwap.ui.hooks;
 // ----------------------------
 // Item Tooltip Hook
 // ----------------------------
-public unsafe partial class ItemTooltipHook : BaseHook
+public unsafe partial class ItemTooltipHook(
+    Configuration config,
+    IGameInteropProvider gameInterop,
+    ISigScanner sigScanner,
+    TranslationCache translationCache,
+    Utilities utilities,
+    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[ItemTooltipHook.cs]";
 
     // Core component
-    private readonly ISigScanner sigScanner;
+    private readonly IGameInteropProvider gameInterop = gameInterop;
+    private readonly ISigScanner sigScanner = sigScanner;
 
     // Delegate function
     private delegate void* ItemTooltipDelegate(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
@@ -29,78 +35,23 @@ public unsafe partial class ItemTooltipHook : BaseHook
     private Hook<ItemTooltipDelegate>? _itemTooltipHook;
 
     // Item detail addon
-    private readonly AtkUnitBase* itemDetailAddon;
+    private readonly AtkUnitBase* itemDetailAddon = utilities.GetAddon(config.ActionDetailAddon, "item detail");
 
     // Item detail fields
-    private readonly int itemNameField;
-    private readonly int glamourNameField;
-    private readonly int itemDescriptionField;
-    private readonly int itemEffectsField;
-    private readonly int itemBonusesStartField;
-    private readonly int itemBonusesEndField;
-    private readonly int itemMateriaNameStartField;
-    private readonly int itemMateriaNameEndField;
-    private readonly int itemMateriaStatStartField;
-    private readonly int itemMateriaStatEndField;
+    private readonly int itemNameField = config.ItemNameField;
+    private readonly int glamourNameField = config.GlamourNameField;
+    private readonly int itemDescriptionField = config.ItemDescriptionField;
+    private readonly int itemEffectsField = config.ItemEffectsField;
+    private readonly int itemBonusesStartField = config.ItemBonusesStartField;
+    private readonly int itemBonusesEndField = config.ItemBonusesEndField;
+    private readonly int itemMateriaNameStartField = config.ItemMateriaNameStartField;
+    private readonly int itemMateriaNameEndField = config.ItemMateriaNameEndField;
+    private readonly int itemMateriaStatStartField = config.ItemMateriaStatStartField;
+    private readonly int itemMateriaStatEndField = config.ItemMateriaStatEndField;
 
     // Generated Regex
     [GeneratedRegex(@"\+\d+")]
     private static partial Regex StatLineRegex();
-
-    // ----------------------------
-    // Constructor
-    // ----------------------------
-    public ItemTooltipHook(
-        Configuration config,
-        IGameGui gameGui,
-        IGameInteropProvider gameInterop,
-        ISigScanner sigScanner,
-        TranslationCache translationCache,
-        Utilities utilities,
-        IPluginLog log) : base(config, gameGui, gameInterop, translationCache, utilities, log)
-    {
-        // Assign core component
-        this.sigScanner = sigScanner;
-
-        // Get item detail addon
-        itemDetailAddon = GetItemDetailAddon();
-
-        // Initialize item detail fields
-        itemNameField = config.ItemNameField;
-        glamourNameField = config.GlamourNameField;
-        itemDescriptionField = config.ItemDescriptionField;
-        itemEffectsField = config.ItemEffectsField;
-        itemBonusesStartField = config.ItemBonusesStartField;
-        itemBonusesEndField = config.ItemBonusesEndField;
-        itemMateriaNameStartField = config.ItemMateriaNameStartField;
-        itemMateriaNameEndField = config.ItemMateriaNameEndField;
-        itemMateriaStatStartField = config.ItemMateriaStatStartField;
-        itemMateriaStatEndField = config.ItemMateriaStatEndField;
-    }
-
-    // ----------------------------
-    // Get item detail addon
-    // ----------------------------
-    private AtkUnitBase* GetItemDetailAddon()
-    {
-        // Initialize
-        AtkUnitBase* itemDetail = null;
-        try
-        {
-            // Get pointer from name
-            AtkUnitBasePtr itemDetailPtr = gameGui.GetAddonByName(config.ItemDetailAddon);
-            if (!itemDetailPtr.IsNull)
-            {
-                // Get addon from pointer
-                itemDetail = (AtkUnitBase*)itemDetailPtr.Address;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to get item detail addon");
-        }
-        return itemDetail;
-    }
 
     // ----------------------------
     // Enable the hook
@@ -145,19 +96,7 @@ public unsafe partial class ItemTooltipHook : BaseHook
     protected override void OnLanguageSwap()
     {
         // Refresh item detail addon
-        try
-        {
-            // Only refresh if the addon is currently visible
-            if (itemDetailAddon != null && itemDetailAddon -> IsVisible)
-            {
-                itemDetailAddon -> Hide(true, false, 0);
-                itemDetailAddon -> Show(true, 0);
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to refresh item detail addon");
-        }
+        utilities.RefreshAddon(itemDetailAddon, "item detail");
     }
 
     // ----------------------------

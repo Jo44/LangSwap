@@ -10,8 +10,6 @@ namespace LangSwap.ui.hooks.@base;
 // ----------------------------
 public abstract class BaseHook(
     Configuration config,
-    IGameGui gameGui,
-    IGameInteropProvider gameInterop,
     TranslationCache translationCache,
     Utilities utilities,
     IPluginLog log) : IDisposable
@@ -21,8 +19,6 @@ public abstract class BaseHook(
 
     // Core components
     protected readonly Configuration config = config;
-    protected readonly IGameGui gameGui = gameGui;
-    protected readonly IGameInteropProvider gameInterop = gameInterop;
     protected readonly TranslationCache translationCache = translationCache;
     protected readonly Utilities utilities = utilities;
     protected readonly IPluginLog log = log;

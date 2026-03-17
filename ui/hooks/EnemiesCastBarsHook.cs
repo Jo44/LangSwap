@@ -3,7 +3,6 @@ using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.NativeWrapper;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
@@ -19,172 +18,45 @@ namespace LangSwap.ui.hooks;
 // ----------------------------
 // Enemies CastBars Hook
 // ----------------------------
-public unsafe class EnemiesCastBarsHook : BaseHook
+public unsafe class EnemiesCastBarsHook(
+    IAddonLifecycle addonLifecycle,
+    Configuration config,
+    IFramework framework,
+    IObjectTable objectTable,
+    ITargetManager targetManager,
+    TranslationCache translationCache,
+    Utilities utilities,
+    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[EnemiesCastBarsHook.cs]";
 
     // Core components
-    private readonly IAddonLifecycle addonLifecycle;
-    private readonly IFramework framework;
-    private readonly IObjectTable objectTable;
-    private readonly ITargetManager targetManager;
+    private readonly IAddonLifecycle addonLifecycle = addonLifecycle;
+    private readonly IFramework framework = framework;
+    private readonly IObjectTable objectTable = objectTable;
+    private readonly ITargetManager targetManager = targetManager;
 
     // Castbars addons
-    private readonly AtkUnitBase* targetInfo;
-    private readonly AtkUnitBase* targetCastBar;
-    private readonly AtkUnitBase* focusCastBar;
-    private readonly AtkUnitBase* enemyList;
+    private readonly AtkUnitBase* targetInfo = utilities.GetAddon(config.TargetInfoAddon, "target info");
+    private readonly AtkUnitBase* targetCastBar = utilities.GetAddon(config.TargetCastBarAddon, "target castbar");
+    private readonly AtkUnitBase* focusCastBar = utilities.GetAddon(config.FocusCastBarAddon, "focus castbar");
+    private readonly AtkUnitBase* enemyList = utilities.GetAddon(config.EnemyListAddon, "enemy list");
 
     // Castbars fields
-    private readonly int targetInfoField;
-    private readonly int targetCastBarField;
-    private readonly int focusCastBarField;
-    private readonly int enemyListField;
+    private readonly int targetInfoField = config.TargetInfoField;
+    private readonly int targetCastBarField = config.TargetCastBarField;
+    private readonly int focusCastBarField = config.FocusCastBarField;
+    private readonly int enemyListStartField = config.EnemyListStartField;
+    private readonly int enemyListEndField = config.EnemyListEndField;
+    private readonly int enemyListCastField = config.EnemyListCastField;
 
     // Tracking variables
-    private uint _currentTargetActionId;
-    private ulong _currentTargetGameObjectId;
-    private uint _currentFocusActionId;
-    private ulong _currentFocusGameObjectId;
-    private readonly Dictionary<ulong, uint> _enemyListCasts;
-
-    // ----------------------------
-    // Constructor
-    // ----------------------------
-    public EnemiesCastBarsHook(
-        IAddonLifecycle addonLifecycle,
-        Configuration config,
-        IFramework framework,
-        IGameGui gameGui,
-        IGameInteropProvider gameInterop,
-        IObjectTable objectTable,
-        ITargetManager targetManager,
-        TranslationCache translationCache,
-        Utilities utilities,
-        IPluginLog log) : base(config, gameGui, gameInterop, translationCache, utilities, log)
-    {
-        // Assign core components
-        this.addonLifecycle = addonLifecycle;
-        this.framework = framework;
-        this.objectTable = objectTable;
-        this.targetManager = targetManager;
-
-        // Get castbars addons
-        targetInfo = GetTargetInfoAddon();
-        targetCastBar = GetTargetCastBarAddon();
-        focusCastBar = GetFocusCastBarAddon();
-        enemyList = GetEnemyListAddon();
-
-        // Get castbar fields
-        targetInfoField = config.TargetInfoField;
-        targetCastBarField = config.TargetCastBarField;
-        focusCastBarField = config.FocusCastBarField;
-        enemyListField = config.EnemyListField;
-
-        // Initialize tracking variables
-        _currentTargetActionId = 0;
-        _currentTargetGameObjectId = 0;
-        _currentFocusActionId = 0;
-        _currentFocusGameObjectId = 0;
-        _enemyListCasts = [];
-    }
-
-    // ----------------------------
-    // Get target info addon
-    // ----------------------------
-    private AtkUnitBase* GetTargetInfoAddon()
-    {
-        // Initialize
-        AtkUnitBase* targetInfo = null;
-        try
-        {
-            // Get pointer from name
-            AtkUnitBasePtr targetInfoPtr = gameGui.GetAddonByName(config.TargetInfoAddon);
-            if (!targetInfoPtr.IsNull)
-            {
-                // Get addon from pointer
-                targetInfo = (AtkUnitBase*)targetInfoPtr.Address;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to get target info addon");
-        }
-        return targetInfo;
-    }
-
-    // ----------------------------
-    // Get target castbar addon
-    // ----------------------------
-    private AtkUnitBase* GetTargetCastBarAddon()
-    {
-        // Initialize
-        AtkUnitBase* targetCastBar = null;
-        try
-        {
-            // Get pointer from name
-            AtkUnitBasePtr targetCastBarPtr = gameGui.GetAddonByName(config.TargetCastBarAddon);
-            if (!targetCastBarPtr.IsNull)
-            {
-                // Get addon from pointer
-                targetCastBar = (AtkUnitBase*)targetCastBarPtr.Address;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to get target castbar addon");
-        }
-        return targetCastBar;
-    }
-
-    // ----------------------------
-    // Get focus castbar addon
-    // ----------------------------
-    private AtkUnitBase* GetFocusCastBarAddon()
-    {
-        // Initialize
-        AtkUnitBase* focusCastBar = null;
-        try
-        {
-            // Get pointer from name
-            AtkUnitBasePtr focusCastBarPtr = gameGui.GetAddonByName(config.FocusCastBarAddon);
-            if (!focusCastBarPtr.IsNull)
-            {
-                // Get addon from pointer
-                focusCastBar = (AtkUnitBase*)focusCastBarPtr.Address;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to get focus castbar addon");
-        }
-        return focusCastBar;
-    }
-
-    // ----------------------------
-    // Get enemy list addon
-    // ----------------------------
-    private AtkUnitBase* GetEnemyListAddon()
-    {
-        // Initialize
-        AtkUnitBase* enemyList = null;
-        try
-        {
-            // Get pointer from name
-            AtkUnitBasePtr enemyListPtr = gameGui.GetAddonByName(config.EnemyListAddon);
-            if (!enemyListPtr.IsNull)
-            {
-                // Get addon from pointer
-                enemyList = (AtkUnitBase*)enemyListPtr.Address;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to get enemy list addon");
-        }
-        return enemyList;
-    }
+    private uint _currentTargetActionId = 0;
+    private ulong _currentTargetGameObjectId = 0;
+    private uint _currentFocusActionId = 0;
+    private ulong _currentFocusGameObjectId = 0;
+    private readonly Dictionary<ulong, uint> _enemyListCasts = [];
 
     // ----------------------------
     // Enable the hook
@@ -222,41 +94,14 @@ public unsafe class EnemiesCastBarsHook : BaseHook
     // ----------------------------
     protected override void OnLanguageSwap()
     {
-        // Refresh target (compact & split mode), focus & enemy list addons
-        try
-        {
-            // Only refresh if the addon is currently visible
-            if (targetInfo != null && targetInfo -> IsVisible)
-            {
-                targetInfo -> Hide(true, false, 0);
-                targetInfo -> Show(true, 0);
-            }
-
-            // Only refresh if the addon is currently visible
-            if (targetCastBar != null && targetCastBar -> IsVisible)
-            {
-                targetCastBar -> Hide(true, false, 0);
-                targetCastBar -> Show(true, 0);
-            }
-
-            // Only refresh if the addon is currently visible
-            if (focusCastBar != null && focusCastBar -> IsVisible)
-            {
-                focusCastBar -> Hide(true, false, 0);
-                focusCastBar -> Show(true, 0);
-            }
-
-            // Only refresh if the addon is currently visible
-            if (enemyList != null && enemyList -> IsVisible)
-            {
-                enemyList -> Hide(true, false, 0);
-                enemyList -> Show(true, 0);
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to refresh enemies castbars addons");
-        }
+        // Refresh target info addon
+        utilities.RefreshAddon(targetInfo, "target info");
+        // Refresh target castbar addon
+        utilities.RefreshAddon(targetCastBar, "target castbar");
+        // Refresh focus castbar addon
+        utilities.RefreshAddon(focusCastBar, "focus castbar");
+        // Refresh enemy list addon
+        utilities.RefreshAddon(enemyList, "enemy list");
     }
 
     // ----------------------------
@@ -296,7 +141,7 @@ public unsafe class EnemiesCastBarsHook : BaseHook
             // Initialize tracking variables
             bool foundTarget = false;
             bool foundFocus = false;
-            var currentCasting = new HashSet<ulong>();
+            HashSet<ulong> currentCasting = [];
 
             // Iterate through all battle NPCs
             foreach (IGameObject obj in objectTable)
@@ -397,27 +242,7 @@ public unsafe class EnemiesCastBarsHook : BaseHook
     // ----------------------------
     private void OnTargetInfoUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        try
-        {
-            // Only update if language is swapped, we have a valid action ID and the addon is visible
-            if (!isLanguageSwapped || _currentTargetActionId == 0 || targetInfo == null || !targetInfo -> IsVisible) return;
-
-            // Get translated action name
-            string? translatedName = translationCache.GetActionName(_currentTargetActionId, (LanguageEnum)config.TargetLanguage);
-            if (translatedName.IsNullOrWhitespace()) return;
-
-            // Get the text node
-            var node = targetInfo -> UldManager.NodeList[targetInfoField];
-            if (node == null || node -> Type != NodeType.Text) return;
-
-            // Update text
-            AtkTextNode* textNode = (AtkTextNode*)node;
-            if (textNode != null && textNode -> NodeText.Length > 0) textNode -> SetText(translatedName);
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error updating target info addon");
-        }
+        UpdateCastBarTextNode(targetInfo, _currentTargetActionId, targetInfoField, "target info");
     }
 
     // ----------------------------
@@ -425,27 +250,7 @@ public unsafe class EnemiesCastBarsHook : BaseHook
     // ----------------------------
     private void OnTargetCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        try
-        {
-            // Only update if language is swapped, we have a valid action ID and the addon is visible
-            if (!isLanguageSwapped || _currentTargetActionId == 0 || targetCastBar == null || !targetCastBar -> IsVisible) return;
-
-            // Get translated action name
-            string? translatedName = translationCache.GetActionName(_currentTargetActionId, (LanguageEnum)config.TargetLanguage);
-            if (translatedName.IsNullOrWhitespace()) return;
-
-            // Get the text node
-            var node = targetCastBar -> UldManager.NodeList[targetCastBarField];
-            if (node == null || node -> Type != NodeType.Text) return;
-
-            // Update text
-            AtkTextNode* textNode = (AtkTextNode*)node;
-            if (textNode != null && textNode -> NodeText.Length > 0) textNode -> SetText(translatedName);
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error updating target castbar addon");
-        }
+        UpdateCastBarTextNode(targetCastBar, _currentTargetActionId, targetCastBarField, "target castbar");
     }
 
     // ----------------------------
@@ -453,17 +258,25 @@ public unsafe class EnemiesCastBarsHook : BaseHook
     // ----------------------------
     private void OnFocusCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
+        UpdateCastBarTextNode(focusCastBar, _currentFocusActionId, focusCastBarField, "focus castbar");
+    }
+
+    // ----------------------------
+    // Update cast bar text node
+    // ----------------------------
+    private void UpdateCastBarTextNode(AtkUnitBase* addon, uint actionId, int fieldIndex, string addonName)
+    {
         try
         {
             // Only update if language is swapped, we have a valid action ID and the addon is visible
-            if (!isLanguageSwapped || _currentFocusActionId == 0 || focusCastBar == null || !focusCastBar -> IsVisible) return;
+            if (!isLanguageSwapped || actionId == 0 || addon == null || !addon -> IsVisible) return;
 
             // Get translated action name
-            string? translatedName = translationCache.GetActionName(_currentFocusActionId, (LanguageEnum)config.TargetLanguage);
+            string? translatedName = translationCache.GetActionName(actionId, (LanguageEnum)config.TargetLanguage);
             if (translatedName.IsNullOrWhitespace()) return;
 
             // Get the text node
-            AtkResNode* node = focusCastBar -> UldManager.NodeList[focusCastBarField];
+            AtkResNode* node = addon -> UldManager.NodeList[fieldIndex];
             if (node == null || node -> Type != NodeType.Text) return;
 
             // Update text
@@ -472,7 +285,7 @@ public unsafe class EnemiesCastBarsHook : BaseHook
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Error updating focus castbar addon");
+            log.Error(ex, $"{Class} - Error updating {addonName} addon");
         }
     }
 
@@ -483,14 +296,97 @@ public unsafe class EnemiesCastBarsHook : BaseHook
     {
         try
         {
-            // Only update if language is swapped, we have at least one enemy casting and the addon is visible
+            // Only update if language is swapped, we have casts to translate and the addon is visible
             if (!isLanguageSwapped || _enemyListCasts.Count < 1 || enemyList == null || !enemyList -> IsVisible) return;
 
-            // TODO: Parcourir les slots de l'enemy list et matcher avec _enemyListCasts
+            // Process each enemy slot in the list
+            for (int slotIndex = enemyListStartField; slotIndex <= enemyListEndField; slotIndex++)
+            {
+                ProcessEnemySlot(slotIndex);
+            }
         }
         catch (Exception ex)
         {
             log.Error(ex, $"{Class} - Error updating enemy list addon");
+        }
+    }
+
+    // ----------------------------
+    // Process enemy slot
+    // ----------------------------
+    private void ProcessEnemySlot(int slotIndex)
+    {
+        // Get the button node
+        AtkResNode* buttonNode = enemyList -> UldManager.NodeList[slotIndex];
+        if (buttonNode == null || !buttonNode -> IsVisible() || (ushort)buttonNode -> Type < 1000) return;
+
+        // Get the component node
+        AtkComponentNode* componentNode = (AtkComponentNode*)buttonNode;
+        if (componentNode -> Component == null) return;
+
+        // Get the uld manager
+        AtkUldManager* uldManager = &componentNode -> Component -> UldManager;
+        if (uldManager == null || uldManager -> NodeListCount == 0) return;
+
+        // Get the text node
+        AtkTextNode* textNode = GetCastTextNode(uldManager);
+        if (textNode == null) return;
+
+        // Translate the cast text
+        TranslateCastText(textNode);
+    }
+
+    // ----------------------------
+    // Get the cast text node in the enemy list slot
+    // ----------------------------
+    private AtkTextNode* GetCastTextNode(AtkUldManager* uldManager)
+    {
+        // Get the node at the cast field index
+        AtkResNode* node = uldManager -> NodeList[enemyListCastField];
+        if (node == null || node -> Type != NodeType.Text) return null;
+
+        // Cast to text node and validate text
+        AtkTextNode* textNode = (AtkTextNode*)node;
+        if (textNode == null || textNode -> NodeText.Length == 0) return null;
+
+        // Return the text node
+        return textNode;
+    }
+
+    // ----------------------------
+    // Translate the cast text in the enemy list slot
+    // ----------------------------
+    private void TranslateCastText(AtkTextNode* textNode)
+    {
+        // Get the current text
+        string currentText = textNode -> NodeText.ToString();
+        if (string.IsNullOrWhiteSpace(currentText)) return;
+
+        // Check if the current text contains any of the casts in the enemy list and translate it
+        foreach (KeyValuePair<ulong, uint> cast in _enemyListCasts)
+        {
+            // Get the action ID
+            uint actionId = cast.Value;
+
+            // Get the client language action name
+            string? clientActionName = translationCache.GetActionName(actionId, (LanguageEnum)config.ClientLanguage);
+            if (clientActionName == null) continue;
+
+            // If the current text contains the client language action name, translate it
+            if (currentText.Contains(clientActionName))
+            {
+                // Get the translated action name
+                string? translatedName = translationCache.GetActionName(actionId, (LanguageEnum)config.TargetLanguage);
+                if (!translatedName.IsNullOrWhitespace())
+                {
+                    // Replace the client language action name with the translated name
+                    string translatedText = currentText.Replace(clientActionName, translatedName);
+
+                    // Update the text node with the translated text
+                    textNode -> SetText(translatedText);
+                    break;
+                }
+            }
         }
     }
 

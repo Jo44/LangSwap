@@ -1,3 +1,4 @@
+using Dalamud.Game.NativeWrapper;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Memory;
@@ -12,6 +13,7 @@ namespace LangSwap.tool;
 // ----------------------------
 public unsafe class Utilities(
     Configuration config,
+    IGameGui gameGui,
     IPluginLog log)
 {
     // Log
@@ -20,6 +22,47 @@ public unsafe class Utilities(
     // Symbols
     private readonly char GlamouredSymbol = config.GlamouredSymbol;
     private readonly char HighQualitySymbol = config.HighQualitySymbol;
+
+    // ----------------------------
+    // Get addon
+    // ----------------------------
+    public AtkUnitBase* GetAddon(string addonName, string errorContext)
+    {
+        // Initialize
+        AtkUnitBase* addon = null;
+        try
+        {
+            // Get pointer from name
+            AtkUnitBasePtr addonPtr = gameGui.GetAddonByName(addonName);
+
+            // Get addon from pointer
+            if (!addonPtr.IsNull) addon = (AtkUnitBase*)addonPtr.Address;
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Failed to get {errorContext} addon");
+        }
+        return addon;
+    }
+    // ----------------------------
+    // Refresh addon
+    // ----------------------------
+    public void RefreshAddon(AtkUnitBase* addon, string errorContext)
+    {
+        try
+        {
+            // Only refresh if the addon is currently visible
+            if (addon != null && addon -> IsVisible)
+            {
+                addon -> Hide(true, false, 0);
+                addon -> Show(true, 0);
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Failed to refresh {errorContext} addon");
+        }
+    }
 
     // ----------------------------
     // Read string from StringArrayData at specified index

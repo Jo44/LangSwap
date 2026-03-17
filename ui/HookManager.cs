@@ -15,7 +15,6 @@ public class HookManager(
     IAddonLifecycle addonLifecycle,
     Configuration config,
     IFramework framework,
-    IGameGui gameGui,
     IGameInteropProvider gameInterop,
     IObjectTable objectTable,
     ISigScanner sigScanner,
@@ -28,9 +27,9 @@ public class HookManager(
     private const string Class = "[HookManager.cs]";
 
     // Individual hooks
-    private readonly ActionTooltipHook actionTooltipHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
-    private readonly ItemTooltipHook itemTooltipHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
-    private readonly EnemiesCastBarsHook enemiesCastBarsHook = new(addonLifecycle, config, framework, gameGui, gameInterop, objectTable, targetManager, translationCache, utilities, log);
+    private readonly ActionTooltipHook actionTooltipHook = new(config, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly ItemTooltipHook itemTooltipHook = new(config, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly EnemiesCastBarsHook enemiesCastBarsHook = new(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log);
 
     // Active hooks
     private readonly HashSet<BaseHook> hooks = [];

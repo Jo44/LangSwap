@@ -276,11 +276,11 @@ public unsafe class EnemiesCastBarsHook(
             if (translatedName.IsNullOrWhitespace()) return;
 
             // Get the text node
-            AtkResNode* node = addon -> UldManager.NodeList[fieldIndex];
-            if (node == null || node -> Type != NodeType.Text) return;
+            AtkResNode* fieldNode = addon -> UldManager.NodeList[fieldIndex];
+            if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
 
             // Update text
-            AtkTextNode* textNode = (AtkTextNode*)node;
+            AtkTextNode* textNode = (AtkTextNode*)fieldNode;
             if (textNode != null && textNode -> NodeText.Length > 0) textNode -> SetText(translatedName);
         }
         catch (Exception ex)
@@ -316,41 +316,28 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     private void ProcessEnemySlot(int slotIndex)
     {
-        // Get the button node
-        AtkResNode* buttonNode = enemyList -> UldManager.NodeList[slotIndex];
-        if (buttonNode == null || !buttonNode -> IsVisible() || (ushort)buttonNode -> Type < 1000) return;
+        // Get the slot node
+        AtkResNode* slotNode = enemyList -> UldManager.NodeList[slotIndex];
+        if (slotNode == null || !slotNode -> IsVisible() || (ushort)slotNode -> Type < 1000) return;
 
         // Get the component node
-        AtkComponentNode* componentNode = (AtkComponentNode*)buttonNode;
+        AtkComponentNode* componentNode = (AtkComponentNode*)slotNode;
         if (componentNode -> Component == null) return;
 
         // Get the uld manager
         AtkUldManager* uldManager = &componentNode -> Component -> UldManager;
         if (uldManager == null || uldManager -> NodeListCount == 0) return;
 
-        // Get the text node
-        AtkTextNode* textNode = GetCastTextNode(uldManager);
-        if (textNode == null) return;
+        // Get the field node
+        AtkResNode* fieldNode = uldManager -> NodeList[enemyListCastField];
+        if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
+
+        // Cast to text node
+        AtkTextNode* textNode = (AtkTextNode*)fieldNode;
+        if (textNode == null || textNode -> NodeText.Length == 0) return;
 
         // Translate the cast text
         TranslateCastText(textNode);
-    }
-
-    // ----------------------------
-    // Get the cast text node in the enemy list slot
-    // ----------------------------
-    private AtkTextNode* GetCastTextNode(AtkUldManager* uldManager)
-    {
-        // Get the node at the cast field index
-        AtkResNode* node = uldManager -> NodeList[enemyListCastField];
-        if (node == null || node -> Type != NodeType.Text) return null;
-
-        // Cast to text node and validate text
-        AtkTextNode* textNode = (AtkTextNode*)node;
-        if (textNode == null || textNode -> NodeText.Length == 0) return null;
-
-        // Return the text node
-        return textNode;
     }
 
     // ----------------------------

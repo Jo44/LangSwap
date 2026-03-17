@@ -29,6 +29,7 @@ public class HookManager(
     // Individual hooks
     private readonly ActionTooltipHook actionTooltipHook = new(config, gameInterop, sigScanner, translationCache, utilities, log);
     private readonly ItemTooltipHook itemTooltipHook = new(config, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly AlliesCastBarsHook alliesCastBarsHook = new(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log);
     private readonly EnemiesCastBarsHook enemiesCastBarsHook = new(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log);
 
     // Active hooks
@@ -42,6 +43,7 @@ public class HookManager(
         // Add hook if component is enabled
         if (config.ActionTooltip) hooks.Add(actionTooltipHook);
         if (config.ItemTooltip) hooks.Add(itemTooltipHook);
+        if (config.AlliesCastBars) hooks.Add(alliesCastBarsHook);
         if (config.EnemiesCastBars) hooks.Add(enemiesCastBarsHook);
 
         // Enable all active hooks
@@ -74,6 +76,10 @@ public class HookManager(
                 // Add item tooltip hook
                 case HookEnum.ItemTooltip:
                     if (hooks.Add(itemTooltipHook)) itemTooltipHook.Enable();
+                    break;
+                // Add allies castbars hook
+                case HookEnum.AlliesCastBars:
+                    if (hooks.Add(alliesCastBarsHook)) alliesCastBarsHook.Enable();
                     break;
                 // Add enemies castbars hook
                 case HookEnum.EnemiesCastBars:
@@ -141,6 +147,10 @@ public class HookManager(
                 // Remove item tooltip hook
                 case HookEnum.ItemTooltip:
                     if (hooks.Remove(itemTooltipHook)) itemTooltipHook.Disable();
+                    break;
+                // Remove allies castbars hook
+                case HookEnum.AlliesCastBars:
+                    if (hooks.Remove(alliesCastBarsHook)) alliesCastBarsHook.Disable();
                     break;
                 // Remove enemies castbars hook
                 case HookEnum.EnemiesCastBars:

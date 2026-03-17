@@ -53,17 +53,23 @@ public class Configuration : IPluginConfiguration
     public int ItemMateriaStatStartField { get; } = 58;
     public int ItemMateriaStatEndField { get; } = 62;
 
-    // Allies CastBar Addons
-    public string CastBarAddon { get; } = "_CastBar";
-    public string PartyListAddon { get; } = "_PartyList";
-
-    // Enemies CastBar Addons
+    // Common CastBar Addons
     public string TargetInfoAddon { get; } = "_TargetInfo";
     public int TargetInfoField { get; } = 44;
     public string TargetCastBarAddon { get; } = "_TargetInfoCastBar";
     public int TargetCastBarField { get; } = 5;
     public string FocusCastBarAddon { get; } = "_FocusTargetInfo";
     public int FocusCastBarField { get; } = 16;
+
+    // Allies CastBar Addons
+    public string CastBarAddon { get; } = "_CastBar";
+    public int CastBarField { get; } = 1;
+    public string PartyListAddon { get; } = "_PartyList";
+    public int PartyListStartField { get; } = 1;
+    public int PartyListEndField { get; } = 1;
+    public int PartyListCastField { get; } = 1;
+
+    // Enemies CastBar Addons
     public string EnemyListAddon { get; } = "_EnemyList";
     public int EnemyListStartField { get; } = 4;
     public int EnemyListEndField { get; } = 11;

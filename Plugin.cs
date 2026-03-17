@@ -37,6 +37,17 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
+    [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
+
+    // Core components
+    private readonly Configuration _config = null!;
+    private readonly ConfigWindow _configWindow = null!;
+    private readonly ExcelProvider _excelProvider = null!;
+    private readonly HookManager _hookManager = null!;
+    private readonly ShortcutDetector _shortcutDetector = null!;
+    private readonly TranslationCache _translationCache = null!;
+    private readonly Utilities _utilities = null!;
+    private readonly WindowSystem _windowSystem = new("LangSwap");
 
     // Global constants
     private const string CommandName = "/langswap";
@@ -44,16 +55,6 @@ public sealed class Plugin : IDalamudPlugin
     private const byte LogTagColor = 45;
     private const byte MessageColor = 57;
     private const int ToggleCooldownMs = 500;
-
-    // Core components
-    private readonly Configuration _config;
-    private readonly ConfigWindow _configWindow;
-    private readonly ExcelProvider _excelProvider;
-    private readonly HookManager _hookManager;
-    private readonly ShortcutDetector _shortcutDetector;
-    private readonly TranslationCache _translationCache;
-    private readonly Utilities _utilities;
-    private readonly WindowSystem _windowSystem = new("LangSwap");
 
     // Toggle state
     private int _deferredFrameCount = 0;
@@ -68,50 +69,58 @@ public sealed class Plugin : IDalamudPlugin
     // ----------------------------
     public Plugin()
     {
-        // Log plugin initialization
-        Log.Information($"{Class} === LangSwap plugin initialization ===");
+        try
+        {
+            // Log plugin initialization
+            Log.Information($"{Class} === LangSwap plugin initialization ===");
 
-        // Load configuration
-        _config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+            // Load configuration
+            _config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-        // Detect client language
-        DetectClientLanguage();
+            // Detect client language
+            DetectClientLanguage();
 
-        // Initialize core components
-        _shortcutDetector = new(_config, KeyState, Log);
-        _excelProvider = new(_config, DataManager, Log);
-        _translationCache = new(_excelProvider, Log);
-        _utilities = new(_config, Log);
-        _hookManager = new(AddonLifecycle, _config, Framework, GameGui, GameInterop, ObjectTable, SigScanner, _translationCache, _utilities, Log);
-        _configWindow = new(_config, _hookManager, this, _translationCache, Log);
+            // Initialize core components
+            _shortcutDetector = new(_config, KeyState, Log);
+            _excelProvider = new(_config, DataManager, Log);
+            _translationCache = new(_excelProvider, Log);
+            _utilities = new(_config, Log);
+            _hookManager = new(AddonLifecycle, _config, Framework, GameGui, GameInterop, ObjectTable, SigScanner, TargetManager, _translationCache, _utilities, Log);
+            _configWindow = new(_config, _hookManager, this, _translationCache, Log);
 
-        // Register window
-        _windowSystem.AddWindow(_configWindow);
+            // Register window
+            _windowSystem.AddWindow(_configWindow);
 
-        // Register command
-        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand) { HelpMessage = "Opens the LangSwap configuration window" });
+            // Register command
+            CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand) { HelpMessage = "Opens the LangSwap configuration window" });
 
-        // Enable hooks
-        _hookManager.EnableAll();
+            // Enable hooks
+            _hookManager.EnableAll();
 
-        // Register UI callbacks
-        PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
-        PluginInterface.UiBuilder.Draw += OnDraw;
-        PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
+            // Register UI callbacks
+            PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
+            PluginInterface.UiBuilder.Draw += OnDraw;
+            PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
 
-        // Log plugin informations
-        Log.Debug($"{Class} - Configuration :");
-        Log.Debug($"{Class} - Client Language = {_config.ClientLanguage}");
-        Log.Debug($"{Class} - Target Language = {_config.TargetLanguage}");
-        Log.Debug($"{Class} - Primary Key = {_config.PrimaryKey}");
-        Log.Debug($"{Class} - Ctrl = {_config.Ctrl}");
-        Log.Debug($"{Class} - Alt = {_config.Alt}");
-        Log.Debug($"{Class} - Shift = {_config.Shift}");
-        Log.Debug($"{Class} - Action Tooltip = {_config.ActionTooltip}");
-        Log.Debug($"{Class} - Item Tooltip = {_config.ItemTooltip}");
-        Log.Debug($"{Class} - Allies CastBars = {_config.AlliesCastBars}");
-        Log.Debug($"{Class} - Enemies CastBars = {_config.EnemiesCastBars}");
-        Log.Information($"{Class} === LangSwap plugin loaded ===");
+            // Log plugin informations
+            Log.Debug($"{Class} - Configuration :");
+            Log.Debug($"{Class} - Client Language = {_config.ClientLanguage}");
+            Log.Debug($"{Class} - Target Language = {_config.TargetLanguage}");
+            Log.Debug($"{Class} - Primary Key = {_config.PrimaryKey}");
+            Log.Debug($"{Class} - Ctrl = {_config.Ctrl}");
+            Log.Debug($"{Class} - Alt = {_config.Alt}");
+            Log.Debug($"{Class} - Shift = {_config.Shift}");
+            Log.Debug($"{Class} - Action Tooltip = {_config.ActionTooltip}");
+            Log.Debug($"{Class} - Item Tooltip = {_config.ItemTooltip}");
+            Log.Debug($"{Class} - Allies CastBars = {_config.AlliesCastBars}");
+            Log.Debug($"{Class} - Enemies CastBars = {_config.EnemiesCastBars}");
+            Log.Information($"{Class} === LangSwap plugin loaded ===");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"{Class} === Failed to initialize LangSwap plugin ===");
+            Dispose();
+        }
     }
 
     // ----------------------------

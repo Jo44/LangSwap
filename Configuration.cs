@@ -59,10 +59,13 @@ public class Configuration : IPluginConfiguration
 
     // Enemies CastBar Addons
     public string TargetInfoAddon { get; } = "_TargetInfo";
+    public int TargetInfoField { get; } = 44;
     public string TargetCastBarAddon { get; } = "_TargetInfoCastBar";
+    public int TargetCastBarField { get; } = 5;
     public string FocusCastBarAddon { get; } = "_FocusTargetInfo";
+    public int FocusCastBarField { get; } = 16;
     public string EnemyListAddon { get; } = "_EnemyList";
-
+    public int EnemyListField { get; } = 2;
     // Miscellaneous
     public int MaxValidActionId { get; } = 100000;
     public int MaxValidItemId { get; } = 100000;

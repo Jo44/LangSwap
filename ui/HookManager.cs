@@ -19,6 +19,7 @@ public class HookManager(
     IGameInteropProvider gameInterop,
     IObjectTable objectTable,
     ISigScanner sigScanner,
+    ITargetManager targetManager,
     TranslationCache translationCache,
     Utilities utilities,
     IPluginLog log) : IDisposable
@@ -29,7 +30,7 @@ public class HookManager(
     // Individual hooks
     private readonly ActionTooltipHook actionTooltipHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
     private readonly ItemTooltipHook itemTooltipHook = new(config, gameGui, gameInterop, sigScanner, translationCache, utilities, log);
-    private readonly EnemiesCastBarsHook enemiesCastBarsHook = new(addonLifecycle, config, framework, gameGui, gameInterop, objectTable, translationCache, utilities, log);
+    private readonly EnemiesCastBarsHook enemiesCastBarsHook = new(addonLifecycle, config, framework, gameGui, gameInterop, objectTable, targetManager, translationCache, utilities, log);
 
     // Active hooks
     private readonly HashSet<BaseHook> hooks = [];

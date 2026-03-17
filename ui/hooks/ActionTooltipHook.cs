@@ -1,4 +1,3 @@
-using Dalamud.Game;
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
@@ -13,30 +12,73 @@ namespace LangSwap.ui.hooks;
 // ----------------------------
 // Action Tooltip Hook
 // ----------------------------
-public unsafe class ActionTooltipHook(
-    Configuration config,
-    IGameGui gameGui,
-    IGameInteropProvider gameInterop,
-    ISigScanner sigScanner,
-    TranslationCache translationCache,
-    Utilities utilities,
-    IPluginLog log) : BaseHook(config, gameGui, gameInterop, translationCache, utilities, log)
+public unsafe class ActionTooltipHook : BaseHook
 {
     // Log
     private const string Class = "[ActionTooltipHook.cs]";
 
     // Core component
-    private readonly ISigScanner sigScanner = sigScanner;
-
-    // Action detail fields
-    private readonly int ActionNameField = config.ActionNameField;
-    private readonly int ActionDescriptionField = config.ActionDescriptionField;
+    private readonly ISigScanner sigScanner;
 
     // Delegate function
     private delegate void* ActionTooltipDelegate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
     // Hook
     private Hook<ActionTooltipDelegate>? _actionTooltipHook;
+
+    // Action detail addon
+    private readonly AtkUnitBase* actionDetailAddon;
+
+    // Action detail fields
+    private readonly int actionNameField;
+    private readonly int actionDescriptionField;
+
+    // ----------------------------
+    // Constructor
+    // ----------------------------
+    public ActionTooltipHook(
+        Configuration config,
+        IGameGui gameGui,
+        IGameInteropProvider gameInterop,
+        ISigScanner sigScanner,
+        TranslationCache translationCache,
+        Utilities utilities,
+        IPluginLog log) : base(config, gameGui, gameInterop, translationCache, utilities, log)
+    {
+        // Assign core component
+        this.sigScanner = sigScanner;
+
+        // Get action detail addon
+        actionDetailAddon = GetActionDetailAddon();
+
+        // Initialize action detail fields
+        actionNameField = config.ActionNameField;
+        actionDescriptionField = config.ActionDescriptionField;
+    }
+
+    // ----------------------------
+    // Get action detail addon
+    // ----------------------------
+    private AtkUnitBase* GetActionDetailAddon()
+    {
+        // Initialize
+        AtkUnitBase* actionDetail = null;
+        try
+        {
+            // Get pointer from name
+            AtkUnitBasePtr actionDetailPtr = gameGui.GetAddonByName(config.ActionDetailAddon);
+            if (!actionDetailPtr.IsNull)
+            {
+                // Get addon from pointer
+                actionDetail = (AtkUnitBase*)actionDetailPtr.Address;
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Failed to get action detail addon");
+        }
+        return actionDetail;
+    }
 
     // ----------------------------
     // Enable the hook
@@ -83,19 +125,11 @@ public unsafe class ActionTooltipHook(
         // Refresh action detail addon
         try
         {
-            // Get pointer to action detail addon
-            AtkUnitBasePtr actionDetailPtr = gameGui.GetAddonByName(config.ActionDetailAddon);
-            if (!actionDetailPtr.IsNull)
+            // Only refresh if the addon is currently visible
+            if (actionDetailAddon != null && actionDetailAddon -> IsVisible)
             {
-                // Get AtkUnitBase from pointer
-                AtkUnitBase* actionDetail = (AtkUnitBase*)actionDetailPtr.Address;
-
-                // Only refresh if the addon is currently visible
-                if (actionDetail != null && actionDetail -> IsVisible)
-                {
-                    actionDetail -> Hide(true, false, 0);
-                    actionDetail -> Show(true, 0);
-                }
+                actionDetailAddon -> Hide(true, false, 0);
+                actionDetailAddon -> Show(true, 0);
             }
         }
         catch (Exception ex)
@@ -124,7 +158,7 @@ public unsafe class ActionTooltipHook(
                 LanguageEnum targetLang = (LanguageEnum)config.TargetLanguage;
 
                 // Get action name
-                string actionName = utilities.ReadStringFromArrayData(stringArrayData, ActionNameField);
+                string actionName = utilities.ReadStringFromArrayData(stringArrayData, actionNameField);
                 if (!string.IsNullOrWhiteSpace(actionName))
                 {
                     // Get action ID 
@@ -139,9 +173,9 @@ public unsafe class ActionTooltipHook(
                         // Apply translated action name
                         if (!string.IsNullOrWhiteSpace(translatedActionName))
                         {
-                            if (!utilities.WriteStringToArrayData(stringArrayData, ActionNameField, translatedActionName))
+                            if (!utilities.WriteStringToArrayData(stringArrayData, actionNameField, translatedActionName))
                             {
-                                log.Error($"{Class} - Failed to write translated action name ({translatedActionName}) to field {ActionNameField}");
+                                log.Error($"{Class} - Failed to write translated action name ({translatedActionName}) to field {actionNameField}");
                             }
                         }
 
@@ -153,9 +187,9 @@ public unsafe class ActionTooltipHook(
                         // Apply translated description
                         if (!string.IsNullOrWhiteSpace(translatedDescription))
                         {
-                            if (!utilities.WriteStringToArrayData(stringArrayData, ActionDescriptionField, translatedDescription))
+                            if (!utilities.WriteStringToArrayData(stringArrayData, actionDescriptionField, translatedDescription))
                             {
-                                log.Error($"{Class} - Failed to write translated description ({translatedDescription}) to field {ActionDescriptionField}");
+                                log.Error($"{Class} - Failed to write translated description ({translatedDescription}) to field {actionDescriptionField}");
                             }
                         }
                     }

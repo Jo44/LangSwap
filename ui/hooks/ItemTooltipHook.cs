@@ -14,42 +14,93 @@ namespace LangSwap.ui.hooks;
 // ----------------------------
 // Item Tooltip Hook
 // ----------------------------
-public unsafe partial class ItemTooltipHook(
-    Configuration config,
-    IGameGui gameGui,
-    IGameInteropProvider gameInterop,
-    ISigScanner sigScanner,
-    TranslationCache translationCache,
-    Utilities utilities,
-    IPluginLog log) : BaseHook(config, gameGui, gameInterop, translationCache, utilities, log)
+public unsafe partial class ItemTooltipHook : BaseHook
 {
     // Log
     private const string Class = "[ItemTooltipHook.cs]";
 
     // Core component
-    private readonly ISigScanner sigScanner = sigScanner;
-
-    // Item detail fields
-    private readonly int ItemNameField = config.ItemNameField;
-    private readonly int GlamourNameField = config.GlamourNameField;
-    private readonly int ItemDescriptionField = config.ItemDescriptionField;
-    private readonly int ItemEffectsField = config.ItemEffectsField;
-    private readonly int ItemBonusesStartField = config.ItemBonusesStartField;
-    private readonly int ItemBonusesEndField = config.ItemBonusesEndField;
-    private readonly int ItemMateriaNameStartField = config.ItemMateriaNameStartField;
-    private readonly int ItemMateriaNameEndField = config.ItemMateriaNameEndField;
-    private readonly int ItemMateriaStatStartField = config.ItemMateriaStatStartField;
-    private readonly int ItemMateriaStatEndField = config.ItemMateriaStatEndField;
-
-    // Generated Regex
-    [GeneratedRegex(@"\+\d+")]
-    private static partial Regex StatLineRegex();
+    private readonly ISigScanner sigScanner;
 
     // Delegate function
     private delegate void* ItemTooltipDelegate(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
     // Hook
     private Hook<ItemTooltipDelegate>? _itemTooltipHook;
+
+    // Item detail addon
+    private readonly AtkUnitBase* itemDetailAddon;
+
+    // Item detail fields
+    private readonly int itemNameField;
+    private readonly int glamourNameField;
+    private readonly int itemDescriptionField;
+    private readonly int itemEffectsField;
+    private readonly int itemBonusesStartField;
+    private readonly int itemBonusesEndField;
+    private readonly int itemMateriaNameStartField;
+    private readonly int itemMateriaNameEndField;
+    private readonly int itemMateriaStatStartField;
+    private readonly int itemMateriaStatEndField;
+
+    // Generated Regex
+    [GeneratedRegex(@"\+\d+")]
+    private static partial Regex StatLineRegex();
+
+    // ----------------------------
+    // Constructor
+    // ----------------------------
+    public ItemTooltipHook(
+        Configuration config,
+        IGameGui gameGui,
+        IGameInteropProvider gameInterop,
+        ISigScanner sigScanner,
+        TranslationCache translationCache,
+        Utilities utilities,
+        IPluginLog log) : base(config, gameGui, gameInterop, translationCache, utilities, log)
+    {
+        // Assign core component
+        this.sigScanner = sigScanner;
+
+        // Get item detail addon
+        itemDetailAddon = GetItemDetailAddon();
+
+        // Initialize item detail fields
+        itemNameField = config.ItemNameField;
+        glamourNameField = config.GlamourNameField;
+        itemDescriptionField = config.ItemDescriptionField;
+        itemEffectsField = config.ItemEffectsField;
+        itemBonusesStartField = config.ItemBonusesStartField;
+        itemBonusesEndField = config.ItemBonusesEndField;
+        itemMateriaNameStartField = config.ItemMateriaNameStartField;
+        itemMateriaNameEndField = config.ItemMateriaNameEndField;
+        itemMateriaStatStartField = config.ItemMateriaStatStartField;
+        itemMateriaStatEndField = config.ItemMateriaStatEndField;
+    }
+
+    // ----------------------------
+    // Get item detail addon
+    // ----------------------------
+    private AtkUnitBase* GetItemDetailAddon()
+    {
+        // Initialize
+        AtkUnitBase* itemDetail = null;
+        try
+        {
+            // Get pointer from name
+            AtkUnitBasePtr itemDetailPtr = gameGui.GetAddonByName(config.ItemDetailAddon);
+            if (!itemDetailPtr.IsNull)
+            {
+                // Get addon from pointer
+                itemDetail = (AtkUnitBase*)itemDetailPtr.Address;
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Failed to get item detail addon");
+        }
+        return itemDetail;
+    }
 
     // ----------------------------
     // Enable the hook
@@ -96,19 +147,11 @@ public unsafe partial class ItemTooltipHook(
         // Refresh item detail addon
         try
         {
-            // Get pointer to item detail addon
-            AtkUnitBasePtr itemDetailPtr = gameGui.GetAddonByName(config.ItemDetailAddon);
-            if (!itemDetailPtr.IsNull)
+            // Only refresh if the addon is currently visible
+            if (itemDetailAddon != null && itemDetailAddon -> IsVisible)
             {
-                // Get AtkUnitBase from pointer
-                AtkUnitBase* itemDetail = (AtkUnitBase*)itemDetailPtr.Address;
-
-                // Only refresh if the addon is currently visible
-                if (itemDetail != null && itemDetail -> IsVisible)
-                {
-                    itemDetail -> Hide(true, false, 0);
-                    itemDetail -> Show(true, 0);
-                }
+                itemDetailAddon -> Hide(true, false, 0);
+                itemDetailAddon -> Show(true, 0);
             }
         }
         catch (Exception ex)
@@ -137,7 +180,7 @@ public unsafe partial class ItemTooltipHook(
                 LanguageEnum targetLang = (LanguageEnum)config.TargetLanguage;
 
                 // Get item name
-                string itemName = utilities.ReadStringFromArrayData(stringArrayData, ItemNameField);
+                string itemName = utilities.ReadStringFromArrayData(stringArrayData, itemNameField);
                 if (!string.IsNullOrWhiteSpace(itemName))
                 {
                     // Check for high quality symbol in item name
@@ -158,16 +201,16 @@ public unsafe partial class ItemTooltipHook(
                         // Apply translated item name
                         if (!string.IsNullOrWhiteSpace(translatedItemName))
                         {
-                            if (!utilities.WriteStringToArrayData(stringArrayData, ItemNameField, translatedItemName))
+                            if (!utilities.WriteStringToArrayData(stringArrayData, itemNameField, translatedItemName))
                             {
-                                log.Error($"{Class} - Failed to write translated item name ({translatedItemName}) to field {ItemNameField}");
+                                log.Error($"{Class} - Failed to write translated item name ({translatedItemName}) to field {itemNameField}");
                             }
                         }
 
                         /* Glamour name */
 
                         // Get glamour name
-                        string glamourName = utilities.ReadStringFromArrayData(stringArrayData, GlamourNameField);
+                        string glamourName = utilities.ReadStringFromArrayData(stringArrayData, glamourNameField);
                         if (!string.IsNullOrWhiteSpace(glamourName))
                         {
                             // Check for high quality symbol in glamour name
@@ -187,9 +230,9 @@ public unsafe partial class ItemTooltipHook(
                                 // Apply translated glamour name
                                 if (!string.IsNullOrWhiteSpace(translatedGlamourName))
                                 {
-                                    if (!utilities.WriteStringToArrayData(stringArrayData, GlamourNameField, translatedGlamourName))
+                                    if (!utilities.WriteStringToArrayData(stringArrayData, glamourNameField, translatedGlamourName))
                                     {
-                                        log.Error($"{Class} - Failed to write translated glamour name ({translatedGlamourName}) to field {GlamourNameField}");
+                                        log.Error($"{Class} - Failed to write translated glamour name ({translatedGlamourName}) to field {glamourNameField}");
                                     }
                                 }
                             }
@@ -203,16 +246,16 @@ public unsafe partial class ItemTooltipHook(
                         // Apply translated description
                         if (!string.IsNullOrWhiteSpace(translatedDescription))
                         {
-                            if (!utilities.WriteStringToArrayData(stringArrayData, ItemDescriptionField, translatedDescription))
+                            if (!utilities.WriteStringToArrayData(stringArrayData, itemDescriptionField, translatedDescription))
                             {
-                                log.Error($"{Class} - Failed to write translated description ({translatedDescription}) to field {ItemDescriptionField}");
+                                log.Error($"{Class} - Failed to write translated description ({translatedDescription}) to field {itemDescriptionField}");
                             }
                         }
 
                         /* Effects */
 
                         // Get effects
-                        string effects = utilities.ReadStringFromArrayData(stringArrayData, ItemEffectsField);
+                        string effects = utilities.ReadStringFromArrayData(stringArrayData, itemEffectsField);
 
                         // Translate effects
                         string translatedEffects = TranslateEffects(effects, clientLang, targetLang);
@@ -220,16 +263,16 @@ public unsafe partial class ItemTooltipHook(
                         // Apply translated effects
                         if (!string.IsNullOrWhiteSpace(translatedEffects))
                         {
-                            if (!utilities.WriteStringToArrayData(stringArrayData, ItemEffectsField, translatedEffects))
+                            if (!utilities.WriteStringToArrayData(stringArrayData, itemEffectsField, translatedEffects))
                             {
-                                log.Error($"{Class} - Failed to write translated effects ({translatedEffects}) to field {ItemEffectsField}");
+                                log.Error($"{Class} - Failed to write translated effects ({translatedEffects}) to field {itemEffectsField}");
                             }
                         }
                         
                         /* Bonuses */
 
                         // Translate bonuses
-                        for (int i = ItemBonusesStartField; i <= ItemBonusesEndField; i++)
+                        for (int i = itemBonusesStartField; i <= itemBonusesEndField; i++)
                         {
                             // Get bonus
                             string bonus = utilities.ReadStringFromArrayData(stringArrayData, i);
@@ -250,7 +293,7 @@ public unsafe partial class ItemTooltipHook(
                         /* Materia names */
 
                         // Translate materia names
-                        for (int j = ItemMateriaNameStartField; j <= ItemMateriaNameEndField; j++)
+                        for (int j = itemMateriaNameStartField; j <= itemMateriaNameEndField; j++)
                         {
                             // Get materia name
                             string materiaName = utilities.ReadStringFromArrayData(stringArrayData, j);
@@ -276,7 +319,7 @@ public unsafe partial class ItemTooltipHook(
                         /* Materia stats */
 
                         // Translate materia stats
-                        for (int k = ItemMateriaStatStartField; k <= ItemMateriaStatEndField; k++)
+                        for (int k = itemMateriaStatStartField; k <= itemMateriaStatEndField; k++)
                         {
                             // Get materia stat
                             string materiaStat = utilities.ReadStringFromArrayData(stringArrayData, k);

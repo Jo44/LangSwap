@@ -363,7 +363,7 @@ public unsafe class EnemiesCastBarsHook(
             if (clientActionName == null) continue;
 
             // If the client language action name contains the current text, translate it
-            if (clientActionName.Contains(currentText))
+            if (clientActionName.StartsWith(currentText))
             {
                 // Get the translated action name
                 string? translatedName = translationCache.GetActionName(actionId, (LanguageEnum)config.TargetLanguage);

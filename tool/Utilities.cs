@@ -199,6 +199,15 @@ public unsafe class Utilities(
     }
 
     // ----------------------------
+    // Remove ellipsis from text
+    // ----------------------------
+    public static string RemoveEllipsis(string text)
+    {
+        if (!string.IsNullOrWhiteSpace(text)) text = text.Replace("...", "").Trim();
+        return text;
+    }
+
+    // ----------------------------
     // Determine high quality state
     // ----------------------------
     public bool IsHighQuality(string text)

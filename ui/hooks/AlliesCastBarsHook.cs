@@ -155,14 +155,20 @@ public unsafe class AlliesCastBarsHook(
             // Iterate through all battle NPCs
             foreach (IGameObject obj in objectTable)
             {
-                // Filter for battle NPCs
+                // Filter for players
                 if (obj == null || obj.ObjectKind != ObjectKind.Player) continue;
                 if (obj is not IBattleChara battleChara) continue;
 
-                // Check if this player is the current target, focus or in party list
+                // Check if this character is the current player
                 bool isCharacter = battleChara.GameObjectId == player.GameObjectId;
+
+                // Check if this character is the current player's target
                 bool isTarget = battleChara.GameObjectId == targetId;
+
+                // Check if this character is the current player's focus
                 bool isFocus = battleChara.GameObjectId == focusId;
+
+                // Check if this character is in the current player's party list
                 bool inPartyList = IsInPartyList(battleChara);
 
                 // Skip if not relevant
@@ -171,9 +177,6 @@ public unsafe class AlliesCastBarsHook(
                 // Check if casting
                 if (battleChara.IsCasting)
                 {
-                    // TODO : clean
-                    log.Verbose($"{Class} - Found casting character: {battleChara.Name} (ID: {battleChara.GameObjectId}, Target: {isTarget}, Focus: {isFocus}, InPartyList: {inPartyList})");
-
                     // Get action ID
                     uint actionId = (uint)battleChara.CastActionId;
                     if (actionId > 0)
@@ -251,7 +254,7 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private static bool IsInPartyList(IBattleChara enemy)
     {
-        // TODO : clean
+        // TODO : à modifier
         bool inPartyList = false;
         try
         {
@@ -269,7 +272,7 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        UpdateCastBarTextNode(castBar, _currentTargetActionId, castBarField, "castbar");
+        UpdateCastBarTextNode(castBar, _currentActionId, castBarField, "castbar");
     }
 
     // ----------------------------
@@ -461,7 +464,6 @@ public unsafe class AlliesCastBarsHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug($"{Class} - Allies castbars hook disposed");
         }
         catch (Exception ex)
         {

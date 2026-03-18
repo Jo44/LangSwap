@@ -213,7 +213,6 @@ public unsafe class ActionTooltipHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug($"{Class} - Action tooltip hook disposed");
         }
         catch (Exception ex)
         {

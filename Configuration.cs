@@ -63,10 +63,10 @@ public class Configuration : IPluginConfiguration
 
     // Allies CastBar Addons
     public string CastBarAddon { get; } = "_CastBar";
-    public int CastBarField { get; } = 1;
+    public int CastBarField { get; } = 11;
     public string PartyListAddon { get; } = "_PartyList";
-    public int PartyListStartField { get; } = 1;
-    public int PartyListEndField { get; } = 1;
+    public int PartyListStartField { get; } = 16;
+    public int PartyListEndField { get; } = 23;
     public int PartyListCastField { get; } = 1;
 
     // Enemies CastBar Addons

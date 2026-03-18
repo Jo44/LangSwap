@@ -349,6 +349,9 @@ public unsafe class EnemiesCastBarsHook(
         string currentText = textNode -> NodeText.ToString();
         if (string.IsNullOrWhiteSpace(currentText)) return;
 
+        // Remove ellipsis for matching
+        currentText = Utilities.RemoveEllipsis(currentText);
+
         // Check if the current text contains any of the casts in the enemy list and translate it
         foreach (KeyValuePair<ulong, uint> cast in _enemyListCasts)
         {
@@ -359,18 +362,15 @@ public unsafe class EnemiesCastBarsHook(
             string? clientActionName = translationCache.GetActionName(actionId, (LanguageEnum)config.ClientLanguage);
             if (clientActionName == null) continue;
 
-            // If the current text contains the client language action name, translate it
-            if (currentText.Contains(clientActionName))
+            // If the client language action name contains the current text, translate it
+            if (clientActionName.Contains(currentText))
             {
                 // Get the translated action name
                 string? translatedName = translationCache.GetActionName(actionId, (LanguageEnum)config.TargetLanguage);
                 if (!translatedName.IsNullOrWhitespace())
                 {
-                    // Replace the client language action name with the translated name
-                    string translatedText = currentText.Replace(clientActionName, translatedName);
-
-                    // Update the text node with the translated text
-                    textNode -> SetText(translatedText);
+                    // Update the text node with the translated name
+                    textNode -> SetText(translatedName);
                     break;
                 }
             }
@@ -424,7 +424,6 @@ public unsafe class EnemiesCastBarsHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug($"{Class} - Enemies castbars hook disposed");
         }
         catch (Exception ex)
         {

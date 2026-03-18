@@ -484,7 +484,6 @@ public unsafe partial class ItemTooltipHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug($"{Class} - Item tooltip hook disposed");
         }
         catch (Exception ex)
         {

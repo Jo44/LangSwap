@@ -387,6 +387,9 @@ public unsafe class AlliesCastBarsHook(
         string currentText = textNode -> NodeText.ToString();
         if (string.IsNullOrWhiteSpace(currentText)) return;
 
+        // Remove ellipsis for comparison
+        currentText = Utilities.RemoveEllipsis(currentText);
+
         // Check if the current text contains any of the casts in the party list and translate it
         foreach (KeyValuePair<ulong, uint> cast in _partyListCasts)
         {
@@ -397,18 +400,15 @@ public unsafe class AlliesCastBarsHook(
             string? clientActionName = translationCache.GetActionName(actionId, (LanguageEnum)config.ClientLanguage);
             if (clientActionName == null) continue;
 
-            // If the current text contains the client language action name, translate it
-            if (currentText.Contains(clientActionName))
+            // If the client language action name contains the current text, translate it
+            if (clientActionName.Contains(currentText))
             {
                 // Get the translated action name
                 string? translatedName = translationCache.GetActionName(actionId, (LanguageEnum)config.TargetLanguage);
                 if (!translatedName.IsNullOrWhitespace())
                 {
-                    // Replace the client language action name with the translated name
-                    string translatedText = currentText.Replace(clientActionName, translatedName);
-
-                    // Update the text node with the translated text
-                    textNode -> SetText(translatedText);
+                    // Update the text node with the translated name
+                    textNode -> SetText(translatedName);
                     break;
                 }
             }

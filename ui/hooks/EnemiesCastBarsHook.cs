@@ -349,7 +349,7 @@ public unsafe class EnemiesCastBarsHook(
         string currentText = textNode -> NodeText.ToString();
         if (string.IsNullOrWhiteSpace(currentText)) return;
 
-        // Remove ellipsis for matching
+        // Remove ellipsis for comparison
         currentText = Utilities.RemoveEllipsis(currentText);
 
         // Check if the current text contains any of the casts in the enemy list and translate it

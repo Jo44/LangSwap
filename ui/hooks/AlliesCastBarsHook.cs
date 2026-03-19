@@ -18,48 +18,114 @@ namespace LangSwap.ui.hooks;
 // ----------------------------
 // Allies CastBars Hook
 // ----------------------------
-public unsafe class AlliesCastBarsHook(
-    IAddonLifecycle addonLifecycle,
-    Configuration config,
-    IFramework framework,
-    IObjectTable objectTable,
-    ITargetManager targetManager,
-    TranslationCache translationCache,
-    Utilities utilities,
-    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
+public unsafe class AlliesCastBarsHook : BaseHook
 {
     // Log
     private const string Class = "[AlliesCastBarsHook.cs]";
 
     // Core components
-    private readonly IAddonLifecycle addonLifecycle = addonLifecycle;
-    private readonly IFramework framework = framework;
-    private readonly IObjectTable objectTable = objectTable;
-    private readonly ITargetManager targetManager = targetManager;
+    private readonly IAddonLifecycle addonLifecycle;
+    private readonly IFramework framework;
+    private readonly IObjectTable objectTable;
+    private readonly ITargetManager targetManager;
+
+    // UI components
+    private readonly bool castBarsTarget;
+    private readonly bool castBarsFocus;
+    private readonly bool castBarsPartyList;
 
     // Castbars addons
-    private readonly AtkUnitBase* castBar = utilities.GetAddon(config.CastBarAddon, "castbar");
-    private readonly AtkUnitBase* targetInfo = utilities.GetAddon(config.TargetInfoAddon, "target info");
-    private readonly AtkUnitBase* targetCastBar = utilities.GetAddon(config.TargetCastBarAddon, "target castbar");
-    private readonly AtkUnitBase* focusCastBar = utilities.GetAddon(config.FocusCastBarAddon, "focus castbar");
-    private readonly AtkUnitBase* partyList = utilities.GetAddon(config.PartyListAddon, "party list");
+    private AtkUnitBase* castBar;
+    private AtkUnitBase* targetInfo;
+    private AtkUnitBase* targetCastBar;
+    private AtkUnitBase* focusCastBar;
+    private AtkUnitBase* partyList;
 
     // Castbars fields
-    private readonly int castBarField = config.CastBarField;
-    private readonly int targetInfoField = config.TargetInfoField;
-    private readonly int targetCastBarField = config.TargetCastBarField;
-    private readonly int focusCastBarField = config.FocusCastBarField;
-    private readonly int partyListStartField = config.PartyListStartField;
-    private readonly int partyListEndField = config.PartyListEndField;
-    private readonly int partyListCastField = config.PartyListCastField;
+    private readonly int castBarField;
+    private readonly int targetInfoField;
+    private readonly int targetCastBarField;
+    private readonly int focusCastBarField;
+    private readonly int partyListStartField;
+    private readonly int partyListEndField;
+    private readonly int partyListCastField;
 
     // Tracking variables
-    private uint _currentActionId = 0;
-    private uint _currentTargetActionId = 0;
-    private ulong _currentTargetGameObjectId = 0;
-    private uint _currentFocusActionId = 0;
-    private ulong _currentFocusGameObjectId = 0;
-    private readonly Dictionary<ulong, uint> _partyListCasts = [];
+    private uint _currentActionId;
+    private uint _currentTargetActionId;
+    private ulong _currentTargetGameObjectId;
+    private uint _currentFocusActionId;
+    private ulong _currentFocusGameObjectId;
+    private readonly Dictionary<ulong, uint> _partyListCasts;
+
+    // ----------------------------
+    // Constructor
+    // ----------------------------
+    public AlliesCastBarsHook(
+        IAddonLifecycle addonLifecycle,
+        Configuration config,
+        IFramework framework,
+        IObjectTable objectTable,
+        ITargetManager targetManager,
+        TranslationCache translationCache,
+        Utilities utilities,
+        IPluginLog log) : base(config, translationCache, utilities, log)
+    {
+        // Initialize core components
+        this.addonLifecycle = addonLifecycle;
+        this.framework = framework;
+        this.objectTable = objectTable;
+        this.targetManager = targetManager;
+
+        // Initialize UI components
+        castBarsTarget = config.AlliesCastBarsTarget;
+        castBarsFocus = config.AlliesCastBarsFocus;
+        castBarsPartyList = config.AlliesCastBarsPartyList;
+
+        // Initialize castbars addons
+        InitializeAddons();
+
+        // Initialize castbars fields
+        castBarField = config.CastBarField;
+        targetInfoField = config.TargetInfoField;
+        targetCastBarField = config.TargetCastBarField;
+        focusCastBarField = config.FocusCastBarField;
+        partyListStartField = config.PartyListStartField;
+        partyListEndField = config.PartyListEndField;
+        partyListCastField = config.PartyListCastField;
+
+        // Initialize tracking variables
+        _currentActionId = 0;
+        _currentTargetActionId = 0;
+        _currentTargetGameObjectId = 0;
+        _currentFocusActionId = 0;
+        _currentFocusGameObjectId = 0;
+        _partyListCasts = [];
+    }
+
+    // ----------------------------
+    // Initialize addons
+    // ----------------------------
+    private void InitializeAddons()
+    {
+        if (castBarsTarget || castBarsFocus || castBarsPartyList)
+        {
+            castBar = utilities.GetAddon(config.CastBarAddon, "castbar");
+        }
+        if (castBarsTarget)
+        {
+            targetInfo = utilities.GetAddon(config.TargetInfoAddon, "target info");
+            targetCastBar = utilities.GetAddon(config.TargetCastBarAddon, "target castbar");
+        }
+        if (castBarsFocus)
+        {
+            focusCastBar = utilities.GetAddon(config.FocusCastBarAddon, "focus castbar");
+        }
+        if (castBarsPartyList)
+        {
+            partyList = utilities.GetAddon(config.PartyListAddon, "party list");
+        }
+    }
 
     // ----------------------------
     // Enable the hook
@@ -74,12 +140,24 @@ public unsafe class AlliesCastBarsHook(
             // Subscribe to framework update
             framework.Update += OnFrameworkUpdate;
 
-            // Subscribe to addon lifecycle
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
+            // Register addon lifecycle listeners for relevant addons
+            if (castBarsTarget || castBarsFocus || castBarsPartyList)
+            {
+                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
+            }
+            if (castBarsTarget)
+            {
+                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
+                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            }
+            if (castBarsFocus)
+            {
+                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
+            }
+            if (castBarsPartyList)
+            {
+                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
+            }
 
             // Set enabled flag
             isEnabled = true;
@@ -161,15 +239,15 @@ public unsafe class AlliesCastBarsHook(
 
                 // Check if this character is the current player
                 bool isCharacter = battleChara.GameObjectId == player.GameObjectId;
-
+                
                 // Check if this character is the current player's target
                 bool isTarget = battleChara.GameObjectId == targetId;
 
                 // Check if this character is the current player's focus
                 bool isFocus = battleChara.GameObjectId == focusId;
 
-                // Check if this character is in the current player's party list
-                bool inPartyList = IsInPartyList(battleChara);
+                // Check if this character is in the current player's party list (or player himself)
+                bool inPartyList = IsInPartyList(battleChara, isCharacter);
 
                 // Skip if not relevant
                 if (!isCharacter && !isTarget && !isFocus && !inPartyList) continue;
@@ -252,13 +330,12 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     // Check if member is in party list
     // ----------------------------
-    private static bool IsInPartyList(IBattleChara enemy)
+    private static bool IsInPartyList(IBattleChara ally, bool isCharacter)
     {
-        // TODO : à modifier
         bool inPartyList = false;
         try
         {
-            if (enemy.StatusFlags.HasFlag(StatusFlags.InCombat)) inPartyList = true;
+            if (ally.StatusFlags.HasFlag(StatusFlags.PartyMember) || isCharacter) inPartyList = true;
         }
         catch
         {
@@ -272,7 +349,10 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        UpdateCastBarTextNode(castBar, _currentActionId, castBarField, "castbar");
+        if (castBarsTarget || castBarsFocus || castBarsPartyList)
+        {
+            UpdateCastBarTextNode(castBar, _currentActionId, castBarField, "castbar");
+        }
     }
 
     // ----------------------------
@@ -280,7 +360,10 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnTargetInfoUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        UpdateCastBarTextNode(targetInfo, _currentTargetActionId, targetInfoField, "target info");
+        if (castBarsTarget)
+        {
+            UpdateCastBarTextNode(targetInfo, _currentTargetActionId, targetInfoField, "target info");
+        }
     }
 
     // ----------------------------
@@ -288,7 +371,10 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnTargetCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        UpdateCastBarTextNode(targetCastBar, _currentTargetActionId, targetCastBarField, "target castbar");
+        if (castBarsTarget)
+        {
+            UpdateCastBarTextNode(targetCastBar, _currentTargetActionId, targetCastBarField, "target castbar");
+        }
     }
 
     // ----------------------------
@@ -296,7 +382,10 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnFocusCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        UpdateCastBarTextNode(focusCastBar, _currentFocusActionId, focusCastBarField, "focus castbar");
+        if (castBarsFocus)
+        {
+            UpdateCastBarTextNode(focusCastBar, _currentFocusActionId, focusCastBarField, "focus castbar");
+        }
     }
 
     // ----------------------------
@@ -332,20 +421,23 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnPartyListUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        try
+        if (castBarsPartyList)
         {
-            // Only update if language is swapped, we have casts to translate and the addon is visible
-            if (!isLanguageSwapped || _partyListCasts.Count < 1 || partyList == null || !partyList -> IsVisible) return;
-
-            // Process each ally slot in the list
-            for (int slotIndex = partyListStartField; slotIndex <= partyListEndField; slotIndex++)
+            try
             {
-                ProcessAllySlot(slotIndex);
+                // Only update if language is swapped, we have casts to translate and the addon is visible
+                if (!isLanguageSwapped || _partyListCasts.Count < 1 || partyList == null || !partyList->IsVisible) return;
+
+                // Process each ally slot in the list
+                for (int slotIndex = partyListStartField; slotIndex <= partyListEndField; slotIndex++)
+                {
+                    ProcessAllySlot(slotIndex);
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error updating party list addon");
+            catch (Exception ex)
+            {
+                log.Error(ex, $"{Class} - Error updating party list addon");
+            }
         }
     }
 
@@ -387,8 +479,10 @@ public unsafe class AlliesCastBarsHook(
         string currentText = textNode -> NodeText.ToString();
         if (string.IsNullOrWhiteSpace(currentText)) return;
 
-        // Remove ellipsis for comparison
-        currentText = Utilities.RemoveEllipsis(currentText);
+        // Remove target indicator for comparison
+        string[] textParts = utilities.RemoveTargetIndicator(currentText);
+        string textWithoutIndicator = Utilities.RemoveEllipsis(textParts[0]);
+        string targetIndicator = textParts[1];
 
         // Check if the current text contains any of the casts in the party list and translate it
         foreach (KeyValuePair<ulong, uint> cast in _partyListCasts)
@@ -401,15 +495,24 @@ public unsafe class AlliesCastBarsHook(
             if (clientActionName == null) continue;
 
             // If the client language action name contains the current text, translate it
-            if (clientActionName.StartsWith(currentText))
+            if (clientActionName.StartsWith(textWithoutIndicator))
             {
                 // Get the translated action name
                 string? translatedName = translationCache.GetActionName(actionId, (LanguageEnum)config.TargetLanguage);
                 if (!translatedName.IsNullOrWhitespace())
                 {
-                    // Update the text node with the translated name
-                    textNode -> SetText(translatedName);
-                    break;
+                    if (!targetIndicator.IsNullOrWhitespace())
+                    {
+                        // Update the text node with the translated name and target indicator
+                        textNode -> SetText(translatedName + " " + targetIndicator);
+                        break;
+                    }
+                    else
+                    {
+                        // Update the text node with the translated name
+                        textNode -> SetText(translatedName);
+                        break;
+                    }
                 }
             }
         }
@@ -428,7 +531,7 @@ public unsafe class AlliesCastBarsHook(
             // Unsubscribe from framework update
             framework.Update -= OnFrameworkUpdate;
 
-            // Unsubscribe from addon lifecycle
+            // Unregister addon lifecycle listeners
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
@@ -455,7 +558,7 @@ public unsafe class AlliesCastBarsHook(
             // Unsubscribe from framework update
             framework.Update -= OnFrameworkUpdate;
 
-            // Unsubscribe from addon lifecycle
+            // Unregister addon lifecycle listeners
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);

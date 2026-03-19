@@ -43,8 +43,8 @@ public class HookManager(
         // Add hook if component is enabled
         if (config.ActionTooltip) hooks.Add(actionTooltipHook);
         if (config.ItemTooltip) hooks.Add(itemTooltipHook);
-        if (config.AlliesCastBars) hooks.Add(alliesCastBarsHook);
-        if (config.EnemiesCastBars) hooks.Add(enemiesCastBarsHook);
+        if (config.AlliesCastBarsTarget || config.AlliesCastBarsFocus || config.AlliesCastBarsPartyList) hooks.Add(alliesCastBarsHook);
+        if (config.EnemiesCastBarsTarget || config.EnemiesCastBarsFocus || config.EnemiesCastBarsEnmityList) hooks.Add(enemiesCastBarsHook);
 
         // Enable all active hooks
         foreach (BaseHook hook in hooks)
@@ -57,39 +57,6 @@ public class HookManager(
             {
                 log.Error(ex, $"{Class} - Failed to enable {hook.GetType().Name}");
             }
-        }
-    }
-
-    // ----------------------------
-    // Enable translation hook
-    // ----------------------------
-    public void EnableHook(HookEnum hook)
-    {
-        try
-        {
-            switch (hook)
-            {
-                // Add action tooltip hook
-                case HookEnum.ActionTooltip:
-                    if (hooks.Add(actionTooltipHook)) actionTooltipHook.Enable();
-                    break;
-                // Add item tooltip hook
-                case HookEnum.ItemTooltip:
-                    if (hooks.Add(itemTooltipHook)) itemTooltipHook.Enable();
-                    break;
-                // Add allies castbars hook
-                case HookEnum.AlliesCastBars:
-                    if (hooks.Add(alliesCastBarsHook)) alliesCastBarsHook.Enable();
-                    break;
-                // Add enemies castbars hook
-                case HookEnum.EnemiesCastBars:
-                    if (hooks.Add(enemiesCastBarsHook)) enemiesCastBarsHook.Enable();
-                    break;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to enable {hook}");
         }
     }
 
@@ -128,39 +95,6 @@ public class HookManager(
             {
                 log.Error(ex, $"{Class} - Failed to restore language for {hook.GetType().Name}");
             }
-        }
-    }
-
-    // ----------------------------
-    // Disable translation hook
-    // ----------------------------
-    public void DisableHook(HookEnum hook)
-    {
-        try
-        {
-            switch (hook)
-            {
-                // Remove action tooltip hook
-                case HookEnum.ActionTooltip:
-                    if (hooks.Remove(actionTooltipHook)) actionTooltipHook.Disable();
-                    break;
-                // Remove item tooltip hook
-                case HookEnum.ItemTooltip:
-                    if (hooks.Remove(itemTooltipHook)) itemTooltipHook.Disable();
-                    break;
-                // Remove allies castbars hook
-                case HookEnum.AlliesCastBars:
-                    if (hooks.Remove(alliesCastBarsHook)) alliesCastBarsHook.Disable();
-                    break;
-                // Remove enemies castbars hook
-                case HookEnum.EnemiesCastBars:
-                    if (hooks.Remove(enemiesCastBarsHook)) enemiesCastBarsHook.Disable();
-                    break;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to disable {hook}");
         }
     }
 

@@ -22,6 +22,7 @@ public unsafe class Utilities(
     // Symbols
     private readonly char GlamouredSymbol = config.GlamouredSymbol;
     private readonly char HighQualitySymbol = config.HighQualitySymbol;
+    private readonly char[] TargetIndicatorSymbols = config.TargetIndicatorSymbols;
 
     // ----------------------------
     // Get addon
@@ -205,6 +206,32 @@ public unsafe class Utilities(
     {
         if (!string.IsNullOrWhiteSpace(text)) text = text.Replace("...", "").Trim();
         return text;
+    }
+
+    // ----------------------------
+    // Remove target indicator from text
+    // ----------------------------
+    public string[] RemoveTargetIndicator(string text)
+    {
+        string[] result = [string.Empty, string.Empty];
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            // Initialize result with original text
+            result[0] = text;
+
+            // Check if text contains target indicator
+            for (int i = 0; i < TargetIndicatorSymbols.Length; i++)
+            {
+                if (text.Contains(TargetIndicatorSymbols[i]))
+                {
+                    // Remove target indicator symbol from text and store it in result
+                    result[0] = text.Replace(TargetIndicatorSymbols[i].ToString(), "").Trim();
+                    result[1] = TargetIndicatorSymbols[i].ToString();
+                    break;
+                }
+            }
+        }
+        return result;
     }
 
     // ----------------------------

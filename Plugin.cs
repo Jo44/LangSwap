@@ -57,6 +57,7 @@ public sealed class Plugin : IDalamudPlugin
     private const int ToggleCooldownMs = 500;
 
     // Toggle state
+    private bool _autoStartup = false;
     private int _deferredFrameCount = 0;
     private bool _disposed = false;
     private bool _isSwapEnabled = false;
@@ -110,11 +111,23 @@ public sealed class Plugin : IDalamudPlugin
             Log.Debug($"{Class} - Ctrl = {_config.Ctrl}");
             Log.Debug($"{Class} - Alt = {_config.Alt}");
             Log.Debug($"{Class} - Shift = {_config.Shift}");
-            Log.Debug($"{Class} - Action Tooltip = {_config.ActionTooltip}");
-            Log.Debug($"{Class} - Item Tooltip = {_config.ItemTooltip}");
-            Log.Debug($"{Class} - Allies CastBars = {_config.AlliesCastBars}");
-            Log.Debug($"{Class} - Enemies CastBars = {_config.EnemiesCastBars}");
+            Log.Debug($"{Class} - Tooltip - Action = {_config.ActionTooltip}");
+            Log.Debug($"{Class} - Tooltip - Item = {_config.ItemTooltip}");
+            Log.Debug($"{Class} - Allies CastBars - Target = {_config.AlliesCastBarsTarget}");
+            Log.Debug($"{Class} - Allies CastBars - Focus = {_config.AlliesCastBarsFocus}");
+            Log.Debug($"{Class} - Allies CastBars - Party List = {_config.AlliesCastBarsPartyList}");
+            Log.Debug($"{Class} - Enemies CastBars - Target = {_config.EnemiesCastBarsTarget}");
+            Log.Debug($"{Class} - Enemies CastBars - Focus = {_config.EnemiesCastBarsFocus}");
+            Log.Debug($"{Class} - Enemies CastBars - Enmity List = {_config.EnemiesCastBarsEnmityList}");
+            Log.Debug($"{Class} - Auto Startup = {_config.AutoStartup}");
             Log.Information($"{Class} === LangSwap plugin loaded ===");
+
+            // Auto startup swap if enabled
+            if (_config.AutoStartup)
+            {
+                _autoStartup = true;
+                ToggleLanguageSwap();
+            }
         }
         catch (Exception ex)
         {

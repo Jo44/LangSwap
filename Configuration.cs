@@ -28,8 +28,15 @@ public class Configuration : IPluginConfiguration
     // UI components
     public bool ActionTooltip { get; set; } = true;
     public bool ItemTooltip { get; set; } = true;
-    public bool AlliesCastBars { get; set; } = true;
-    public bool EnemiesCastBars { get; set; } = true;
+    public bool AlliesCastBarsTarget { get; set; } = true;
+    public bool AlliesCastBarsFocus { get; set; } = true;
+    public bool AlliesCastBarsPartyList { get; set; } = true;
+    public bool EnemiesCastBarsTarget { get; set; } = true;
+    public bool EnemiesCastBarsFocus { get; set; } = true;
+    public bool EnemiesCastBarsEnmityList { get; set; } = true;
+
+    // Startup behavior
+    public bool AutoStartup { get; set; } = false;
 
     // Memory signatures
     public string ActionTooltipSig { get; } = "E8 ?? ?? ?? ?? 48 8B 43 28 48 8B AF";
@@ -67,7 +74,7 @@ public class Configuration : IPluginConfiguration
     public string PartyListAddon { get; } = "_PartyList";
     public int PartyListStartField { get; } = 16;
     public int PartyListEndField { get; } = 23;
-    public int PartyListCastField { get; } = 1;
+    public int PartyListCastField { get; } = 30;
 
     // Enemies CastBar Addons
     public string EnemyListAddon { get; } = "_EnemyList";
@@ -80,6 +87,13 @@ public class Configuration : IPluginConfiguration
     public int MaxValidItemId { get; } = 100000;
     public char GlamouredSymbol { get; } = '\uE03B'; // Mirage symbol
     public char HighQualitySymbol { get; } = '\uE03C'; // HQ symbol
+    public char[] TargetIndicatorSymbols { get; } = ['\uE071', '\uE072', '\uE073', '\uE074', '\uE075', '\uE076', '\uE077', '\uE078',
+        '\uE079', '\uE07A', '\uE07B', '\uE07C', '\uE07D', '\uE07E', '\uE07F', '\uE080', '\uE081', '\uE082', '\uE083', '\uE084',
+        '\uE085', '\uE086', '\uE087', '\uE088', '\uE089', '\uE08A', '\uE08F', '\uE090', '\uE091', '\uE092', '\uE093', '\uE094',
+        '\uE095', '\uE096', '\uE097', '\uE098', '\uE099', '\uE09A', '\uE09B', '\uE09C', '\uE09D', '\uE09E', '\uE09F', '\uE0A0',
+        '\uE0A1', '\uE0A2', '\uE0A3', '\uE0A4', '\uE0A5', '\uE0A6', '\uE0A7', '\uE0A8', '\uE0A9', '\uE0AA', '\uE0AB', '\uE0AC',
+        '\uE0AD', '\uE0AE', '\uE0C1', '\uE0C2', '\uE0C3', '\uE0C4', '\uE0C5', '\uE0C6', '\uE0E0', '\uE0E1', '\uE0E2', '\uE0E3',
+         '\uE0E4', '\uE0E5', '\uE0E6', '\uE0E7', '\uE0E8', '\uE0E9',]; // Target symbols
 
     // Save configuration
     public void Save()

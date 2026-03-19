@@ -46,7 +46,7 @@ public class ConfigWindow : Window, IDisposable
                 ImGuiWindowFlags.NoScrollWithMouse;
 
         // Initialize window size
-        Size = new Vector2(400, 340);
+        Size = new Vector2(410, 455);
         SizeCondition = ImGuiCond.Always;
 
         // Initialize key names and values
@@ -76,12 +76,20 @@ public class ConfigWindow : Window, IDisposable
         // UI Components
         bool actionTooltip = _config.ActionTooltip;
         bool itemTooltip = _config.ItemTooltip;
-        bool alliesCastBars = _config.AlliesCastBars;
-        bool enemiesCastBars = _config.EnemiesCastBars;
+        bool alliesCastBarsTarget = _config.AlliesCastBarsTarget;
+        bool alliesCastBarsFocus = _config.AlliesCastBarsFocus;
+        bool alliesCastBarsPartyList = _config.AlliesCastBarsPartyList;
+        bool enemiesCastBarsTarget = _config.EnemiesCastBarsTarget;
+        bool enemiesCastBarsFocus = _config.EnemiesCastBarsFocus;
+        bool enemiesCastBarsEnmityList = _config.EnemiesCastBarsEnmityList;
+
+        // Startup behavior
+        bool autoStartup = _config.AutoStartup;
 
         /// Draw UI
 
         // Instructions
+        ImGui.SameLine(0, 5f);
         ImGui.TextWrapped("Press the keyboard shortcut to toogle language swap\nPress again to restore original language");
         ImGui.Spacing();
         ImGui.Separator();
@@ -89,6 +97,8 @@ public class ConfigWindow : Window, IDisposable
         // Language selection
         ImGui.Spacing();
         ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 5f);
         ImGui.Text("Target Language :");
         ImGui.SameLine();
         ImGui.SetNextItemWidth(100f);
@@ -104,13 +114,17 @@ public class ConfigWindow : Window, IDisposable
 
         // Keyboard shortcut
         ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 5f);
         ImGui.Text("Keyboard Shortcut :");
 
         // Primary key
         ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 15f);
         ImGui.Text("Key :");
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(100f);
+        ImGui.SetNextItemWidth(55f);
         if (ImGui.Combo("##PrimaryKey", ref selIndex, _keyNames.ToArray(), _keyNames.Count))
         {
             _log.Information($"{Class} - Setting primary key to {_keyNames[selIndex]} ({_keyValues[selIndex]})");
@@ -119,22 +133,22 @@ public class ConfigWindow : Window, IDisposable
         }
 
         // Modifier keys
-        ImGui.SameLine(0, 20f);
-        if (ImGui.Checkbox("Ctrl", ref ctrl))
+        ImGui.SameLine(0, 40f);
+        if (ImGui.Checkbox(" Ctrl", ref ctrl))
         {
             _log.Information($"{Class} - Setting Ctrl to {ctrl}");
             _config.Ctrl = ctrl;
             _config.Save();
         }
-        ImGui.SameLine(0, 10f);
-        if (ImGui.Checkbox("Alt", ref alt))
+        ImGui.SameLine(0, 15f);
+        if (ImGui.Checkbox(" Alt", ref alt))
         {
             _log.Information($"{Class} - Setting Alt to {alt}");
             _config.Alt = alt;
             _config.Save();
         }
-        ImGui.SameLine(0, 10f);
-        if (ImGui.Checkbox("Shift", ref shift))
+        ImGui.SameLine(0, 15f);
+        if (ImGui.Checkbox(" Shift", ref shift))
         {
             _log.Information($"{Class} - Setting Shift to {shift}");
             _config.Shift = shift;
@@ -147,52 +161,99 @@ public class ConfigWindow : Window, IDisposable
         // UI Components
         ImGui.Spacing();
         ImGui.Spacing();
-        ImGui.Text("UI Components :");
-        ImGui.Spacing();
         ImGui.SameLine(0, 5f);
-        if (ImGui.Checkbox("Action tooltip", ref actionTooltip))
+        ImGui.Text("Select the UI components to translate");
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 15f);
+        ImGui.Text("Tooltips :");
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 25f);
+        if (ImGui.Checkbox(" Action", ref actionTooltip))
         {
             _log.Information($"{Class} - Setting Action tooltip to {actionTooltip}");
             _config.ActionTooltip = actionTooltip;
             _config.Save();
-            if (actionTooltip) _hookManager.EnableHook(HookEnum.ActionTooltip);
-            else _hookManager.DisableHook(HookEnum.ActionTooltip);
         }
-        ImGui.SameLine(0, 25f);
-        if (ImGui.Checkbox("Item tooltip", ref itemTooltip))
+        ImGui.SameLine(0, 58f);
+        if (ImGui.Checkbox(" Item", ref itemTooltip))
         {
             _log.Information($"{Class} - Setting Item tooltip to {itemTooltip}");
             _config.ItemTooltip = itemTooltip;
             _config.Save();
-            if (itemTooltip) _hookManager.EnableHook(HookEnum.ItemTooltip);
-            else _hookManager.DisableHook(HookEnum.ItemTooltip);
         }
         ImGui.Spacing();
-        ImGui.SameLine(0, 5f);
-        if (ImGui.Checkbox("Allies CastBars", ref alliesCastBars))
+        ImGui.Spacing();
+        ImGui.SameLine(0, 15f);
+        ImGui.Text("Casts :");
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 25f);
+        if (ImGui.Checkbox(" Ally target", ref alliesCastBarsTarget))
         {
-            _log.Information($"{Class} - Setting Allies CastBars to {alliesCastBars}");
-            _config.AlliesCastBars = alliesCastBars;
+            _log.Information($"{Class} - Setting Allies Target to {alliesCastBarsTarget}");
+            _config.AlliesCastBarsTarget = alliesCastBarsTarget;
             _config.Save();
-            if (alliesCastBars) _hookManager.EnableHook(HookEnum.AlliesCastBars);
-            else _hookManager.DisableHook(HookEnum.AlliesCastBars);
         }
-        ImGui.SameLine(0, 20f);
-        if (ImGui.Checkbox("Enemies CastBars", ref enemiesCastBars))
+        ImGui.SameLine(0, 34f);
+        if (ImGui.Checkbox(" Ally focus", ref alliesCastBarsFocus))
         {
-            _log.Information($"{Class} - Setting Enemies CastBars to {enemiesCastBars}");
-            _config.EnemiesCastBars = enemiesCastBars;
+            _log.Information($"{Class} - Setting Allies Focus to {alliesCastBarsFocus}");
+            _config.AlliesCastBarsFocus = alliesCastBarsFocus;
             _config.Save();
-            if (enemiesCastBars) _hookManager.EnableHook(HookEnum.EnemiesCastBars);
-            else _hookManager.DisableHook(HookEnum.EnemiesCastBars);
+        }
+        ImGui.SameLine(0, 34f);
+        if (ImGui.Checkbox(" Party List", ref alliesCastBarsPartyList))
+        {
+            _log.Information($"{Class} - Setting Allies Party List to {alliesCastBarsPartyList}");
+            _config.AlliesCastBarsPartyList = alliesCastBarsPartyList;
+            _config.Save();
+        }
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 25f);
+        if (ImGui.Checkbox(" Enemy target", ref enemiesCastBarsTarget))
+        {
+            _log.Information($"{Class} - Setting Enemies Target to {enemiesCastBarsTarget}");
+            _config.EnemiesCastBarsTarget = enemiesCastBarsTarget;
+            _config.Save();
+        }
+        ImGui.SameLine(0, 15f);
+        if (ImGui.Checkbox(" Enemy focus", ref enemiesCastBarsFocus))
+        {
+            _log.Information($"{Class} - Setting Enemies Focus to {enemiesCastBarsFocus}");
+            _config.EnemiesCastBarsFocus = enemiesCastBarsFocus;
+            _config.Save();
+        }
+        ImGui.SameLine(0, 15f);
+        if (ImGui.Checkbox(" Enmity List", ref enemiesCastBarsEnmityList))
+        {
+            _log.Information($"{Class} - Setting Enemies Enmity List to {enemiesCastBarsEnmityList}");
+            _config.EnemiesCastBarsEnmityList = enemiesCastBarsEnmityList;
+            _config.Save();
         }
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Separator();
 
+        // Startup behavior
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 5f);
+        if (ImGui.Checkbox(" Automatically swap at startup", ref autoStartup))
+        {
+            _log.Information($"{Class} - Setting AutoStartup to {autoStartup}");
+            _config.AutoStartup = autoStartup;
+            _config.Save();
+        }
+
         // Clear caches button
         ImGui.Spacing();
         ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 5f);
         if (ImGui.Button("Clear all translation caches"))
         {
             _translationCache.Clear();
@@ -203,6 +264,8 @@ public class ConfigWindow : Window, IDisposable
         if (_plugin.IsSwapEnabled())
         {
             ImGui.Spacing();
+            ImGui.Spacing();
+            ImGui.SameLine(0, 5f);
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.5f, 0.0f, 1.0f));
             ImGui.TextWrapped("WARNING : Disable translation before changing settings !");
             ImGui.PopStyleColor();

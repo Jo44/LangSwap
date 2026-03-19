@@ -141,8 +141,13 @@ public unsafe class EnemiesCastBarsHook(
                 return;
             }
 
-            // Get player's target and focus
+            // Get player's ID
+            ulong playerId = player.GameObjectId;
+
+            // Get player's target ID
             ulong targetId = player.TargetObjectId;
+
+            // Get player's focus ID
             ulong focusId = targetManager.FocusTarget?.GameObjectId ?? 0;
 
             // Initialize tracking variables
@@ -155,11 +160,17 @@ public unsafe class EnemiesCastBarsHook(
             {
                 // Filter for battle NPCs
                 if (obj == null || obj.ObjectKind != ObjectKind.BattleNpc) continue;
+
+                // Filter for battle characters
                 if (obj is not IBattleChara battleChara) continue;
 
-                // Check if this NPC is the current target, focus or in enmity list
+                // Check if this character is the current player's target
                 bool isTarget = battleChara.GameObjectId == targetId;
+
+                // Check if this character is the current player's focus
                 bool isFocus = battleChara.GameObjectId == focusId;
+
+                // Check if this character is in the current player's enmity list
                 bool inEnmityList = IsInEnmityList(battleChara);
 
                 // Skip if not relevant

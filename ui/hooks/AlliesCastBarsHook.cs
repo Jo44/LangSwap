@@ -148,8 +148,13 @@ public unsafe class AlliesCastBarsHook(
                 return;
             }
 
-            // Get player's target and focus
+            // Get player's ID
+            ulong playerId = player.GameObjectId;
+
+            // Get player's target ID
             ulong targetId = player.TargetObjectId;
+            
+            // Get player's focus ID
             ulong focusId = targetManager.FocusTarget?.GameObjectId ?? 0;
 
             // Initialize tracking variables
@@ -163,10 +168,12 @@ public unsafe class AlliesCastBarsHook(
             {
                 // Filter for players
                 if (obj == null || obj.ObjectKind != ObjectKind.Player) continue;
+
+                // Filter for battle characters
                 if (obj is not IBattleChara battleChara) continue;
 
                 // Check if this character is the current player
-                bool isCharacter = battleChara.GameObjectId == player.GameObjectId;
+                bool isCharacter = battleChara.GameObjectId == playerId;
                 
                 // Check if this character is the current player's target
                 bool isTarget = battleChara.GameObjectId == targetId;
@@ -174,8 +181,8 @@ public unsafe class AlliesCastBarsHook(
                 // Check if this character is the current player's focus
                 bool isFocus = battleChara.GameObjectId == focusId;
 
-                // Check if this character is in the current player's party list (or player himself)
-                bool inPartyList = IsInPartyList(battleChara, isCharacter);
+                // Check if this character is in the current player's party list
+                bool inPartyList = IsInPartyList(battleChara);
 
                 // Skip if not relevant
                 if (!isCharacter && !isTarget && !isFocus && !inPartyList) continue;
@@ -214,7 +221,7 @@ public unsafe class AlliesCastBarsHook(
                         }
 
                         // Update party list
-                        if (inPartyList)
+                        if (isCharacter ||inPartyList)
                         {
                             _partyListCasts[battleChara.GameObjectId] = actionId;
                         }
@@ -258,12 +265,12 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     // Check if member is in party list
     // ----------------------------
-    private static bool IsInPartyList(IBattleChara ally, bool isCharacter)
+    private static bool IsInPartyList(IBattleChara ally)
     {
         bool inPartyList = false;
         try
         {
-            if (ally.StatusFlags.HasFlag(StatusFlags.PartyMember) || isCharacter) inPartyList = true;
+            if (ally.StatusFlags.HasFlag(StatusFlags.PartyMember)) inPartyList = true;
         }
         catch
         {

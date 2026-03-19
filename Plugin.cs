@@ -57,7 +57,6 @@ public sealed class Plugin : IDalamudPlugin
     private const int ToggleCooldownMs = 500;
 
     // Toggle state
-    private bool _autoStartup = false;
     private int _deferredFrameCount = 0;
     private bool _disposed = false;
     private bool _isSwapEnabled = false;
@@ -123,11 +122,7 @@ public sealed class Plugin : IDalamudPlugin
             Log.Information($"{Class} === LangSwap plugin loaded ===");
 
             // Auto startup swap if enabled
-            if (_config.AutoStartup)
-            {
-                _autoStartup = true;
-                ToggleLanguageSwap();
-            }
+            if (_config.AutoStartup) ToggleLanguageSwap();
         }
         catch (Exception ex)
         {

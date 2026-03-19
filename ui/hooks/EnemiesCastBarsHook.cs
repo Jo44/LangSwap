@@ -18,105 +18,50 @@ namespace LangSwap.ui.hooks;
 // ----------------------------
 // Enemies CastBars Hook
 // ----------------------------
-public unsafe class EnemiesCastBarsHook : BaseHook
+public unsafe class EnemiesCastBarsHook(
+    IAddonLifecycle addonLifecycle,
+    Configuration config,
+    IFramework framework,
+    IObjectTable objectTable,
+    ITargetManager targetManager,
+    TranslationCache translationCache,
+    Utilities utilities,
+    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[EnemiesCastBarsHook.cs]";
 
     // Core components
-    private readonly IAddonLifecycle addonLifecycle;
-    private readonly IFramework framework;
-    private readonly IObjectTable objectTable;
-    private readonly ITargetManager targetManager;
+    private readonly IAddonLifecycle addonLifecycle = addonLifecycle;
+    private readonly IFramework framework = framework;
+    private readonly IObjectTable objectTable = objectTable;
+    private readonly ITargetManager targetManager = targetManager;
 
     // UI components
-    private readonly bool castBarsTarget;
-    private readonly bool castBarsFocus;
-    private readonly bool castBarsEnmityList;
+    private bool castBarsTarget = false;
+    private bool castBarsFocus = false;
+    private bool castBarsEnmityList = false;
 
     // Castbars addons
-    private AtkUnitBase* targetInfo;
-    private AtkUnitBase* targetCastBar;
-    private AtkUnitBase* focusCastBar;
-    private AtkUnitBase* enemyList;
+    private readonly AtkUnitBase* targetInfo = utilities.GetAddon(config.TargetInfoAddon, "target info");
+    private readonly AtkUnitBase* targetCastBar = utilities.GetAddon(config.TargetCastBarAddon, "target castbar");
+    private readonly AtkUnitBase* focusCastBar = utilities.GetAddon(config.FocusCastBarAddon, "focus castbar");
+    private readonly AtkUnitBase* enemyList = utilities.GetAddon(config.EnemyListAddon, "enemy list");
 
     // Castbars fields
-    private readonly int targetInfoField;
-    private readonly int targetCastBarField;
-    private readonly int focusCastBarField;
-    private readonly int enemyListStartField;
-    private readonly int enemyListEndField;
-    private readonly int enemyListCastField;
+    private readonly int targetInfoField = config.TargetInfoField;
+    private readonly int targetCastBarField = config.TargetCastBarField;
+    private readonly int focusCastBarField = config.FocusCastBarField;
+    private readonly int enemyListStartField = config.EnemyListStartField;
+    private readonly int enemyListEndField = config.EnemyListEndField;
+    private readonly int enemyListCastField = config.EnemyListCastField;
 
     // Tracking variables
-    private uint _currentTargetActionId;
-    private ulong _currentTargetGameObjectId;
-    private uint _currentFocusActionId;
-    private ulong _currentFocusGameObjectId;
-    private readonly Dictionary<ulong, uint> _enemyListCasts;
-
-    // ----------------------------
-    // Constructor
-    // ----------------------------
-    public EnemiesCastBarsHook(
-        IAddonLifecycle addonLifecycle,
-        Configuration config,
-        IFramework framework,
-        IObjectTable objectTable,
-        ITargetManager targetManager,
-        TranslationCache translationCache,
-        Utilities utilities,
-        IPluginLog log) : base(config, translationCache, utilities, log)
-    {
-        // Initialize core components
-        this.addonLifecycle = addonLifecycle;
-        this.framework = framework;
-        this.objectTable = objectTable;
-        this.targetManager = targetManager;
-
-        // Initialize UI components
-        castBarsTarget = config.EnemiesCastBarsTarget;
-        castBarsFocus = config.EnemiesCastBarsFocus;
-        castBarsEnmityList = config.EnemiesCastBarsEnmityList;
-
-        // Initialize castbars addons
-        InitializeAddons();
-
-        // Initialize castbars fields
-        targetInfoField = config.TargetInfoField;
-        targetCastBarField = config.TargetCastBarField;
-        focusCastBarField = config.FocusCastBarField;
-        enemyListStartField = config.EnemyListStartField;
-        enemyListEndField = config.EnemyListEndField;
-        enemyListCastField = config.EnemyListCastField;
-
-        // Initialize tracking variables
-        _currentTargetActionId = 0;
-        _currentTargetGameObjectId = 0;
-        _currentFocusActionId = 0;
-        _currentFocusGameObjectId = 0;
-        _enemyListCasts = [];
-    }
-
-    // ----------------------------
-    // Initialize addons
-    // ----------------------------
-    private void InitializeAddons()
-    {
-        if (castBarsTarget)
-        {
-            targetInfo = utilities.GetAddon(config.TargetInfoAddon, "target info");
-            targetCastBar = utilities.GetAddon(config.TargetCastBarAddon, "target castbar");
-        }
-        if (castBarsFocus)
-        {
-            focusCastBar = utilities.GetAddon(config.FocusCastBarAddon, "focus castbar");
-        }
-        if (castBarsEnmityList)
-        {
-            enemyList = utilities.GetAddon(config.EnemyListAddon, "enemy list");
-        }
-    }
+    private uint _currentTargetActionId = 0;
+    private ulong _currentTargetGameObjectId = 0;
+    private uint _currentFocusActionId = 0;
+    private ulong _currentFocusGameObjectId = 0;
+    private readonly Dictionary<ulong, uint> _enemyListCasts = [];
 
     // ----------------------------
     // Enable the hook
@@ -131,20 +76,11 @@ public unsafe class EnemiesCastBarsHook : BaseHook
             // Subscribe to framework update
             framework.Update += OnFrameworkUpdate;
 
-            // Register addon lifecycle listeners for relevant addons
-            if (castBarsTarget)
-            {
-                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
-                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
-            }
-            if (castBarsFocus)
-            {
-                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            }
-            if (castBarsEnmityList)
-            {
-                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnemyListUpdate);
-            }
+            // Register addon lifecycle listeners
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnemyListUpdate);
 
             // Set enabled flag
             isEnabled = true;
@@ -163,13 +99,15 @@ public unsafe class EnemiesCastBarsHook : BaseHook
     // ----------------------------
     protected override void OnLanguageSwap()
     {
-        // Refresh target info addon
+        // Initialize UI components
+        castBarsTarget = config.EnemiesCastBarsTarget;
+        castBarsFocus = config.EnemiesCastBarsFocus;
+        castBarsEnmityList = config.EnemiesCastBarsEnmityList;
+
+        // Refresh addons
         utilities.RefreshAddon(targetInfo, "target info");
-        // Refresh target castbar addon
         utilities.RefreshAddon(targetCastBar, "target castbar");
-        // Refresh focus castbar addon
         utilities.RefreshAddon(focusCastBar, "focus castbar");
-        // Refresh enemy list addon
         utilities.RefreshAddon(enemyList, "enemy list");
     }
 

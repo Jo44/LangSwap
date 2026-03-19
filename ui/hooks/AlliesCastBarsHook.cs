@@ -18,114 +18,53 @@ namespace LangSwap.ui.hooks;
 // ----------------------------
 // Allies CastBars Hook
 // ----------------------------
-public unsafe class AlliesCastBarsHook : BaseHook
+public unsafe class AlliesCastBarsHook(
+    IAddonLifecycle addonLifecycle,
+    Configuration config,
+    IFramework framework,
+    IObjectTable objectTable,
+    ITargetManager targetManager,
+    TranslationCache translationCache,
+    Utilities utilities,
+    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[AlliesCastBarsHook.cs]";
 
     // Core components
-    private readonly IAddonLifecycle addonLifecycle;
-    private readonly IFramework framework;
-    private readonly IObjectTable objectTable;
-    private readonly ITargetManager targetManager;
+    private readonly IAddonLifecycle addonLifecycle = addonLifecycle;
+    private readonly IFramework framework = framework;
+    private readonly IObjectTable objectTable = objectTable;
+    private readonly ITargetManager targetManager = targetManager;
 
     // UI components
-    private readonly bool castBarsTarget;
-    private readonly bool castBarsFocus;
-    private readonly bool castBarsPartyList;
+    private bool castBarsTarget = false;
+    private bool castBarsFocus = false;
+    private bool castBarsPartyList = false;
 
     // Castbars addons
-    private AtkUnitBase* castBar;
-    private AtkUnitBase* targetInfo;
-    private AtkUnitBase* targetCastBar;
-    private AtkUnitBase* focusCastBar;
-    private AtkUnitBase* partyList;
+    private readonly AtkUnitBase* castBar = utilities.GetAddon(config.CastBarAddon, "castbar");
+    private readonly AtkUnitBase* targetInfo = utilities.GetAddon(config.TargetInfoAddon, "target info");
+    private readonly AtkUnitBase* targetCastBar = utilities.GetAddon(config.TargetCastBarAddon, "target castbar");
+    private readonly AtkUnitBase* focusCastBar = utilities.GetAddon(config.FocusCastBarAddon, "focus castbar");
+    private readonly AtkUnitBase* partyList = utilities.GetAddon(config.PartyListAddon, "party list");
 
     // Castbars fields
-    private readonly int castBarField;
-    private readonly int targetInfoField;
-    private readonly int targetCastBarField;
-    private readonly int focusCastBarField;
-    private readonly int partyListStartField;
-    private readonly int partyListEndField;
-    private readonly int partyListCastField;
+    private readonly int castBarField = config.CastBarField;
+    private readonly int targetInfoField = config.TargetInfoField;
+    private readonly int targetCastBarField = config.TargetCastBarField;
+    private readonly int focusCastBarField = config.FocusCastBarField;
+    private readonly int partyListStartField = config.PartyListStartField;
+    private readonly int partyListEndField = config.PartyListEndField;
+    private readonly int partyListCastField = config.PartyListCastField;
 
     // Tracking variables
-    private uint _currentActionId;
-    private uint _currentTargetActionId;
-    private ulong _currentTargetGameObjectId;
-    private uint _currentFocusActionId;
-    private ulong _currentFocusGameObjectId;
-    private readonly Dictionary<ulong, uint> _partyListCasts;
-
-    // ----------------------------
-    // Constructor
-    // ----------------------------
-    public AlliesCastBarsHook(
-        IAddonLifecycle addonLifecycle,
-        Configuration config,
-        IFramework framework,
-        IObjectTable objectTable,
-        ITargetManager targetManager,
-        TranslationCache translationCache,
-        Utilities utilities,
-        IPluginLog log) : base(config, translationCache, utilities, log)
-    {
-        // Initialize core components
-        this.addonLifecycle = addonLifecycle;
-        this.framework = framework;
-        this.objectTable = objectTable;
-        this.targetManager = targetManager;
-
-        // Initialize UI components
-        castBarsTarget = config.AlliesCastBarsTarget;
-        castBarsFocus = config.AlliesCastBarsFocus;
-        castBarsPartyList = config.AlliesCastBarsPartyList;
-
-        // Initialize castbars addons
-        InitializeAddons();
-
-        // Initialize castbars fields
-        castBarField = config.CastBarField;
-        targetInfoField = config.TargetInfoField;
-        targetCastBarField = config.TargetCastBarField;
-        focusCastBarField = config.FocusCastBarField;
-        partyListStartField = config.PartyListStartField;
-        partyListEndField = config.PartyListEndField;
-        partyListCastField = config.PartyListCastField;
-
-        // Initialize tracking variables
-        _currentActionId = 0;
-        _currentTargetActionId = 0;
-        _currentTargetGameObjectId = 0;
-        _currentFocusActionId = 0;
-        _currentFocusGameObjectId = 0;
-        _partyListCasts = [];
-    }
-
-    // ----------------------------
-    // Initialize addons
-    // ----------------------------
-    private void InitializeAddons()
-    {
-        if (castBarsTarget || castBarsFocus || castBarsPartyList)
-        {
-            castBar = utilities.GetAddon(config.CastBarAddon, "castbar");
-        }
-        if (castBarsTarget)
-        {
-            targetInfo = utilities.GetAddon(config.TargetInfoAddon, "target info");
-            targetCastBar = utilities.GetAddon(config.TargetCastBarAddon, "target castbar");
-        }
-        if (castBarsFocus)
-        {
-            focusCastBar = utilities.GetAddon(config.FocusCastBarAddon, "focus castbar");
-        }
-        if (castBarsPartyList)
-        {
-            partyList = utilities.GetAddon(config.PartyListAddon, "party list");
-        }
-    }
+    private uint _currentActionId = 0;
+    private uint _currentTargetActionId = 0;
+    private ulong _currentTargetGameObjectId = 0;
+    private uint _currentFocusActionId = 0;
+    private ulong _currentFocusGameObjectId = 0;
+    private readonly Dictionary<ulong, uint> _partyListCasts = [];
 
     // ----------------------------
     // Enable the hook
@@ -140,24 +79,12 @@ public unsafe class AlliesCastBarsHook : BaseHook
             // Subscribe to framework update
             framework.Update += OnFrameworkUpdate;
 
-            // Register addon lifecycle listeners for relevant addons
-            if (castBarsTarget || castBarsFocus || castBarsPartyList)
-            {
-                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
-            }
-            if (castBarsTarget)
-            {
-                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
-                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
-            }
-            if (castBarsFocus)
-            {
-                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            }
-            if (castBarsPartyList)
-            {
-                addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
-            }
+            // Register addon lifecycle listeners
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
 
             // Set enabled flag
             isEnabled = true;
@@ -176,15 +103,16 @@ public unsafe class AlliesCastBarsHook : BaseHook
     // ----------------------------
     protected override void OnLanguageSwap()
     {
-        // Refresh castbar addon
+        // Initialize UI components
+        castBarsTarget = config.AlliesCastBarsTarget;
+        castBarsFocus = config.AlliesCastBarsFocus;
+        castBarsPartyList = config.AlliesCastBarsPartyList;
+
+        // Refresh addons
         utilities.RefreshAddon(castBar, "castbar");
-        // Refresh target info addon
         utilities.RefreshAddon(targetInfo, "target info");
-        // Refresh target castbar addon
         utilities.RefreshAddon(targetCastBar, "target castbar");
-        // Refresh focus castbar addon
         utilities.RefreshAddon(focusCastBar, "focus castbar");
-        // Refresh party list addon
         utilities.RefreshAddon(partyList, "party list");
     }
 

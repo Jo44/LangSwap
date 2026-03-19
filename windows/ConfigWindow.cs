@@ -169,19 +169,27 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Text("Tooltips :");
         ImGui.Spacing();
         ImGui.Spacing();
+
+        // Action tooltip
         ImGui.SameLine(0, 25f);
         if (ImGui.Checkbox(" Action", ref actionTooltip))
         {
             _log.Information($"{Class} - Setting Action tooltip to {actionTooltip}");
             _config.ActionTooltip = actionTooltip;
             _config.Save();
+            if (actionTooltip) _hookManager.Enable(HookEnum.ActionTooltip);
+            else _hookManager.Disable(HookEnum.ActionTooltip);
         }
+
+        // Item tooltip
         ImGui.SameLine(0, 58f);
         if (ImGui.Checkbox(" Item", ref itemTooltip))
         {
             _log.Information($"{Class} - Setting Item tooltip to {itemTooltip}");
             _config.ItemTooltip = itemTooltip;
             _config.Save();
+            if (itemTooltip) _hookManager.Enable(HookEnum.ItemTooltip);
+            else _hookManager.Disable(HookEnum.ItemTooltip);
         }
         ImGui.Spacing();
         ImGui.Spacing();
@@ -189,49 +197,73 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Text("Casts :");
         ImGui.Spacing();
         ImGui.Spacing();
+        
+        // Ally target
         ImGui.SameLine(0, 25f);
         if (ImGui.Checkbox(" Ally target", ref alliesCastBarsTarget))
         {
             _log.Information($"{Class} - Setting Allies Target to {alliesCastBarsTarget}");
             _config.AlliesCastBarsTarget = alliesCastBarsTarget;
             _config.Save();
+            if (alliesCastBarsTarget) _hookManager.Enable(HookEnum.AlliesCastBars);
+            else _hookManager.Disable(HookEnum.AlliesCastBars);
         }
+
+        // Ally focus
         ImGui.SameLine(0, 34f);
         if (ImGui.Checkbox(" Ally focus", ref alliesCastBarsFocus))
         {
             _log.Information($"{Class} - Setting Allies Focus to {alliesCastBarsFocus}");
             _config.AlliesCastBarsFocus = alliesCastBarsFocus;
             _config.Save();
+            if (alliesCastBarsFocus) _hookManager.Enable(HookEnum.AlliesCastBars);
+            else _hookManager.Disable(HookEnum.AlliesCastBars);
         }
+
+        // Party list
         ImGui.SameLine(0, 34f);
         if (ImGui.Checkbox(" Party List", ref alliesCastBarsPartyList))
         {
             _log.Information($"{Class} - Setting Allies Party List to {alliesCastBarsPartyList}");
             _config.AlliesCastBarsPartyList = alliesCastBarsPartyList;
             _config.Save();
+            if (alliesCastBarsPartyList) _hookManager.Enable(HookEnum.AlliesCastBars);
+            else _hookManager.Disable(HookEnum.AlliesCastBars);
         }
         ImGui.Spacing();
         ImGui.Spacing();
+
+        // Enemy target
         ImGui.SameLine(0, 25f);
         if (ImGui.Checkbox(" Enemy target", ref enemiesCastBarsTarget))
         {
             _log.Information($"{Class} - Setting Enemies Target to {enemiesCastBarsTarget}");
             _config.EnemiesCastBarsTarget = enemiesCastBarsTarget;
             _config.Save();
+            if (enemiesCastBarsTarget) _hookManager.Enable(HookEnum.EnemiesCastBars);
+            else _hookManager.Disable(HookEnum.EnemiesCastBars);
         }
+
+        // Enemy focus
         ImGui.SameLine(0, 15f);
         if (ImGui.Checkbox(" Enemy focus", ref enemiesCastBarsFocus))
         {
             _log.Information($"{Class} - Setting Enemies Focus to {enemiesCastBarsFocus}");
             _config.EnemiesCastBarsFocus = enemiesCastBarsFocus;
             _config.Save();
+            if (enemiesCastBarsFocus) _hookManager.Enable(HookEnum.EnemiesCastBars);
+            else _hookManager.Disable(HookEnum.EnemiesCastBars);
         }
+
+        // Enmity list
         ImGui.SameLine(0, 15f);
         if (ImGui.Checkbox(" Enmity List", ref enemiesCastBarsEnmityList))
         {
             _log.Information($"{Class} - Setting Enemies Enmity List to {enemiesCastBarsEnmityList}");
             _config.EnemiesCastBarsEnmityList = enemiesCastBarsEnmityList;
             _config.Save();
+            if (enemiesCastBarsEnmityList) _hookManager.Enable(HookEnum.EnemiesCastBars);
+            else _hookManager.Disable(HookEnum.EnemiesCastBars);
         }
         ImGui.Spacing();
         ImGui.Spacing();

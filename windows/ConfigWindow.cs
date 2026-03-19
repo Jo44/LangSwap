@@ -1,9 +1,8 @@
 using Dalamud.Bindings.ImGui;
-using Dalamud.Game.ClientState.Keys;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
+using LangSwap.tool;
 using LangSwap.translation;
-using LangSwap.ui;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -20,23 +19,21 @@ public class ConfigWindow : Window, IDisposable
 
     // Core components
     private readonly Configuration _config;
-    private readonly HookManager _hookManager;
     private readonly Plugin _plugin;
     private readonly TranslationCache _translationCache;
     private readonly IPluginLog _log;
 
     // Primary key options
-    private readonly List<string> _keyNames = ["None"];
-    private readonly List<int> _keyValues = [-1];
+    private readonly List<string> _keyNames;
+    private readonly List<int> _keyValues;
 
     // ----------------------------
-    // Initialization
+    // Constructor
     // ----------------------------
-    public ConfigWindow(Configuration config, HookManager hookManager, Plugin plugin, TranslationCache translationCache, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
+    public ConfigWindow(Configuration config, Plugin plugin, TranslationCache translationCache, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
     {
-        // Store references
+        // Initialize core components
         this._config = config;
-        this._hookManager = hookManager;
         this._plugin = plugin;
         this._translationCache = translationCache;
         this._log = log;
@@ -50,7 +47,9 @@ public class ConfigWindow : Window, IDisposable
         SizeCondition = ImGuiCond.Always;
 
         // Initialize key names and values
-        InitKeys(_keyNames, _keyValues);
+        _keyNames = ["None"];
+        _keyValues = [-1];
+        Utilities.InitKeys(_keyNames, _keyValues);
     }
 
     // ----------------------------
@@ -177,8 +176,6 @@ public class ConfigWindow : Window, IDisposable
             _log.Information($"{Class} - Setting Action tooltip to {actionTooltip}");
             _config.ActionTooltip = actionTooltip;
             _config.Save();
-            if (actionTooltip) _hookManager.Enable(HookEnum.ActionTooltip);
-            else _hookManager.Disable(HookEnum.ActionTooltip);
         }
 
         // Item tooltip
@@ -188,8 +185,6 @@ public class ConfigWindow : Window, IDisposable
             _log.Information($"{Class} - Setting Item tooltip to {itemTooltip}");
             _config.ItemTooltip = itemTooltip;
             _config.Save();
-            if (itemTooltip) _hookManager.Enable(HookEnum.ItemTooltip);
-            else _hookManager.Disable(HookEnum.ItemTooltip);
         }
         ImGui.Spacing();
         ImGui.Spacing();
@@ -205,8 +200,6 @@ public class ConfigWindow : Window, IDisposable
             _log.Information($"{Class} - Setting Allies Target to {alliesCastBarsTarget}");
             _config.AlliesCastBarsTarget = alliesCastBarsTarget;
             _config.Save();
-            if (alliesCastBarsTarget) _hookManager.Enable(HookEnum.AlliesCastBars);
-            else _hookManager.Disable(HookEnum.AlliesCastBars);
         }
 
         // Ally focus
@@ -216,8 +209,6 @@ public class ConfigWindow : Window, IDisposable
             _log.Information($"{Class} - Setting Allies Focus to {alliesCastBarsFocus}");
             _config.AlliesCastBarsFocus = alliesCastBarsFocus;
             _config.Save();
-            if (alliesCastBarsFocus) _hookManager.Enable(HookEnum.AlliesCastBars);
-            else _hookManager.Disable(HookEnum.AlliesCastBars);
         }
 
         // Party list
@@ -227,8 +218,6 @@ public class ConfigWindow : Window, IDisposable
             _log.Information($"{Class} - Setting Allies Party List to {alliesCastBarsPartyList}");
             _config.AlliesCastBarsPartyList = alliesCastBarsPartyList;
             _config.Save();
-            if (alliesCastBarsPartyList) _hookManager.Enable(HookEnum.AlliesCastBars);
-            else _hookManager.Disable(HookEnum.AlliesCastBars);
         }
         ImGui.Spacing();
         ImGui.Spacing();
@@ -240,8 +229,6 @@ public class ConfigWindow : Window, IDisposable
             _log.Information($"{Class} - Setting Enemies Target to {enemiesCastBarsTarget}");
             _config.EnemiesCastBarsTarget = enemiesCastBarsTarget;
             _config.Save();
-            if (enemiesCastBarsTarget) _hookManager.Enable(HookEnum.EnemiesCastBars);
-            else _hookManager.Disable(HookEnum.EnemiesCastBars);
         }
 
         // Enemy focus
@@ -251,8 +238,6 @@ public class ConfigWindow : Window, IDisposable
             _log.Information($"{Class} - Setting Enemies Focus to {enemiesCastBarsFocus}");
             _config.EnemiesCastBarsFocus = enemiesCastBarsFocus;
             _config.Save();
-            if (enemiesCastBarsFocus) _hookManager.Enable(HookEnum.EnemiesCastBars);
-            else _hookManager.Disable(HookEnum.EnemiesCastBars);
         }
 
         // Enmity list
@@ -262,8 +247,6 @@ public class ConfigWindow : Window, IDisposable
             _log.Information($"{Class} - Setting Enemies Enmity List to {enemiesCastBarsEnmityList}");
             _config.EnemiesCastBarsEnmityList = enemiesCastBarsEnmityList;
             _config.Save();
-            if (enemiesCastBarsEnmityList) _hookManager.Enable(HookEnum.EnemiesCastBars);
-            else _hookManager.Disable(HookEnum.EnemiesCastBars);
         }
         ImGui.Spacing();
         ImGui.Spacing();
@@ -302,33 +285,6 @@ public class ConfigWindow : Window, IDisposable
             ImGui.TextWrapped("WARNING : Disable translation before changing settings !");
             ImGui.PopStyleColor();
             ImGui.Spacing();
-        }
-    }
-
-    // ----------------------------
-    // Initialize primary key names and values
-    // ----------------------------
-    private static void InitKeys(List<String> keyNames, List<int> keyValues)
-    {
-        // Letters A-Z
-        int startA = (int)VirtualKey.A;
-        int endZ = (int)VirtualKey.Z;
-        for (int v = startA; v <= endZ; v++)
-        {
-            keyNames.Add(((VirtualKey)v).ToString());
-            keyValues.Add(v);
-        }
-
-        // Function keys F1-F12
-        if (Enum.TryParse<VirtualKey>("F1", out _))
-        {
-            int startF1 = (int)VirtualKey.F1;
-            int endF12 = (int)VirtualKey.F12;
-            for (int v = startF1; v <= endF12; v++)
-            {
-                keyNames.Add(((VirtualKey)v).ToString());
-                keyValues.Add(v);
-            }
         }
     }
 

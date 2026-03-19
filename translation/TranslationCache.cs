@@ -1,4 +1,3 @@
-using Dalamud.Plugin.Services;
 using System.Collections.Generic;
 
 namespace LangSwap.translation;

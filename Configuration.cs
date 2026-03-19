@@ -85,6 +85,8 @@ public class Configuration : IPluginConfiguration
     // Miscellaneous
     public int MaxValidActionId { get; } = 100000;
     public int MaxValidItemId { get; } = 100000;
+
+    // Symbols
     public char GlamouredSymbol { get; } = '\uE03B'; // Mirage symbol
     public char HighQualitySymbol { get; } = '\uE03C'; // HQ symbol
     public char[] TargetIndicatorSymbols { get; } = ['\uE071', '\uE072', '\uE073', '\uE074', '\uE075', '\uE076', '\uE077', '\uE078',

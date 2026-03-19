@@ -61,43 +61,6 @@ public class HookManager(
     }
 
     // ----------------------------
-    // Enable translation hook
-    // ----------------------------
-    public void Enable(HookEnum hookEnum)
-    {
-        try
-        {
-            switch (hookEnum)
-            {
-                // Action Tooltip
-                case HookEnum.ActionTooltip:
-                    // Enable hook
-                    if (hooks.Add(actionTooltipHook)) actionTooltipHook.Enable();
-                    break;
-                // Item Tooltip
-                case HookEnum.ItemTooltip:
-                    // Enable hook
-                    if (hooks.Add(itemTooltipHook)) itemTooltipHook.Enable();
-                    break;
-                // Allies Cast Bars
-                case HookEnum.AlliesCastBars:
-                    // Enable hook
-                    if (hooks.Add(alliesCastBarsHook)) alliesCastBarsHook.Enable();
-                    break;
-                // Enemies Cast Bars
-                case HookEnum.EnemiesCastBars:
-                    // Enable hook
-                    if (hooks.Add(enemiesCastBarsHook)) enemiesCastBarsHook.Enable();
-                    break;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to enable {hookEnum}");
-        }
-    }
-
-    // ----------------------------
     // Swap all hooks to target language
     // ----------------------------
     public void SwapLanguage()
@@ -132,43 +95,6 @@ public class HookManager(
             {
                 log.Error(ex, $"{Class} - Failed to restore language for {hook.GetType().Name}");
             }
-        }
-    }
-
-    // ----------------------------
-    // Disable translation hook
-    // ----------------------------
-    public void Disable(HookEnum hookEnum)
-    {
-        try
-        {
-            switch (hookEnum)
-            {
-                // Action Tooltip
-                case HookEnum.ActionTooltip:
-                    // Disable hook
-                    if (hooks.Remove(actionTooltipHook)) actionTooltipHook.Disable();
-                    break;
-                // Item Tooltip
-                case HookEnum.ItemTooltip:
-                    // Disable hook
-                    if (hooks.Remove(itemTooltipHook)) itemTooltipHook.Disable();
-                    break;
-                // Allies Cast Bars
-                case HookEnum.AlliesCastBars:
-                    // Disable hook
-                    if (hooks.Remove(alliesCastBarsHook)) alliesCastBarsHook.Disable();
-                    break;
-                // Enemies Cast Bars
-                case HookEnum.EnemiesCastBars:
-                    // Disable hook
-                    if (hooks.Remove(enemiesCastBarsHook)) enemiesCastBarsHook.Disable();
-                    break;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to enable {hookEnum}");
         }
     }
 

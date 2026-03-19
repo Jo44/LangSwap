@@ -1,10 +1,14 @@
+using Dalamud.Game;
+using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using LangSwap.translation;
 using System;
+using System.Collections.Generic;
 
 namespace LangSwap.tool;
 
@@ -278,6 +282,49 @@ public unsafe class Utilities(
     {
         if (!string.IsNullOrWhiteSpace(text)) text = text.Replace(GlamouredSymbol.ToString(), "").Trim();
         return text;
+    }
+
+    // ----------------------------
+    // Convert LanguageEnum to ClientLanguage
+    // ----------------------------
+    public static ClientLanguage EnumToClientLang(LanguageEnum lang)
+    {
+        // Map LanguageEnum to ClientLanguage
+        return lang switch
+        {
+            LanguageEnum.Japanese => ClientLanguage.Japanese,
+            LanguageEnum.English => ClientLanguage.English,
+            LanguageEnum.German => ClientLanguage.German,
+            LanguageEnum.French => ClientLanguage.French,
+            _ => ClientLanguage.English
+        };
+    }
+
+    // ----------------------------
+    // Initialize primary key names and values
+    // ----------------------------
+    public static void InitKeys(List<String> keyNames, List<int> keyValues)
+    {
+        // Letters A-Z
+        int startA = (int)VirtualKey.A;
+        int endZ = (int)VirtualKey.Z;
+        for (int v = startA; v <= endZ; v++)
+        {
+            keyNames.Add(((VirtualKey)v).ToString());
+            keyValues.Add(v);
+        }
+
+        // Function keys F1-F12
+        if (Enum.TryParse<VirtualKey>("F1", out _))
+        {
+            int startF1 = (int)VirtualKey.F1;
+            int endF12 = (int)VirtualKey.F12;
+            for (int v = startF1; v <= endF12; v++)
+            {
+                keyNames.Add(((VirtualKey)v).ToString());
+                keyValues.Add(v);
+            }
+        }
     }
 
     // ----------------------------

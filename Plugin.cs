@@ -81,12 +81,12 @@ public sealed class Plugin : IDalamudPlugin
             DetectClientLanguage();
 
             // Initialize core components
+            _utilities = new(_config, GameGui, Log);
             _shortcutDetector = new(_config, KeyState, Log);
             _excelProvider = new(_config, DataManager, Log);
             _translationCache = new(_excelProvider);
-            _utilities = new(_config, GameGui, Log);
             _hookManager = new(AddonLifecycle, _config, Framework, GameInterop, ObjectTable, SigScanner, TargetManager, _translationCache, _utilities, Log);
-            _configWindow = new(_config, _hookManager, this, _translationCache, Log);
+            _configWindow = new(_config, this, _translationCache, Log);
 
             // Register window
             _windowSystem.AddWindow(_configWindow);

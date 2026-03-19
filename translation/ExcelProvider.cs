@@ -1,5 +1,5 @@
-using Dalamud.Game;
 using Dalamud.Plugin.Services;
+using LangSwap.tool;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
 using System;
@@ -26,7 +26,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         try
         {
             // Access the BaseParam sheet for the client language
-            ExcelSheet<BaseParam> clientSheet = dataManager.GetExcelSheet<BaseParam>(EnumToClientLang(clientLang));
+            ExcelSheet<BaseParam> clientSheet = dataManager.GetExcelSheet<BaseParam>(Utilities.EnumToClientLang(clientLang));
             if (clientSheet == null)
             {
                 log.Warning($"{Class} - BaseParam sheet is not available for language {clientLang}");
@@ -48,7 +48,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             if (rowId == null) return null;
 
             // Get the translated name using the row ID in target language
-            ExcelSheet<BaseParam> targetSheet = dataManager.GetExcelSheet<BaseParam>(EnumToClientLang(targetLang));
+            ExcelSheet<BaseParam> targetSheet = dataManager.GetExcelSheet<BaseParam>(Utilities.EnumToClientLang(targetLang));
             if (targetSheet != null && targetSheet.TryGetRow(rowId.Value, out BaseParam translatedParam)) return translatedParam.Name.ToString();
 
             // No match found
@@ -80,7 +80,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             }
 
             // Access the action sheet for the specified language
-            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(targetLang));
+            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(Utilities.EnumToClientLang(targetLang));
             if (actionSheet == null)
             {
                 log.Warning($"{Class} - Action sheet is not available for language {targetLang}");
@@ -119,7 +119,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             }
 
             // Access the action transient sheet for the specified language
-            ExcelSheet<Lumina.Excel.Sheets.ActionTransient> actionTransientSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.ActionTransient>(EnumToClientLang(targetLang));
+            ExcelSheet<Lumina.Excel.Sheets.ActionTransient> actionTransientSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.ActionTransient>(Utilities.EnumToClientLang(targetLang));
             if (actionTransientSheet == null)
             {
                 log.Warning($"{Class} - Action transient sheet is not available for language {targetLang}");
@@ -183,7 +183,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             string normalizedSearchName = actionName.Trim();
 
             // Get the Item sheet for the specified language
-            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(clientLang));
+            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(Utilities.EnumToClientLang(clientLang));
             if (actionSheet == null)
             {
                 log.Warning($"{Class} - Action sheet is not available for language {clientLang}");
@@ -232,7 +232,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             }
 
             // Access the item sheet for the specified language
-            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(targetLang));
+            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(Utilities.EnumToClientLang(targetLang));
             if (itemSheet == null)
             {
                 log.Warning($"{Class} - Item sheet is not available for language {targetLang}");
@@ -296,7 +296,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             string normalizedSearchName = itemName.Trim();
 
             // Get the Item sheet for the specified language
-            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(EnumToClientLang(clientLang));
+            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(Utilities.EnumToClientLang(clientLang));
             if (itemSheet == null)
             {
                 log.Warning($"{Class} - Item sheet is not available for language {clientLang}");
@@ -324,22 +324,6 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             log.Error(ex, $"{Class} - Failed to get item ID for name {itemName} in language {clientLang}");
             return null;
         }
-    }
-
-    // ----------------------------
-    // Convert LanguageEnum to ClientLanguage
-    // ----------------------------
-    private static ClientLanguage EnumToClientLang(LanguageEnum lang)
-    {
-        // Map LanguageEnum to ClientLanguage
-        return lang switch
-        {
-            LanguageEnum.Japanese => ClientLanguage.Japanese,
-            LanguageEnum.English => ClientLanguage.English,
-            LanguageEnum.German => ClientLanguage.German,
-            LanguageEnum.French => ClientLanguage.French,
-            _ => ClientLanguage.English
-        };
     }
 
 }

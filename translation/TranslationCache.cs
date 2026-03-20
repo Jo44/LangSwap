@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace LangSwap.translation;
@@ -27,21 +28,8 @@ public class TranslationCache(ExcelProvider excelProvider)
     // ----------------------------
     // Get base param name
     // ----------------------------
-    public string? GetBaseParamName(string paramName, LanguageEnum clientLang, LanguageEnum targetLang)
-    {
-        // Create cache key
-        (string, LanguageEnum, LanguageEnum) key = (paramName, clientLang, targetLang);
-
-        // Check cache
-        if (baseParamCache.TryGetValue(key, out string? cachedName)) return cachedName;
-
-        // Fetch from Excel and cache it
-        string? name = excelProvider.GetBaseParamName(paramName, clientLang, targetLang);
-        baseParamCache[key] = name;
-
-        // Return name
-        return name;
-    }
+    public string? GetBaseParamName(string paramName, LanguageEnum clientLang, LanguageEnum targetLang) =>
+        GetOrCache(baseParamCache, (paramName, clientLang, targetLang), () => excelProvider.GetBaseParamName(paramName, clientLang, targetLang));
 
     //
     // ========== ACTIONS ==========
@@ -50,62 +38,20 @@ public class TranslationCache(ExcelProvider excelProvider)
     // ----------------------------
     // Get action name
     // ----------------------------
-    public string? GetActionName(uint actionId, LanguageEnum targetLang)
-    {
-        // Create cache key
-        (uint, LanguageEnum) key = (actionId, targetLang);
-
-        // Check cache
-        if (actionNameCache.TryGetValue(key, out string? cachedName)) return cachedName;
-
-        // Fetch from Excel and cache it
-        string? name = excelProvider.GetActionName(actionId, targetLang);
-        actionNameCache[key] = name;
-
-        // Return name
-        return name;
-    }
+    public string? GetActionName(uint actionId, LanguageEnum targetLang) =>
+        GetOrCache(actionNameCache, (actionId, targetLang), () => excelProvider.GetActionName(actionId, targetLang));
 
     // ----------------------------
     // Get action description
     // ----------------------------
-    public string? GetActionDescription(uint actionId, LanguageEnum targetLang)
-    {
-        // Create cache key
-        (uint, LanguageEnum) key = (actionId, targetLang);
-
-        // Check cache
-        if (actionDescriptionCache.TryGetValue(key, out string? cachedDesc)) return cachedDesc;
-
-        // Fetch from Excel and cache it
-        string? description = excelProvider.GetActionDescription(actionId, targetLang);
-        actionDescriptionCache[key] = description;
-
-        // Return description
-        return description;
-    }
+    public string? GetActionDescription(uint actionId, LanguageEnum targetLang) =>
+        GetOrCache(actionDescriptionCache, (actionId, targetLang), () => excelProvider.GetActionDescription(actionId, targetLang));
 
     // ----------------------------
     // Get action ID by name (reverse lookup)
     // ----------------------------
-    public uint? GetActionIdByName(string actionName, LanguageEnum clientLang)
-    {
-        // Validate input
-        if (string.IsNullOrWhiteSpace(actionName)) return null;
-
-        // Create cache key
-        (string, LanguageEnum) key = (actionName.Trim(), clientLang);
-
-        // Check cache
-        if (actionIdByNameCache.TryGetValue(key, out uint? cachedId)) return cachedId;
-
-        // Fetch from Excel and cache it
-        uint? id = excelProvider.GetActionIdByName(actionName, clientLang);
-        actionIdByNameCache[key] = id;
-
-        // Return ID
-        return id;
-    }
+    public uint? GetActionIdByName(string actionName, LanguageEnum clientLang) =>
+        GetOrCache(actionIdByNameCache, (actionName, clientLang), () => excelProvider.GetActionIdByName(actionName, clientLang));
 
     //
     // ========== ITEMS ==========
@@ -114,61 +60,34 @@ public class TranslationCache(ExcelProvider excelProvider)
     // ----------------------------
     // Get item name
     // ----------------------------
-    public string? GetItemName(uint itemId, LanguageEnum targetLang)
-    {
-        // Create cache key
-        (uint, LanguageEnum) key = (itemId, targetLang);
-
-        // Check cache
-        if (itemNameCache.TryGetValue(key, out string? cachedName)) return cachedName;
-
-        // Fetch from Excel and cache it
-        string? name = excelProvider.GetItemName(itemId, targetLang);
-        itemNameCache[key] = name;
-
-        // Return name
-        return name;
-    }
+    public string? GetItemName(uint itemId, LanguageEnum targetLang) =>
+         GetOrCache(itemNameCache, (itemId, targetLang), () => excelProvider.GetItemName(itemId, targetLang));
 
     // ----------------------------
     // Get item description
     // ----------------------------
-    public string? GetItemDescription(uint itemId, LanguageEnum targetLang)
-    {
-        // Create cache key
-        (uint, LanguageEnum) key = (itemId, targetLang);
-
-        // Check cache
-        if (itemDescriptionCache.TryGetValue(key, out string? cachedDesc)) return cachedDesc;
-
-        // Fetch from Excel and cache it
-        string? description = excelProvider.GetItemDescription(itemId, targetLang);
-        itemDescriptionCache[key] = description;
-
-        // Return description
-        return description;
-    }
+    public string? GetItemDescription(uint itemId, LanguageEnum targetLang) =>
+        GetOrCache(itemDescriptionCache, (itemId, targetLang), () => excelProvider.GetItemDescription(itemId, targetLang));
 
     // ----------------------------
     // Get item ID by name (reverse lookup)
     // ----------------------------
-    public uint? GetItemIdByName(string itemName, LanguageEnum clientLang)
+    public uint? GetItemIdByName(string itemName, LanguageEnum clientLang) =>
+        GetOrCache(itemIdByNameCache, (itemName, clientLang), () => excelProvider.GetItemIdByName(itemName, clientLang));
+
+    //
+    // ========== GLOBAL ==========
+    //
+
+    // ----------------------------
+    // Get or cache value helper
+    // ----------------------------
+    private static TValue? GetOrCache<TKey, TValue>(Dictionary<TKey, TValue?> cache, TKey key, Func<TValue?> fetch) where TKey : notnull
     {
-        // Validate input
-        if (string.IsNullOrWhiteSpace(itemName)) return null;
-
-        // Create cache key
-        (string, LanguageEnum) key = (itemName.Trim(), clientLang);
-
-        // Check cache
-        if (itemIdByNameCache.TryGetValue(key, out uint? cachedId)) return cachedId;
-
-        // Fetch from Excel and cache it
-        uint? id = excelProvider.GetItemIdByName(itemName, clientLang);
-        itemIdByNameCache[key] = id;
-
-        // Return ID
-        return id;
+        if (cache.TryGetValue(key, out TValue? val)) return val;
+        val = fetch();
+        cache[key] = val;
+        return val;
     }
 
     // ----------------------------

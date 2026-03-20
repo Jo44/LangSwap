@@ -26,16 +26,10 @@ public unsafe class AlliesCastBarsHook(
     ITargetManager targetManager,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
+    IPluginLog log) : CastBarsBaseHook(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[AlliesCastBarsHook.cs]";
-
-    // Core components
-    private readonly IAddonLifecycle addonLifecycle = addonLifecycle;
-    private readonly IFramework framework = framework;
-    private readonly IObjectTable objectTable = objectTable;
-    private readonly ITargetManager targetManager = targetManager;
 
     // UI components
     private bool castBarsTarget = false;
@@ -59,17 +53,14 @@ public unsafe class AlliesCastBarsHook(
     private readonly int partyListCastField = config.PartyListCastField;
 
     // Tracking variables
-    private uint _currentActionId = 0;
-    private uint _currentTargetActionId = 0;
-    private ulong _currentTargetGameObjectId = 0;
-    private uint _currentFocusActionId = 0;
-    private ulong _currentFocusGameObjectId = 0;
-    private readonly Dictionary<ulong, uint> _partyListCasts = [];
+    private uint currentActionId = 0;
+    private uint currentTargetActionId = 0;
+    private uint currentFocusActionId = 0;
 
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    public override void Enable()
+    public override void Enable(string hookName)
     {
         // Prevent multiple enables
         if (isEnabled) return;
@@ -90,11 +81,11 @@ public unsafe class AlliesCastBarsHook(
             isEnabled = true;
 
             // Log
-            log.Debug($"{Class} - Allies castbars hook enabled");
+            log.Debug($"{Class} - {hookName} hook enabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to enable allies castbars hook");
+            log.Error(ex, $"{Class} - Failed to enable {hookName} hook");
         }
     }
 
@@ -126,12 +117,10 @@ public unsafe class AlliesCastBarsHook(
             // Check if language is swapped
             if (!isLanguageSwapped)
             {
-                _currentActionId = 0;
-                _currentTargetActionId = 0;
-                _currentTargetGameObjectId = 0;
-                _currentFocusActionId = 0;
-                _currentFocusGameObjectId = 0;
-                _partyListCasts.Clear();
+                currentActionId = 0;
+                currentTargetActionId = 0;
+                currentFocusActionId = 0;
+                listCasts.Clear();
                 return;
             }
 
@@ -139,12 +128,10 @@ public unsafe class AlliesCastBarsHook(
             IPlayerCharacter? player = objectTable.LocalPlayer;
             if (player == null)
             {
-                _currentActionId = 0;
-                _currentTargetActionId = 0;
-                _currentTargetGameObjectId = 0;
-                _currentFocusActionId = 0;
-                _currentFocusGameObjectId = 0;
-                _partyListCasts.Clear();
+                currentActionId = 0;
+                currentTargetActionId = 0;
+                currentFocusActionId = 0;
+                listCasts.Clear();
                 return;
             }
 
@@ -182,7 +169,7 @@ public unsafe class AlliesCastBarsHook(
                 bool isFocus = battleChara.GameObjectId == focusId;
 
                 // Check if this character is in the current player's party list
-                bool inPartyList = IsInPartyList(battleChara);
+                bool inPartyList = IsInList(battleChara, StatusFlags.PartyMember);
 
                 // Skip if not relevant
                 if (!isCharacter && !isTarget && !isFocus && !inPartyList) continue;
@@ -200,60 +187,47 @@ public unsafe class AlliesCastBarsHook(
                         // Update player
                         if (isCharacter)
                         {
-                            _currentActionId = actionId;
+                            currentActionId = actionId;
                             foundPlayer = true;
                         }
 
                         // Update target
                         if (isTarget)
                         {
-                            _currentTargetActionId = actionId;
-                            _currentTargetGameObjectId = battleChara.GameObjectId;
+                            currentTargetActionId = actionId;
                             foundTarget = true;
                         }
 
                         // Update focus
                         if (isFocus)
                         {
-                            _currentFocusActionId = actionId;
-                            _currentFocusGameObjectId = battleChara.GameObjectId;
+                            currentFocusActionId = actionId;
                             foundFocus = true;
                         }
 
                         // Update party list
-                        if (isCharacter ||inPartyList)
+                        if (isCharacter || inPartyList)
                         {
-                            _partyListCasts[battleChara.GameObjectId] = actionId;
+                            listCasts[battleChara.GameObjectId] = actionId;
                         }
                     }
                 }
             }
 
             // Reset if player not found
-            if (!foundPlayer)
-            {
-                _currentActionId = 0;
-            }
+            if (!foundPlayer) currentActionId = 0;
 
             // Reset if target not found
-            if (!foundTarget)
-            {
-                _currentTargetActionId = 0;
-                _currentTargetGameObjectId = 0;
-            }
+            if (!foundTarget) currentTargetActionId = 0;
 
             // Reset if focus not found
-            if (!foundFocus)
-            {
-                _currentFocusActionId = 0;
-                _currentFocusGameObjectId = 0;
-            }
+            if (!foundFocus) currentFocusActionId = 0;
 
             // Clean up party list of non-casting members
-            List<ulong> toRemove = [.. _partyListCasts.Keys.Where(id => !currentCasting.Contains(id))];
+            List<ulong> toRemove = [.. listCasts.Keys.Where(id => !currentCasting.Contains(id))];
             foreach (ulong id in toRemove)
             {
-                _partyListCasts.Remove(id);
+                listCasts.Remove(id);
             }
         }
         catch (Exception ex)
@@ -263,30 +237,13 @@ public unsafe class AlliesCastBarsHook(
     }
 
     // ----------------------------
-    // Check if member is in party list
-    // ----------------------------
-    private static bool IsInPartyList(IBattleChara ally)
-    {
-        bool inPartyList = false;
-        try
-        {
-            if (ally.StatusFlags.HasFlag(StatusFlags.PartyMember)) inPartyList = true;
-        }
-        catch
-        {
-            inPartyList = false;
-        }
-        return inPartyList;
-    }
-
-    // ----------------------------
     // On cast bar update
     // ----------------------------
     private void OnCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
         if (castBarsTarget || castBarsFocus || castBarsPartyList)
         {
-            UpdateCastBarTextNode(castBar, _currentActionId, castBarField, "castbar");
+            UpdateCastBar(castBar, currentActionId, castBarField, "castbar");
         }
     }
 
@@ -297,7 +254,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBarTextNode(targetInfo, _currentTargetActionId, targetInfoField, "target info");
+            UpdateCastBar(targetInfo, currentTargetActionId, targetInfoField, "target info");
         }
     }
 
@@ -308,7 +265,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBarTextNode(targetCastBar, _currentTargetActionId, targetCastBarField, "target castbar");
+            UpdateCastBar(targetCastBar, currentTargetActionId, targetCastBarField, "target castbar");
         }
     }
 
@@ -319,35 +276,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsFocus)
         {
-            UpdateCastBarTextNode(focusCastBar, _currentFocusActionId, focusCastBarField, "focus castbar");
-        }
-    }
-
-    // ----------------------------
-    // Update cast bar text node
-    // ----------------------------
-    private void UpdateCastBarTextNode(AtkUnitBase* addon, uint actionId, int fieldIndex, string addonName)
-    {
-        try
-        {
-            // Only update if language is swapped, we have a valid action ID and the addon is visible
-            if (!isLanguageSwapped || actionId == 0 || addon == null || !addon -> IsVisible) return;
-
-            // Get translated action name
-            string? translatedName = translationCache.GetActionName(actionId, (LanguageEnum)config.TargetLanguage);
-            if (translatedName.IsNullOrWhitespace()) return;
-
-            // Get the text node
-            AtkResNode* fieldNode = addon -> UldManager.NodeList[fieldIndex];
-            if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
-
-            // Update text
-            AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-            if (textNode != null && textNode -> NodeText.Length > 0) textNode -> SetText(translatedName);
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error updating {addonName} addon");
+            UpdateCastBar(focusCastBar, currentFocusActionId, focusCastBarField, "focus castbar");
         }
     }
 
@@ -358,57 +287,14 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsPartyList)
         {
-            try
-            {
-                // Only update if language is swapped, we have casts to translate and the addon is visible
-                if (!isLanguageSwapped || _partyListCasts.Count < 1 || partyList == null || !partyList->IsVisible) return;
-
-                // Process each ally slot in the list
-                for (int slotIndex = partyListStartField; slotIndex <= partyListEndField; slotIndex++)
-                {
-                    ProcessAllySlot(slotIndex);
-                }
-            }
-            catch (Exception ex)
-            {
-                log.Error(ex, $"{Class} - Error updating party list addon");
-            }
+            UpdateList(partyList, partyListStartField, partyListEndField, partyListCastField);
         }
-    }
-
-    // ----------------------------
-    // Process ally slot
-    // ----------------------------
-    private void ProcessAllySlot(int slotIndex)
-    {
-        // Get the slot node
-        AtkResNode* slotNode = partyList -> UldManager.NodeList[slotIndex];
-        if (slotNode == null || !slotNode -> IsVisible() || (ushort)slotNode -> Type < 1000) return;
-
-        // Get the component node
-        AtkComponentNode* componentNode = (AtkComponentNode*)slotNode;
-        if (componentNode -> Component == null) return;
-
-        // Get the uld manager
-        AtkUldManager* uldManager = &componentNode -> Component -> UldManager;
-        if (uldManager == null || uldManager -> NodeListCount == 0) return;
-
-        // Get the field node
-        AtkResNode* fieldNode = uldManager -> NodeList[partyListCastField];
-        if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
-
-        // Cast to text node
-        AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-        if (textNode == null || textNode -> NodeText.Length == 0) return;
-
-        // Translate the cast text
-        TranslateCastText(textNode);
     }
 
     // ----------------------------
     // Translate the cast text in the party list slot
     // ----------------------------
-    private void TranslateCastText(AtkTextNode* textNode)
+    protected override void TranslateCastText(AtkTextNode* textNode)
     {
         // Get the current text
         string currentText = textNode -> NodeText.ToString();
@@ -420,7 +306,7 @@ public unsafe class AlliesCastBarsHook(
         string targetIndicator = textParts[1];
 
         // Check if the current text contains any of the casts in the party list and translate it
-        foreach (KeyValuePair<ulong, uint> cast in _partyListCasts)
+        foreach (KeyValuePair<ulong, uint> cast in listCasts)
         {
             // Get the action ID
             uint actionId = cast.Value;
@@ -456,7 +342,7 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    public override void Disable()
+    public override void Disable(string hookName)
     {
         // Prevent multiple disables
         if (!isEnabled) return;
@@ -475,18 +361,18 @@ public unsafe class AlliesCastBarsHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug($"{Class} - Allies castbars hook disabled");
+            log.Debug($"{Class} - {hookName} hook disabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to disable allies castbars hook");
+            log.Error(ex, $"{Class} - Failed to disable {hookName} hook");
         }
     }
 
     // ----------------------------
     // Dispose the hook
     // ----------------------------
-    public override void Dispose()
+    public override void Dispose(string hookName)
     {
         try
         {
@@ -505,11 +391,8 @@ public unsafe class AlliesCastBarsHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to dispose allies castbars hook");
+            log.Error(ex, $"{Class} - Failed to dispose {hookName} hook");
         }
-
-        // Finalize
-        GC.SuppressFinalize(this);
     }
 
 }

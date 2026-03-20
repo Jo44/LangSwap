@@ -24,9 +24,9 @@ public unsafe class Utilities(
     private const string Class = "[Utilities.cs]";
 
     // Symbols
-    private readonly char GlamouredSymbol = config.GlamouredSymbol;
-    private readonly char HighQualitySymbol = config.HighQualitySymbol;
-    private readonly char[] TargetIndicatorSymbols = config.TargetIndicatorSymbols;
+    private readonly char glamouredSymbol = config.GlamouredSymbol;
+    private readonly char highQualitySymbol = config.HighQualitySymbol;
+    private readonly char[] targetIndicatorSymbols = config.TargetIndicatorSymbols;
 
     // ----------------------------
     // Get addon
@@ -224,13 +224,13 @@ public unsafe class Utilities(
             result[0] = text;
 
             // Check if text contains target indicator
-            for (int i = 0; i < TargetIndicatorSymbols.Length; i++)
+            for (int i = 0; i < targetIndicatorSymbols.Length; i++)
             {
-                if (text.Contains(TargetIndicatorSymbols[i]))
+                if (text.Contains(targetIndicatorSymbols[i]))
                 {
                     // Remove target indicator symbol from text and store it in result
-                    result[0] = text.Replace(TargetIndicatorSymbols[i].ToString(), "").Trim();
-                    result[1] = TargetIndicatorSymbols[i].ToString();
+                    result[0] = text.Replace(targetIndicatorSymbols[i].ToString(), "").Trim();
+                    result[1] = targetIndicatorSymbols[i].ToString();
                     break;
                 }
             }
@@ -244,7 +244,7 @@ public unsafe class Utilities(
     public bool IsHighQuality(string text)
     {
         bool isHighQuality = false;
-        if (!string.IsNullOrWhiteSpace(text)) isHighQuality = text.Contains(HighQualitySymbol);
+        if (!string.IsNullOrWhiteSpace(text)) isHighQuality = text.Contains(highQualitySymbol);
         return isHighQuality;
     }
 
@@ -253,7 +253,7 @@ public unsafe class Utilities(
     // ----------------------------
     public string SetHighQuality(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) text = text + " " + HighQualitySymbol;
+        if (!string.IsNullOrWhiteSpace(text)) text = text + " " + highQualitySymbol;
         return text;
     }
 
@@ -262,7 +262,7 @@ public unsafe class Utilities(
     // ----------------------------
     public string UnsetHighQuality(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) text = text.Replace(HighQualitySymbol.ToString(), "").Trim();
+        if (!string.IsNullOrWhiteSpace(text)) text = text.Replace(highQualitySymbol.ToString(), "").Trim();
         return text;
     }
 
@@ -271,7 +271,7 @@ public unsafe class Utilities(
     // ----------------------------
     public string SetGlamour(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) text = GlamouredSymbol + " " + text;
+        if (!string.IsNullOrWhiteSpace(text)) text = glamouredSymbol + " " + text;
         return text;
     }
 
@@ -280,7 +280,7 @@ public unsafe class Utilities(
     // ----------------------------
     public string UnsetGlamour(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) text = text.Replace(GlamouredSymbol.ToString(), "").Trim();
+        if (!string.IsNullOrWhiteSpace(text)) text = text.Replace(glamouredSymbol.ToString(), "").Trim();
         return text;
     }
 

@@ -104,7 +104,7 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.Combo("##Language", ref currentLang, languages, languages.Length))
         {
             _log.Information($"{Class} - Setting target language to {languages[currentLang]} ({currentLang})");
-            _config.TargetLanguage = (byte)currentLang;
+            _config.TargetLanguage = (LanguageEnum)currentLang;
             _config.Save();
         }
         ImGui.Spacing();

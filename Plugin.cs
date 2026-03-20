@@ -222,7 +222,7 @@ public sealed class Plugin : IDalamudPlugin
         _isSwapEnabled = true;
 
         // Log swap informations
-        string info = $"Swapped to {Enum.GetName(typeof(LanguageEnum), _config.TargetLanguage)}";
+        string info = $"Swapped to {Enum.GetName(_config.TargetLanguage)}";
         ChatLog(info);
         Log.Information($"{Class} - {info}");
     }
@@ -240,7 +240,7 @@ public sealed class Plugin : IDalamudPlugin
         _isSwapEnabled = false;
 
         // Log restore informations
-        string info = $"Restored to {Enum.GetName(typeof(LanguageEnum), _config.ClientLanguage)}";
+        string info = $"Restored to {Enum.GetName(_config.ClientLanguage)}";
         ChatLog(info);
         Log.Information($"{Class} - {info}");
     }
@@ -256,11 +256,11 @@ public sealed class Plugin : IDalamudPlugin
         // Map client language to configuration
         _config.ClientLanguage = lang switch
         {
-            ClientLanguage.Japanese => 0,
-            ClientLanguage.English => 1,
-            ClientLanguage.German => 2,
-            ClientLanguage.French => 3,
-            _ => 1
+            ClientLanguage.Japanese => LanguageEnum.Japanese,
+            ClientLanguage.English => LanguageEnum.English,
+            ClientLanguage.German => LanguageEnum.German,
+            ClientLanguage.French => LanguageEnum.French,
+            _ => LanguageEnum.English
         };
 
         // Log unrecognized language

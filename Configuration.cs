@@ -1,5 +1,6 @@
 using Dalamud.Configuration;
 using Dalamud.Game.ClientState.Keys;
+using LangSwap.translation;
 using System;
 
 namespace LangSwap;
@@ -13,9 +14,9 @@ public class Configuration : IPluginConfiguration
     // Version
     public int Version { get; set; } = 1;
 
-    // Language : 0 = Japanese, 1 = English, 2 = German, 3 = French
-    public byte ClientLanguage { get; set; } = 1;
-    public byte TargetLanguage { get; set; } = 1;
+    // Language
+    public LanguageEnum ClientLanguage { get; set; } = LanguageEnum.English;
+    public LanguageEnum TargetLanguage { get; set; } = LanguageEnum.English;
 
     // Primary key
     public int PrimaryKey { get; set; } = (int)VirtualKey.Y;

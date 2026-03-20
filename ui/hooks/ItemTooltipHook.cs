@@ -1,4 +1,3 @@
-using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.tool;
@@ -19,23 +18,16 @@ public unsafe partial class ItemTooltipHook(
     ISigScanner sigScanner,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
+    IPluginLog log) : TooltipBaseHook(config, gameInterop, sigScanner, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[ItemTooltipHook.cs]";
 
-    // Core component
-    private readonly IGameInteropProvider gameInterop = gameInterop;
-    private readonly ISigScanner sigScanner = sigScanner;
-
-    // Delegate function
-    private delegate void* ItemTooltipDelegate(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
-
-    // Hook
-    private Hook<ItemTooltipDelegate>? _itemTooltipHook;
+    // Memory signature
+    protected override string MemorySignature => config.ItemTooltipSig;
 
     // Item detail addon
-    private readonly AtkUnitBase* itemDetailAddon = utilities.GetAddon(config.ActionDetailAddon, "item detail");
+    protected override AtkUnitBase* Addon => utilities.GetAddon(config.ActionDetailAddon, "item detail");
 
     // Item detail fields
     private readonly int itemNameField = config.ItemNameField;
@@ -54,55 +46,18 @@ public unsafe partial class ItemTooltipHook(
     private static partial Regex StatLineRegex();
 
     // ----------------------------
-    // Enable the hook
-    // ----------------------------
-    public override void Enable()
-    {
-        // Prevent multiple enables
-        if (isEnabled) return;
-
-        try
-        {
-            // Get address from signature
-            nint itemTooltipAddr = sigScanner.ScanText(config.ItemTooltipSig);
-            if (itemTooltipAddr != IntPtr.Zero)
-            {
-                // Get hook from address
-                _itemTooltipHook = gameInterop.HookFromAddress<ItemTooltipDelegate>(itemTooltipAddr, OnItemTooltipUpdate);
-
-                // Enable hook
-                _itemTooltipHook.Enable();
-
-                // Set enabled flag
-                isEnabled = true;
-
-                // Log
-                log.Debug($"{Class} - Item tooltip hook enabled at 0x{itemTooltipAddr:X}");
-            }
-            else
-            {
-                log.Error($"{Class} - Item tooltip signature not found");
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to enable item tooltip hook");
-        }
-    }
-
-    // ----------------------------
     // On language swap
     // ----------------------------
     protected override void OnLanguageSwap()
     {
         // Refresh item detail addon
-        utilities.RefreshAddon(itemDetailAddon, "item detail");
+        utilities.RefreshAddon(Addon, "item detail");
     }
 
     // ----------------------------
-    // On item tooltip update
+    // On tooltip update
     // ----------------------------
-    private void* OnItemTooltipUpdate(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
+    protected override void* OnTooltipUpdate(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {
         try
         {
@@ -285,7 +240,7 @@ public unsafe partial class ItemTooltipHook(
         }
 
         // Call original function with modified data
-        return _itemTooltipHook!.Original(itemDetailAddon, numberArrayData, stringArrayData);
+        return _tooltipHook!.Original(itemDetailAddon, numberArrayData, stringArrayData);
     }
 
     // ----------------------------
@@ -445,53 +400,6 @@ public unsafe partial class ItemTooltipHook(
 
         // Return translated stat
         return translatedStat;
-    }
-
-    // ----------------------------
-    // Disable the hook
-    // ----------------------------
-    public override void Disable()
-    {
-        // Prevent multiple disables
-        if (!isEnabled) return;
-
-        try
-        {
-            // Disable item tooltip hook
-            _itemTooltipHook?.Disable();
-
-            // Set disabled flag
-            isEnabled = false;
-            log.Debug($"{Class} - Item tooltip hook disabled");
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to disable item tooltip hook");
-        }
-    }
-
-    // ----------------------------
-    // Dispose the hook
-    // ----------------------------
-    public override void Dispose()
-    {
-        try
-        {
-            // Dispose item tooltip hook
-            _itemTooltipHook?.Disable();
-            _itemTooltipHook?.Dispose();
-            _itemTooltipHook = null;
-
-            // Set disabled flag
-            isEnabled = false;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to dispose item tooltip hook");
-        }
-
-        // Finalize
-        GC.SuppressFinalize(this);
     }
 
 }

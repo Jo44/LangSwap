@@ -1,4 +1,3 @@
-using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.tool;
@@ -17,64 +16,20 @@ public unsafe class ActionTooltipHook(
     ISigScanner sigScanner,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
+    IPluginLog log) : TooltipBaseHook(config, gameInterop, sigScanner, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[ActionTooltipHook.cs]";
 
-    // Core component
-    private readonly IGameInteropProvider gameInterop = gameInterop;
-    private readonly ISigScanner sigScanner = sigScanner;
-
-    // Delegate function
-    private delegate void* ActionTooltipDelegate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
-
-    // Hook
-    private Hook<ActionTooltipDelegate>? _actionTooltipHook;
+    // Memory signature
+    protected override string MemorySignature => config.ActionTooltipSig;
 
     // Action detail addon
-    private readonly AtkUnitBase* actionDetailAddon = utilities.GetAddon(config.ActionDetailAddon, "action detail");
+    protected override AtkUnitBase* Addon => utilities.GetAddon(config.ActionDetailAddon, "action detail");
 
     // Action detail fields
     private readonly int actionNameField = config.ActionNameField;
     private readonly int actionDescriptionField = config.ActionDescriptionField;
-
-    // ----------------------------
-    // Enable the hook
-    // ----------------------------
-    public override void Enable()
-    {
-        // Prevent multiple enables
-        if (isEnabled) return;
-
-        try
-        {
-            // Get address from signature
-            nint actionTooltipAddr = sigScanner.ScanText(config.ActionTooltipSig);
-            if (actionTooltipAddr != IntPtr.Zero)
-            {
-                // Get hook from address
-                _actionTooltipHook = gameInterop.HookFromAddress<ActionTooltipDelegate>(actionTooltipAddr, OnActionTooltipUpdate);
-
-                // Enable hook
-                _actionTooltipHook.Enable();
-
-                // Set enabled flag
-                isEnabled = true;
-
-                // Log
-                log.Debug($"{Class} - Action tooltip hook enabled at 0x{actionTooltipAddr:X}");
-            }
-            else
-            {
-                log.Warning($"{Class} - Action tooltip signature not found");
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to enable action tooltip hook");
-        }
-    }
 
     // ----------------------------
     // On language swap
@@ -82,13 +37,13 @@ public unsafe class ActionTooltipHook(
     protected override void OnLanguageSwap()
     {
         // Refresh action detail addon
-        utilities.RefreshAddon(actionDetailAddon, "action detail");
+        utilities.RefreshAddon(Addon, "action detail");
     }
 
     // ----------------------------
-    // On action tooltip update
+    // On tooltip update
     // ----------------------------
-    private void* OnActionTooltipUpdate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
+    protected override void* OnTooltipUpdate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {
         try
         {
@@ -149,7 +104,7 @@ public unsafe class ActionTooltipHook(
         }
 
         // Call original function with modified data
-        return _actionTooltipHook!.Original(actionDetailAddon, numberArrayData, stringArrayData);
+        return _tooltipHook!.Original(actionDetailAddon, numberArrayData, stringArrayData);
     }
 
     // ----------------------------
@@ -174,53 +129,6 @@ public unsafe class ActionTooltipHook(
 
         // Return translated description
         return translatedDescription;
-    }
-
-    // ----------------------------
-    // Disable the hook
-    // ----------------------------
-    public override void Disable()
-    {
-        // Prevent multiple disables
-        if (!isEnabled) return;
-
-        try
-        {
-            // Disable action tooltip hook
-            _actionTooltipHook?.Disable();
-
-            // Set disabled flag
-            isEnabled = false;
-            log.Debug($"{Class} - Action tooltip hook disabled");
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to disable action tooltip hook");
-        }
-    }
-
-    // ----------------------------
-    // Dispose the hook
-    // ----------------------------
-    public override void Dispose()
-    {
-        try
-        {
-            // Dispose action tooltip hook
-            _actionTooltipHook?.Disable();
-            _actionTooltipHook?.Dispose();
-            _actionTooltipHook = null;
-
-            // Set disabled flag
-            isEnabled = false;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to dispose action tooltip hook");
-        }
-
-        // Finalize
-        GC.SuppressFinalize(this);
     }
 
 }

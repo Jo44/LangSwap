@@ -26,16 +26,10 @@ public unsafe class EnemiesCastBarsHook(
     ITargetManager targetManager,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
+    IPluginLog log) : CastBarsBaseHook(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[EnemiesCastBarsHook.cs]";
-
-    // Core components
-    private readonly IAddonLifecycle addonLifecycle = addonLifecycle;
-    private readonly IFramework framework = framework;
-    private readonly IObjectTable objectTable = objectTable;
-    private readonly ITargetManager targetManager = targetManager;
 
     // UI components
     private bool castBarsTarget = false;
@@ -57,16 +51,13 @@ public unsafe class EnemiesCastBarsHook(
     private readonly int enemyListCastField = config.EnemyListCastField;
 
     // Tracking variables
-    private uint _currentTargetActionId = 0;
-    private ulong _currentTargetGameObjectId = 0;
-    private uint _currentFocusActionId = 0;
-    private ulong _currentFocusGameObjectId = 0;
-    private readonly Dictionary<ulong, uint> _enemyListCasts = [];
+    private uint currentTargetActionId = 0;
+    private uint currentFocusActionId = 0;
 
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    public override void Enable()
+    public override void Enable(string hookName)
     {
         // Prevent multiple enables
         if (isEnabled) return;
@@ -86,11 +77,11 @@ public unsafe class EnemiesCastBarsHook(
             isEnabled = true;
 
             // Log
-            log.Debug($"{Class} - Enemies castbars hook enabled");
+            log.Debug($"{Class} - {hookName} hook enabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to enable enemies castbars hook");
+            log.Error(ex, $"{Class} - Failed to enable {hookName} hook");
         }
     }
 
@@ -121,11 +112,9 @@ public unsafe class EnemiesCastBarsHook(
             // Check if language is swapped
             if (!isLanguageSwapped)
             {
-                _currentTargetActionId = 0;
-                _currentTargetGameObjectId = 0;
-                _currentFocusActionId = 0;
-                _currentFocusGameObjectId = 0;
-                _enemyListCasts.Clear();
+                currentTargetActionId = 0;
+                currentFocusActionId = 0;
+                listCasts.Clear();
                 return;
             }
 
@@ -133,11 +122,9 @@ public unsafe class EnemiesCastBarsHook(
             IPlayerCharacter? player = objectTable.LocalPlayer;
             if (player == null)
             {
-                _currentTargetActionId = 0;
-                _currentTargetGameObjectId = 0;
-                _currentFocusActionId = 0;
-                _currentFocusGameObjectId = 0;
-                _enemyListCasts.Clear();
+                currentTargetActionId = 0;
+                currentFocusActionId = 0;
+                listCasts.Clear();
                 return;
             }
 
@@ -171,7 +158,7 @@ public unsafe class EnemiesCastBarsHook(
                 bool isFocus = battleChara.GameObjectId == focusId;
 
                 // Check if this character is in the current player's enmity list
-                bool inEnmityList = IsInEnmityList(battleChara);
+                bool inEnmityList = IsInList(battleChara, StatusFlags.InCombat);
 
                 // Skip if not relevant
                 if (!isTarget && !isFocus && !inEnmityList) continue;
@@ -189,47 +176,37 @@ public unsafe class EnemiesCastBarsHook(
                         // Update target
                         if (isTarget)
                         {
-                            _currentTargetActionId = actionId;
-                            _currentTargetGameObjectId = battleChara.GameObjectId;
+                            currentTargetActionId = actionId;
                             foundTarget = true;
                         }
 
                         // Update focus
                         if (isFocus)
                         {
-                            _currentFocusActionId = actionId;
-                            _currentFocusGameObjectId = battleChara.GameObjectId;
+                            currentFocusActionId = actionId;
                             foundFocus = true;
                         }
 
                         // Update enemy list
                         if (inEnmityList)
                         {
-                            _enemyListCasts[battleChara.GameObjectId] = actionId;
+                            listCasts[battleChara.GameObjectId] = actionId;
                         }
                     }
                 }
             }
 
             // Reset if target not found
-            if (!foundTarget)
-            {
-                _currentTargetActionId = 0;
-                _currentTargetGameObjectId = 0;
-            }
+            if (!foundTarget) currentTargetActionId = 0;
 
             // Reset if focus not found
-            if (!foundFocus)
-            {
-                _currentFocusActionId = 0;
-                _currentFocusGameObjectId = 0;
-            }
+            if (!foundFocus) currentFocusActionId = 0;
 
             // Clean up enemy list of non-casting enemies
-            List<ulong> toRemove = [.. _enemyListCasts.Keys.Where(id => !currentCasting.Contains(id))];
+            List<ulong> toRemove = [.. listCasts.Keys.Where(id => !currentCasting.Contains(id))];
             foreach (ulong id in toRemove)
             {
-                _enemyListCasts.Remove(id);
+                listCasts.Remove(id);
             }
         }
         catch (Exception ex)
@@ -239,30 +216,13 @@ public unsafe class EnemiesCastBarsHook(
     }
 
     // ----------------------------
-    // Check if enemy is in enmity list
-    // ----------------------------
-    private static bool IsInEnmityList(IBattleChara enemy)
-    {
-        bool inEnmityList = false;
-        try
-        {
-            if (enemy.StatusFlags.HasFlag(StatusFlags.InCombat)) inEnmityList = true;
-        }
-        catch
-        {
-            inEnmityList = false;
-        }
-        return inEnmityList;
-    }
-
-    // ----------------------------
     // On target info update
     // ----------------------------
     private void OnTargetInfoUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
         if (castBarsTarget)
         {
-            UpdateCastBarTextNode(targetInfo, _currentTargetActionId, targetInfoField, "target info");
+            UpdateCastBar(targetInfo, currentTargetActionId, targetInfoField, "target info");
         }
     }
 
@@ -273,7 +233,7 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBarTextNode(targetCastBar, _currentTargetActionId, targetCastBarField, "target castbar");
+            UpdateCastBar(targetCastBar, currentTargetActionId, targetCastBarField, "target castbar");
         }
     }
 
@@ -284,35 +244,7 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsFocus)
         {
-            UpdateCastBarTextNode(focusCastBar, _currentFocusActionId, focusCastBarField, "focus castbar");
-        }
-    }
-
-    // ----------------------------
-    // Update cast bar text node
-    // ----------------------------
-    private void UpdateCastBarTextNode(AtkUnitBase* addon, uint actionId, int fieldIndex, string addonName)
-    {
-        try
-        {
-            // Only update if language is swapped, we have a valid action ID and the addon is visible
-            if (!isLanguageSwapped || actionId == 0 || addon == null || !addon -> IsVisible) return;
-
-            // Get translated action name
-            string? translatedName = translationCache.GetActionName(actionId, (LanguageEnum)config.TargetLanguage);
-            if (translatedName.IsNullOrWhitespace()) return;
-
-            // Get the text node
-            AtkResNode* fieldNode = addon -> UldManager.NodeList[fieldIndex];
-            if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
-
-            // Update text
-            AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-            if (textNode != null && textNode -> NodeText.Length > 0) textNode -> SetText(translatedName);
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error updating {addonName} addon");
+            UpdateCastBar(focusCastBar, currentFocusActionId, focusCastBarField, "focus castbar");
         }
     }
 
@@ -323,57 +255,14 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsEnmityList)
         {
-            try
-            {
-                // Only update if language is swapped, we have casts to translate and the addon is visible
-                if (!isLanguageSwapped || _enemyListCasts.Count < 1 || enemyList == null || !enemyList->IsVisible) return;
-
-                // Process each enemy slot in the list
-                for (int slotIndex = enemyListStartField; slotIndex <= enemyListEndField; slotIndex++)
-                {
-                    ProcessEnemySlot(slotIndex);
-                }
-            }
-            catch (Exception ex)
-            {
-                log.Error(ex, $"{Class} - Error updating enemy list addon");
-            }
+            UpdateList(enemyList, enemyListStartField, enemyListEndField, enemyListCastField);
         }
-    }
-
-    // ----------------------------
-    // Process enemy slot
-    // ----------------------------
-    private void ProcessEnemySlot(int slotIndex)
-    {
-        // Get the slot node
-        AtkResNode* slotNode = enemyList -> UldManager.NodeList[slotIndex];
-        if (slotNode == null || !slotNode -> IsVisible() || (ushort)slotNode -> Type < 1000) return;
-
-        // Get the component node
-        AtkComponentNode* componentNode = (AtkComponentNode*)slotNode;
-        if (componentNode -> Component == null) return;
-
-        // Get the uld manager
-        AtkUldManager* uldManager = &componentNode -> Component -> UldManager;
-        if (uldManager == null || uldManager -> NodeListCount == 0) return;
-
-        // Get the field node
-        AtkResNode* fieldNode = uldManager -> NodeList[enemyListCastField];
-        if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
-
-        // Cast to text node
-        AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-        if (textNode == null || textNode -> NodeText.Length == 0) return;
-
-        // Translate the cast text
-        TranslateCastText(textNode);
     }
 
     // ----------------------------
     // Translate the cast text in the enemy list slot
     // ----------------------------
-    private void TranslateCastText(AtkTextNode* textNode)
+    protected override void TranslateCastText(AtkTextNode* textNode)
     {
         // Get the current text
         string currentText = textNode -> NodeText.ToString();
@@ -383,7 +272,7 @@ public unsafe class EnemiesCastBarsHook(
         currentText = Utilities.RemoveEllipsis(currentText);
 
         // Check if the current text contains any of the casts in the enemy list and translate it
-        foreach (KeyValuePair<ulong, uint> cast in _enemyListCasts)
+        foreach (KeyValuePair<ulong, uint> cast in listCasts)
         {
             // Get the action ID
             uint actionId = cast.Value;
@@ -410,7 +299,7 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    public override void Disable()
+    public override void Disable(string hookName)
     {
         // Prevent multiple disables
         if (!isEnabled) return;
@@ -428,18 +317,18 @@ public unsafe class EnemiesCastBarsHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug($"{Class} - Enemies castbars hook disabled");
+            log.Debug($"{Class} - {hookName} hook disabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to disable enemies castbars hook");
+            log.Error(ex, $"{Class} - Failed to disable {hookName} hook");
         }
     }
 
     // ----------------------------
     // Dispose the hook
     // ----------------------------
-    public override void Dispose()
+    public override void Dispose(string hookName)
     {
         try
         {
@@ -457,11 +346,8 @@ public unsafe class EnemiesCastBarsHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to dispose enemies castbars hook");
+            log.Error(ex, $"{Class} - Failed to dispose {hookName} hook");
         }
-
-        // Finalize
-        GC.SuppressFinalize(this);
     }
 
 }

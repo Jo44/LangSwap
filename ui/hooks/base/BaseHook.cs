@@ -30,7 +30,7 @@ public abstract class BaseHook(
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    public abstract void Enable();
+    public abstract void Enable(string hookName);
 
     // ----------------------------
     // Swap to target language
@@ -76,11 +76,20 @@ public abstract class BaseHook(
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    public abstract void Disable();
+    public abstract void Disable(string hookName);
 
     // ----------------------------
     // Dispose the hook
     // ----------------------------
-    public abstract void Dispose();
+    public abstract void Dispose(string hookName);
+
+    // ----------------------------
+    // Dispose
+    // ----------------------------
+    public void Dispose()
+    {
+        // Finalize
+        GC.SuppressFinalize(this);
+    }
 
 }

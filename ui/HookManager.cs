@@ -51,7 +51,10 @@ public class HookManager(
         {
             try
             {
-                hook.Enable();
+                if (hook is ActionTooltipHook) hook.Enable("Action Tooltip");
+                else if (hook is ItemTooltipHook) hook.Enable("Item Tooltip");
+                else if (hook is AlliesCastBarsHook) hook.Enable("Allies CastBars");
+                else if (hook is EnemiesCastBarsHook) hook.Enable("Enemies CastBars");
             }
             catch (Exception ex)
             {
@@ -108,7 +111,10 @@ public class HookManager(
         {
             try
             {
-                hook.Disable();
+                if (hook is ActionTooltipHook) hook.Disable("Action Tooltip");
+                else if (hook is ItemTooltipHook) hook.Disable("Item Tooltip");
+                else if (hook is AlliesCastBarsHook) hook.Disable("Allies CastBars");
+                else if (hook is EnemiesCastBarsHook) hook.Disable("Enemies CastBars");
             }
             catch (Exception ex)
             {

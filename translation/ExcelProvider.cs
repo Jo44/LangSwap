@@ -119,7 +119,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             }
 
             // Access the action transient sheet for the specified language
-            ExcelSheet<Lumina.Excel.Sheets.ActionTransient> actionTransientSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.ActionTransient>(Utilities.EnumToClientLang(targetLang));
+            ExcelSheet<ActionTransient> actionTransientSheet = dataManager.GetExcelSheet<ActionTransient>(Utilities.EnumToClientLang(targetLang));
             if (actionTransientSheet == null)
             {
                 log.Warning($"{Class} - Action transient sheet is not available for language {targetLang}");
@@ -162,7 +162,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     public string? GetActionDescription(uint actionId, LanguageEnum targetLang)
     {
         // Get the action transient
-        Lumina.Excel.Sheets.ActionTransient? actionTransient = GetActionTransient(actionId, targetLang);
+        ActionTransient? actionTransient = GetActionTransient(actionId, targetLang);
         if (actionTransient == null) return default;
 
         // Return the action description
@@ -173,45 +173,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // Get action ID by name (reverse lookup)
     // ----------------------------
     public uint? GetActionIdByName(string actionName, LanguageEnum clientLang)
-    {
-        try
-        {
-            // Validate input
-            if (string.IsNullOrWhiteSpace(actionName)) return null;
-
-            // Normalize the search name for comparison
-            string normalizedSearchName = actionName.Trim();
-
-            // Get the Item sheet for the specified language
-            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(Utilities.EnumToClientLang(clientLang));
-            if (actionSheet == null)
-            {
-                log.Warning($"{Class} - Action sheet is not available for language {clientLang}");
-                return null;
-            }
-
-            // Search through items for matching name
-            foreach (Lumina.Excel.Sheets.Action action in actionSheet)
-            {
-                // Skip invalid items
-                if (action.RowId == 0) continue;
-
-                // Get action name in the target language
-                string actionNameInLang = action.Name.ToString() ?? string.Empty;
-
-                // Compare names (case-insensitive)
-                if (string.Equals(normalizedSearchName, actionNameInLang.Trim(), StringComparison.OrdinalIgnoreCase)) return action.RowId;
-            }
-
-            // No match found
-            return null;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to get action ID for name {actionName} in language {clientLang}");
-            return null;
-        }
-    }
+        => GetIdByName<Lumina.Excel.Sheets.Action>(actionName, clientLang, action => action.Name.ToString());
 
     //
     // ========== ITEMS ==========
@@ -286,34 +248,42 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // Get item ID by name (reverse lookup)
     // ----------------------------
     public uint? GetItemIdByName(string itemName, LanguageEnum clientLang)
+        => GetIdByName<Item>(itemName, clientLang, item => item.Name.ToString());
+
+    //
+    // ========== GLOBAL ==========
+    //
+
+    // ----------------------------
+    // Get row ID by name (reverse lookup)
+    // ---------------------------
+    private uint? GetIdByName<TSheet>(string name, LanguageEnum clientLang, Func<TSheet, string> getName)
+        where TSheet : struct, IExcelRow<TSheet>
     {
         try
         {
             // Validate input
-            if (string.IsNullOrWhiteSpace(itemName)) return null;
+            if (string.IsNullOrWhiteSpace(name)) return null;
 
             // Normalize the search name for comparison
-            string normalizedSearchName = itemName.Trim();
+            string normalizedName = name.Trim();
 
-            // Get the Item sheet for the specified language
-            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(Utilities.EnumToClientLang(clientLang));
-            if (itemSheet == null)
+            // Get the sheet for the specified language
+            ExcelSheet<TSheet> sheet = dataManager.GetExcelSheet<TSheet>(Utilities.EnumToClientLang(clientLang));
+            if (sheet == null)
             {
-                log.Warning($"{Class} - Item sheet is not available for language {clientLang}");
+                log.Warning($"{Class} - Sheet {typeof(TSheet).Name} is not available for language {clientLang}");
                 return null;
             }
 
-            // Search through items for matching name
-            foreach (Item item in itemSheet)
+            // Search through rows for matching name
+            foreach (TSheet row in sheet)
             {
-                // Skip invalid items
-                if (item.RowId == 0) continue;
-
-                // Get item name in the target language
-                string itemNameInLang = item.Name.ToString() ?? string.Empty;
+                // Skip row 0 (invalid)
+                if (row.RowId == 0) continue;
 
                 // Compare names (case-insensitive)
-                if (string.Equals(normalizedSearchName, itemNameInLang.Trim(), StringComparison.OrdinalIgnoreCase)) return item.RowId;
+                if (string.Equals(normalizedName, getName(row).Trim(), StringComparison.OrdinalIgnoreCase)) return row.RowId;
             }
 
             // No match found
@@ -321,7 +291,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to get item ID for name {itemName} in language {clientLang}");
+            log.Error(ex, $"{Class} - Failed to get {typeof(TSheet).Name} ID for name {name} in language {clientLang}");
             return null;
         }
     }

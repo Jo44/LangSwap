@@ -240,7 +240,7 @@ public unsafe partial class ItemTooltipHook(
         }
 
         // Call original function with modified data
-        return _tooltipHook!.Original(itemDetailAddon, numberArrayData, stringArrayData);
+        return tooltipHook!.Original(itemDetailAddon, numberArrayData, stringArrayData);
     }
 
     // ----------------------------

@@ -104,7 +104,7 @@ public unsafe class ActionTooltipHook(
         }
 
         // Call original function with modified data
-        return _tooltipHook!.Original(actionDetailAddon, numberArrayData, stringArrayData);
+        return tooltipHook!.Original(actionDetailAddon, numberArrayData, stringArrayData);
     }
 
     // ----------------------------

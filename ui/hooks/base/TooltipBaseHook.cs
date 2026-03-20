@@ -29,7 +29,7 @@ public unsafe abstract class TooltipBaseHook(
     protected delegate void* TooltipDelegate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
     // Hook
-    protected Hook<TooltipDelegate>? _tooltipHook;
+    protected Hook<TooltipDelegate>? tooltipHook;
 
     // Memory signature
     protected abstract string MemorySignature { get; }
@@ -52,10 +52,10 @@ public unsafe abstract class TooltipBaseHook(
             if (tooltipAddr != IntPtr.Zero)
             {
                 // Get hook from address
-                _tooltipHook = gameInterop.HookFromAddress<TooltipDelegate>(tooltipAddr, OnTooltipUpdate);
+                tooltipHook = gameInterop.HookFromAddress<TooltipDelegate>(tooltipAddr, OnTooltipUpdate);
 
                 // Enable hook
-                _tooltipHook.Enable();
+                tooltipHook.Enable();
 
                 // Set enabled flag
                 isEnabled = true;
@@ -90,7 +90,7 @@ public unsafe abstract class TooltipBaseHook(
         try
         {
             // Disable tooltip hook
-            _tooltipHook?.Disable();
+            tooltipHook?.Disable();
 
             // Set disabled flag
             isEnabled = false;
@@ -110,9 +110,9 @@ public unsafe abstract class TooltipBaseHook(
         try
         {
             // Dispose action tooltip hook
-            _tooltipHook?.Disable();
-            _tooltipHook?.Dispose();
-            _tooltipHook = null;
+            tooltipHook?.Disable();
+            tooltipHook?.Dispose();
+            tooltipHook = null;
 
             // Set disabled flag
             isEnabled = false;

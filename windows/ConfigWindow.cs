@@ -39,12 +39,15 @@ public class ConfigWindow : Window, IDisposable
         this.log = log;
 
         // Window settings
-        Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
-                ImGuiWindowFlags.NoScrollWithMouse;
+        Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
+                ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.AlwaysAutoResize;
 
-        // Initialize window size
-        Size = new Vector2(410, 455);
-        SizeCondition = ImGuiCond.Always;
+        // Auto-adjust size
+        SizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = new Vector2(410, 410),
+            MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
+        };
 
         // Initialize key names and values
         keyNames = ["None"];
@@ -91,6 +94,15 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 5f);
         ImGui.TextWrapped("Press the keyboard shortcut to toogle language swap\nPress again to restore original language");
         ImGui.Spacing();
+        // Warning if translation is active
+        if (plugin.IsSwapEnabled())
+        {
+            ImGui.SameLine(0, 5f);
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.5f, 0.0f, 1.0f));
+            ImGui.TextWrapped("WARNING : Disable translation before changing settings !");
+            ImGui.PopStyleColor();
+            ImGui.Spacing();
+        }
         ImGui.Separator();
 
         // Language selection
@@ -267,25 +279,47 @@ public class ConfigWindow : Window, IDisposable
         // Clear caches button
         ImGui.Spacing();
         ImGui.Spacing();
-        ImGui.Spacing();
         ImGui.SameLine(0, 5f);
         if (ImGui.Button("Clear all translation caches"))
         {
             translationCache.Clear();
             log.Information($"{Class} - All translation caches cleared");
         }
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.Separator();
 
-        // Warning if translation is active
-        if (plugin.IsSwapEnabled())
+        // Performance stats
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 5f);
+        ImGui.Text("Performance Stats :");
+        ImGui.Spacing();
+        IReadOnlyCollection<KeyValuePair<string, (double avg, double min, double max)>> stats = PerformanceMonitor.GetStats();
+        if (stats.Count == 0)
         {
+            ImGui.SameLine(0, 15f);
+            ImGui.Text("No data yet - enable swap to collect stats");
             ImGui.Spacing();
-            ImGui.Spacing();
-            ImGui.SameLine(0, 5f);
-            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.5f, 0.0f, 1.0f));
-            ImGui.TextWrapped("WARNING : Disable translation before changing settings !");
-            ImGui.PopStyleColor();
             ImGui.Spacing();
         }
+        else
+        {
+            foreach (KeyValuePair<string, (double avg, double min, double max)> stat in stats)
+            {
+                ImGui.SameLine(0, 15f);
+                ImGui.Text($"{stat.Key}   [ {stat.Value.min:F1} µs / {stat.Value.avg:F1} µs / {stat.Value.max:F1} µs ]");
+                ImGui.Spacing();
+            }
+            ImGui.Spacing();
+        }
+        ImGui.SameLine(0, 5f);
+        if (ImGui.Button("Clear all performance stats"))
+        {
+            PerformanceMonitor.Reset();
+        }
+        ImGui.Spacing();
+        ImGui.Spacing();
     }
 
     // ----------------------------

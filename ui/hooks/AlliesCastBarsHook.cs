@@ -11,6 +11,7 @@ using LangSwap.translation;
 using LangSwap.ui.hooks.@base;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace LangSwap.ui.hooks;
 
@@ -109,6 +110,7 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnFrameworkUpdate(IFramework framework)
     {
+        long startTimestamp = Stopwatch.GetTimestamp();
         try
         {
             // Check if language is swapped
@@ -256,6 +258,10 @@ public unsafe class AlliesCastBarsHook(
         catch (Exception ex)
         {
             log.Error(ex, $"{Class} - Error in OnFrameworkUpdate");
+        }
+        finally
+        {
+            PerformanceMonitor.Record("Allies casts", startTimestamp);
         }
     }
 

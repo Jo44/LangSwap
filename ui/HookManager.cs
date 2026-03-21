@@ -64,6 +64,62 @@ public class HookManager(
     }
 
     // ----------------------------
+    // Update hooks according to current configuration
+    // ----------------------------
+    public void UpdateHooks()
+    {
+        // Action Tooltip
+        if (config.ActionTooltip && !hooks.Contains(actionTooltipHook))
+        {
+            try { actionTooltipHook.Enable("Action Tooltip"); hooks.Add(actionTooltipHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Action Tooltip"); }
+        }
+        else if (!config.ActionTooltip && hooks.Contains(actionTooltipHook))
+        {
+            try { actionTooltipHook.Disable("Action Tooltip"); hooks.Remove(actionTooltipHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Action Tooltip"); }
+        }
+
+        // Item Tooltip
+        if (config.ItemTooltip && !hooks.Contains(itemTooltipHook))
+        {
+            try { itemTooltipHook.Enable("Item Tooltip"); hooks.Add(itemTooltipHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Item Tooltip"); }
+        }
+        else if (!config.ItemTooltip && hooks.Contains(itemTooltipHook))
+        {
+            try { itemTooltipHook.Disable("Item Tooltip"); hooks.Remove(itemTooltipHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Item Tooltip"); }
+        }
+
+        // Allies CastBars
+        bool alliesEnabled = config.AlliesCastBarsTarget || config.AlliesCastBarsFocus || config.AlliesCastBarsPartyList;
+        if (alliesEnabled && !hooks.Contains(alliesCastBarsHook))
+        {
+            try { alliesCastBarsHook.Enable("Allies CastBars"); hooks.Add(alliesCastBarsHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Allies CastBars"); }
+        }
+        else if (!alliesEnabled && hooks.Contains(alliesCastBarsHook))
+        {
+            try { alliesCastBarsHook.Disable("Allies CastBars"); hooks.Remove(alliesCastBarsHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Allies CastBars"); }
+        }
+
+        // Enemies CastBars
+        bool enemiesEnabled = config.EnemiesCastBarsTarget || config.EnemiesCastBarsFocus || config.EnemiesCastBarsEnmityList;
+        if (enemiesEnabled && !hooks.Contains(enemiesCastBarsHook))
+        {
+            try { enemiesCastBarsHook.Enable("Enemies CastBars"); hooks.Add(enemiesCastBarsHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Enemies CastBars"); }
+        }
+        else if (!enemiesEnabled && hooks.Contains(enemiesCastBarsHook))
+        {
+            try { enemiesCastBarsHook.Disable("Enemies CastBars"); hooks.Remove(enemiesCastBarsHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Enemies CastBars"); }
+        }
+    }
+
+    // ----------------------------
     // Swap all hooks to target language
     // ----------------------------
     public void SwapLanguage()

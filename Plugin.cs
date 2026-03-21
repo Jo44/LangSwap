@@ -217,6 +217,9 @@ public sealed class Plugin : IDalamudPlugin
             return;
         }
 
+        // Update hooks
+        hookManager.UpdateHooks();
+
         // Perform the swap
         hookManager.SwapLanguage();
         isSwapEnabled = true;

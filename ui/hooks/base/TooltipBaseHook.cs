@@ -34,9 +34,6 @@ public unsafe abstract class TooltipBaseHook(
     // Memory signature
     protected abstract string MemorySignature { get; }
 
-    // Addon
-    protected abstract AtkUnitBase* Addon { get; }
-
     // ----------------------------
     // Enable the hook
     // ----------------------------

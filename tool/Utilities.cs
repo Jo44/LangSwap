@@ -31,7 +31,7 @@ public unsafe class Utilities(
     // ----------------------------
     // Get addon
     // ----------------------------
-    public AtkUnitBase* GetAddon(string addonName, string errorContext)
+    public AtkUnitBase* GetAddon(string addonName)
     {
         // Initialize
         AtkUnitBase* addon = null;
@@ -45,7 +45,7 @@ public unsafe class Utilities(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to get {errorContext} addon");
+            log.Error(ex, $"{Class} - Failed to get {addonName} addon");
         }
         return addon;
     }

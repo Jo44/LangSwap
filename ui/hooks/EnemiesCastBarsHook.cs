@@ -36,12 +36,6 @@ public unsafe class EnemiesCastBarsHook(
     private bool castBarsFocus = false;
     private bool castBarsEnmityList = false;
 
-    // Castbars addons
-    private readonly AtkUnitBase* targetInfo = utilities.GetAddon(config.TargetInfoAddon, "target info");
-    private readonly AtkUnitBase* targetCastBar = utilities.GetAddon(config.TargetCastBarAddon, "target castbar");
-    private readonly AtkUnitBase* focusCastBar = utilities.GetAddon(config.FocusCastBarAddon, "focus castbar");
-    private readonly AtkUnitBase* enemyList = utilities.GetAddon(config.EnemyListAddon, "enemy list");
-
     // Castbars fields
     private readonly int targetInfoField = config.TargetInfoField;
     private readonly int targetCastBarField = config.TargetCastBarField;
@@ -96,10 +90,10 @@ public unsafe class EnemiesCastBarsHook(
         castBarsEnmityList = config.EnemiesCastBarsEnmityList;
 
         // Refresh addons
-        utilities.RefreshAddon(targetInfo, "target info");
-        utilities.RefreshAddon(targetCastBar, "target castbar");
-        utilities.RefreshAddon(focusCastBar, "focus castbar");
-        utilities.RefreshAddon(enemyList, "enemy list");
+        utilities.RefreshAddon(utilities.GetAddon(config.TargetInfoAddon), "target info");
+        utilities.RefreshAddon(utilities.GetAddon(config.TargetCastBarAddon), "target castbar");
+        utilities.RefreshAddon(utilities.GetAddon(config.FocusCastBarAddon), "focus castbar");
+        utilities.RefreshAddon(utilities.GetAddon(config.EnemyListAddon), "enemy list");
     }
 
     // ----------------------------
@@ -222,7 +216,7 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBar(targetInfo, currentTargetActionId, targetInfoField, "target info");
+            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), currentTargetActionId, targetInfoField, "target info");
         }
     }
 
@@ -233,7 +227,7 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBar(targetCastBar, currentTargetActionId, targetCastBarField, "target castbar");
+            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), currentTargetActionId, targetCastBarField, "target castbar");
         }
     }
 
@@ -244,7 +238,7 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsFocus)
         {
-            UpdateCastBar(focusCastBar, currentFocusActionId, focusCastBarField, "focus castbar");
+            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), currentFocusActionId, focusCastBarField, "focus castbar");
         }
     }
 
@@ -255,7 +249,7 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsEnmityList)
         {
-            UpdateList(enemyList, enemyListStartField, enemyListEndField, enemyListCastField);
+            UpdateList(utilities.GetAddon(config.EnemyListAddon), enemyListStartField, enemyListEndField, enemyListCastField);
         }
     }
 

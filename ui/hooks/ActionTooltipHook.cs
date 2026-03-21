@@ -24,9 +24,6 @@ public unsafe class ActionTooltipHook(
     // Memory signature
     protected override string MemorySignature => config.ActionTooltipSig;
 
-    // Action detail addon
-    protected override AtkUnitBase* Addon => utilities.GetAddon(config.ActionDetailAddon, "action detail");
-
     // Action detail fields
     private readonly int actionNameField = config.ActionNameField;
     private readonly int actionDescriptionField = config.ActionDescriptionField;
@@ -37,7 +34,7 @@ public unsafe class ActionTooltipHook(
     protected override void OnLanguageSwap()
     {
         // Refresh action detail addon
-        utilities.RefreshAddon(Addon, "action detail");
+        utilities.RefreshAddon(utilities.GetAddon(config.ActionDetailAddon), "action detail");
     }
 
     // ----------------------------

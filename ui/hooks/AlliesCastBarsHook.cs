@@ -36,13 +36,6 @@ public unsafe class AlliesCastBarsHook(
     private bool castBarsFocus = false;
     private bool castBarsPartyList = false;
 
-    // Castbars addons
-    private readonly AtkUnitBase* castBar = utilities.GetAddon(config.CastBarAddon, "castbar");
-    private readonly AtkUnitBase* targetInfo = utilities.GetAddon(config.TargetInfoAddon, "target info");
-    private readonly AtkUnitBase* targetCastBar = utilities.GetAddon(config.TargetCastBarAddon, "target castbar");
-    private readonly AtkUnitBase* focusCastBar = utilities.GetAddon(config.FocusCastBarAddon, "focus castbar");
-    private readonly AtkUnitBase* partyList = utilities.GetAddon(config.PartyListAddon, "party list");
-
     // Castbars fields
     private readonly int castBarField = config.CastBarField;
     private readonly int targetInfoField = config.TargetInfoField;
@@ -100,11 +93,11 @@ public unsafe class AlliesCastBarsHook(
         castBarsPartyList = config.AlliesCastBarsPartyList;
 
         // Refresh addons
-        utilities.RefreshAddon(castBar, "castbar");
-        utilities.RefreshAddon(targetInfo, "target info");
-        utilities.RefreshAddon(targetCastBar, "target castbar");
-        utilities.RefreshAddon(focusCastBar, "focus castbar");
-        utilities.RefreshAddon(partyList, "party list");
+        utilities.RefreshAddon(utilities.GetAddon(config.CastBarAddon), "castbar");
+        utilities.RefreshAddon(utilities.GetAddon(config.TargetInfoAddon), "target info");
+        utilities.RefreshAddon(utilities.GetAddon(config.TargetCastBarAddon), "target castbar");
+        utilities.RefreshAddon(utilities.GetAddon(config.FocusCastBarAddon), "focus castbar");
+        utilities.RefreshAddon(utilities.GetAddon(config.PartyListAddon), "party list");
     }
 
     // ----------------------------
@@ -243,7 +236,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget || castBarsFocus || castBarsPartyList)
         {
-            UpdateCastBar(castBar, currentActionId, castBarField, "castbar");
+            UpdateCastBar(utilities.GetAddon(config.CastBarAddon), currentActionId, castBarField, "castbar");
         }
     }
 
@@ -254,7 +247,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBar(targetInfo, currentTargetActionId, targetInfoField, "target info");
+            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), currentTargetActionId, targetInfoField, "target info");
         }
     }
 
@@ -265,7 +258,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBar(targetCastBar, currentTargetActionId, targetCastBarField, "target castbar");
+            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), currentTargetActionId, targetCastBarField, "target castbar");
         }
     }
 
@@ -276,7 +269,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsFocus)
         {
-            UpdateCastBar(focusCastBar, currentFocusActionId, focusCastBarField, "focus castbar");
+            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), currentFocusActionId, focusCastBarField, "focus castbar");
         }
     }
 
@@ -287,7 +280,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsPartyList)
         {
-            UpdateList(partyList, partyListStartField, partyListEndField, partyListCastField);
+            UpdateList(utilities.GetAddon(config.PartyListAddon), partyListStartField, partyListEndField, partyListCastField);
         }
     }
 

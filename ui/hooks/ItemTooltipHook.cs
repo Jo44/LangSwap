@@ -26,9 +26,6 @@ public unsafe partial class ItemTooltipHook(
     // Memory signature
     protected override string MemorySignature => config.ItemTooltipSig;
 
-    // Item detail addon
-    protected override AtkUnitBase* Addon => utilities.GetAddon(config.ActionDetailAddon, "item detail");
-
     // Item detail fields
     private readonly int itemNameField = config.ItemNameField;
     private readonly int glamourNameField = config.GlamourNameField;
@@ -51,7 +48,7 @@ public unsafe partial class ItemTooltipHook(
     protected override void OnLanguageSwap()
     {
         // Refresh item detail addon
-        utilities.RefreshAddon(Addon, "item detail");
+        utilities.RefreshAddon(utilities.GetAddon(config.ActionDetailAddon), "item detail");
     }
 
     // ----------------------------

@@ -54,10 +54,10 @@ public unsafe class ActionTooltipHook(
             if (isLanguageSwapped && stringArrayData != null)
             {
                 // Get client language
-                LanguageEnum clientLang = (LanguageEnum)config.ClientLanguage;
+                LanguageEnum clientLang = config.ClientLanguage;
 
                 // Get target language
-                LanguageEnum targetLang = (LanguageEnum)config.TargetLanguage;
+                LanguageEnum targetLang = config.TargetLanguage;
 
                 // Get action name
                 string actionName = utilities.ReadStringFromArrayData(stringArrayData, actionNameField);

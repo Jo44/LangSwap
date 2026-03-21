@@ -68,10 +68,10 @@ public unsafe partial class ItemTooltipHook(
             if (isLanguageSwapped && stringArrayData != null)
             {
                 // Get client language
-                LanguageEnum clientLang = (LanguageEnum)config.ClientLanguage;
+                LanguageEnum clientLang = config.ClientLanguage;
 
                 // Get target language
-                LanguageEnum targetLang = (LanguageEnum)config.TargetLanguage;
+                LanguageEnum targetLang = config.TargetLanguage;
 
                 // Get item name
                 string itemName = utilities.ReadStringFromArrayData(stringArrayData, itemNameField);

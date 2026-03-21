@@ -64,7 +64,7 @@ public unsafe abstract class CastBarsBaseHook(
             if (!isLanguageSwapped || actionId == 0 || addon == null || !addon -> IsVisible) return;
 
             // Get translated action name
-            string? translatedName = translationCache.GetActionName(actionId, (LanguageEnum)config.TargetLanguage);
+            string? translatedName = translationCache.GetActionName(actionId, config.TargetLanguage);
             if (translatedName.IsNullOrWhitespace()) return;
 
             // Get the text node

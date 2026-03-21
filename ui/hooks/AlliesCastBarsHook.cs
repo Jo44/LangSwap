@@ -312,14 +312,14 @@ public unsafe class AlliesCastBarsHook(
             uint actionId = cast.Value;
 
             // Get the client language action name
-            string? clientActionName = translationCache.GetActionName(actionId, (LanguageEnum)config.ClientLanguage);
+            string? clientActionName = translationCache.GetActionName(actionId, config.ClientLanguage);
             if (clientActionName == null) continue;
 
             // If the client language action name contains the current text, translate it
             if (clientActionName.StartsWith(textWithoutIndicator))
             {
                 // Get the translated action name
-                string? translatedName = translationCache.GetActionName(actionId, (LanguageEnum)config.TargetLanguage);
+                string? translatedName = translationCache.GetActionName(actionId, config.TargetLanguage);
                 if (!translatedName.IsNullOrWhitespace())
                 {
                     if (!targetIndicator.IsNullOrWhitespace())

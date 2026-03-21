@@ -1,0 +1,27 @@
+[
+  {
+    "Author": "Snoof",
+    "Name": "LangSwap",
+    "InternalName": "LangSwap",
+    "AssemblyVersion": "1.0.0.0",
+    "IsHide": false,
+    "IsTestingExclusive": false,
+    "RepoUrl": "https://github.com/Jo44/LangSwap",
+    "IconUrl": "https://raw.githubusercontent.com/Jo44/LangSwap/refs/heads/main/data/icon.png",
+    "ImageUrls": [],
+    "Punchline": "Swap castbars and tooltips language on the fly with a keyboard shortcut.",
+    "Description": "LangSwap allows you to change the language of castbars and tooltips in FFXIV by pressing a keyboard shortcut. Press again the key(s) to return to your original language.",
+    "Changelog": "",
+    "Tags": [ "language", "hud", "castbar", "tooltip", "utility" ],
+    "CategoryTags": [],
+    "DownloadLinkInstall": "https://github.com/Jo44/LangSwap/bin/x64/Release/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/Jo44/LangSwap/bin/x64/Release/latest.zip",
+    "LastUpdate": 1774107314,
+    "DownloadCount": 0,
+    "LoadRequiredState": 0,
+    "LoadSync": false,
+    "LoadPriority": 0,
+    "DalamudApiLevel": 14,
+    "AcceptsFeedback": true
+  }
+]

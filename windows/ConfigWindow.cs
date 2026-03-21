@@ -5,6 +5,7 @@ using LangSwap.tool;
 using LangSwap.translation;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 namespace LangSwap.Windows;
@@ -176,30 +177,8 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Text("Select the UI components to translate");
         ImGui.Spacing();
         ImGui.Spacing();
-        ImGui.SameLine(0, 15f);
-        ImGui.Text("Tooltips :");
-        ImGui.Spacing();
-        ImGui.Spacing();
 
-        // Action tooltip
-        ImGui.SameLine(0, 25f);
-        if (ImGui.Checkbox(" Action", ref actionTooltip))
-        {
-            log.Information($"{Class} - Setting Action tooltip to {actionTooltip}");
-            config.ActionTooltip = actionTooltip;
-            config.Save();
-        }
-
-        // Item tooltip
-        ImGui.SameLine(0, 58f);
-        if (ImGui.Checkbox(" Item", ref itemTooltip))
-        {
-            log.Information($"{Class} - Setting Item tooltip to {itemTooltip}");
-            config.ItemTooltip = itemTooltip;
-            config.Save();
-        }
-        ImGui.Spacing();
-        ImGui.Spacing();
+        // Casts
         ImGui.SameLine(0, 15f);
         ImGui.Text("Casts :");
         ImGui.Spacing();
@@ -225,7 +204,7 @@ public class ConfigWindow : Window, IDisposable
 
         // Party list
         ImGui.SameLine(0, 34f);
-        if (ImGui.Checkbox(" Party List", ref alliesCastBarsPartyList))
+        if (ImGui.Checkbox(" Party list", ref alliesCastBarsPartyList))
         {
             log.Information($"{Class} - Setting Allies Party List to {alliesCastBarsPartyList}");
             config.AlliesCastBarsPartyList = alliesCastBarsPartyList;
@@ -254,10 +233,36 @@ public class ConfigWindow : Window, IDisposable
 
         // Enmity list
         ImGui.SameLine(0, 15f);
-        if (ImGui.Checkbox(" Enmity List", ref enemiesCastBarsEnmityList))
+        if (ImGui.Checkbox(" Enmity list", ref enemiesCastBarsEnmityList))
         {
             log.Information($"{Class} - Setting Enemies Enmity List to {enemiesCastBarsEnmityList}");
             config.EnemiesCastBarsEnmityList = enemiesCastBarsEnmityList;
+            config.Save();
+        }
+        ImGui.Spacing();
+        ImGui.Spacing();
+
+        // Tooltips
+        ImGui.SameLine(0, 15f);
+        ImGui.Text("Tooltips :");
+        ImGui.Spacing();
+        ImGui.Spacing();
+
+        // Action tooltip
+        ImGui.SameLine(0, 25f);
+        if (ImGui.Checkbox(" Action", ref actionTooltip))
+        {
+            log.Information($"{Class} - Setting Action tooltip to {actionTooltip}");
+            config.ActionTooltip = actionTooltip;
+            config.Save();
+        }
+
+        // Item tooltip
+        ImGui.SameLine(0, 58f);
+        if (ImGui.Checkbox(" Item", ref itemTooltip))
+        {
+            log.Information($"{Class} - Setting Item tooltip to {itemTooltip}");
+            config.ItemTooltip = itemTooltip;
             config.Save();
         }
         ImGui.Spacing();
@@ -295,7 +300,8 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 5f);
         ImGui.Text("Performance Stats :");
         ImGui.Spacing();
-        IReadOnlyCollection<KeyValuePair<string, (double avg, double min, double max)>> stats = PerformanceMonitor.GetStats();
+        ImGui.Spacing();
+        IReadOnlyCollection<KeyValuePair<string, double>> stats = PerformanceMonitor.GetStats();
         if (stats.Count == 0)
         {
             ImGui.SameLine(0, 15f);
@@ -305,12 +311,20 @@ public class ConfigWindow : Window, IDisposable
         }
         else
         {
-            foreach (KeyValuePair<string, (double avg, double min, double max)> stat in stats)
+            // Display stats with color coding
+            foreach (KeyValuePair<string, double> stat in stats)
             {
                 ImGui.SameLine(0, 15f);
-                ImGui.Text($"{stat.Key}   [ {stat.Value.min:F1} µs / {stat.Value.avg:F1} µs / {stat.Value.max:F1} µs ]");
+                ImGui.Text($"{stat.Key.Replace('_', ' ')}  [");
+                ImGui.SameLine(0, 4f);
+                ImGui.PushStyleColor(ImGuiCol.Text, GetTimeColor(stat.Value));
+                ImGui.Text(FormatTime(stat.Value));
+                ImGui.PopStyleColor();
+                ImGui.SameLine(0, 4f);
+                ImGui.Text("]");
                 ImGui.Spacing();
             }
+            ImGui.Spacing();
             ImGui.Spacing();
         }
         ImGui.SameLine(0, 5f);
@@ -320,6 +334,30 @@ public class ConfigWindow : Window, IDisposable
         }
         ImGui.Spacing();
         ImGui.Spacing();
+    }
+
+    // ----------------------------
+    // Format time
+    // ----------------------------
+    private static string FormatTime(double microseconds)
+    {
+        if (microseconds < 1000.0)
+            return $"{microseconds:F0} µs";
+        if (microseconds < 1_000_000.0)
+            return $"{microseconds / 1000.0:F0} ms";
+        return $"{microseconds / 1_000_000.0:F0} s";
+    }
+
+    // ----------------------------
+    // Get time color
+    // ----------------------------
+    private static Vector4 GetTimeColor(double microseconds)
+    {
+        if (microseconds < 1_000.0)
+            return new Vector4(0.2f, 1.0f, 0.2f, 1.0f);   // vert  (< 1 ms)
+        if (microseconds < 10_000.0)
+            return new Vector4(1.0f, 0.5f, 0.0f, 1.0f);   // orange (< 10 ms)
+        return new Vector4(1.0f, 0.2f, 0.2f, 1.0f);       // rouge (>= 10 ms)
     }
 
     // ----------------------------

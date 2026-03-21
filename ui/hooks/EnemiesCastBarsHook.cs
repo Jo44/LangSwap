@@ -236,7 +236,7 @@ public unsafe class EnemiesCastBarsHook(
         }
         finally
         {
-            PerformanceMonitor.Record("Enemies casts", startTimestamp);
+            PerformanceMonitor.Record(StatEnum.Framework, startTimestamp);
         }
     }
 
@@ -247,7 +247,9 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsTarget)
         {
+            long startTimestamp = Stopwatch.GetTimestamp();
             UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), currentTargetActionId, targetInfoField, "target info");
+            PerformanceMonitor.Record(StatEnum.Enemy_Cast, startTimestamp);
         }
     }
 
@@ -258,7 +260,9 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsTarget)
         {
+            long startTimestamp = Stopwatch.GetTimestamp();
             UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), currentTargetActionId, targetCastBarField, "target castbar");
+            PerformanceMonitor.Record(StatEnum.Enemy_Cast, startTimestamp);
         }
     }
 
@@ -269,7 +273,9 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsFocus)
         {
+            long startTimestamp = Stopwatch.GetTimestamp();
             UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), currentFocusActionId, focusCastBarField, "focus castbar");
+            PerformanceMonitor.Record(StatEnum.Enemy_Cast, startTimestamp);
         }
     }
 
@@ -280,7 +286,9 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsEnmityList)
         {
+            long startTimestamp = Stopwatch.GetTimestamp();
             UpdateList(utilities.GetAddon(config.EnemyListAddon), enemyListStartField, enemyListEndField, enemyListCastField);
+            PerformanceMonitor.Record(StatEnum.Enmity_List, startTimestamp);
         }
     }
 

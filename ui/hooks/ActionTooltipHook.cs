@@ -103,7 +103,7 @@ public unsafe class ActionTooltipHook(
         }
         finally
         {
-            PerformanceMonitor.Record("Action tooltip", startTimestamp);
+            PerformanceMonitor.Record(StatEnum.Action_Tooltip, startTimestamp);
         }
 
         // Call original function with modified data

@@ -1,3 +1,5 @@
+using LangSwap.translation;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -11,29 +13,29 @@ public static class PerformanceMonitor
     // ----------------------------
     // Metric storage
     // ----------------------------
-    private static readonly Dictionary<string, MetricBuffer> data = [];
+    private static readonly Dictionary<StatEnum, MetricBuffer> data = [];
 
     // ----------------------------
     // Record elapsed time since startTimestamp
     // ----------------------------
-    public static void Record(string key, long startTimestamp)
+    public static void Record(StatEnum stat, long startTimestamp)
     {
         double us = (Stopwatch.GetTimestamp() - startTimestamp) * 1_000_000.0 / Stopwatch.Frequency;
-        if (!data.TryGetValue(key, out MetricBuffer? buffer))
-            data[key] = buffer = new MetricBuffer();
+        if (!data.TryGetValue(stat, out MetricBuffer? buffer))
+            data[stat] = buffer = new MetricBuffer();
         buffer.Add(us);
     }
 
     // ----------------------------
     // Get snapshot of all stats
     // ----------------------------
-    public static IReadOnlyDictionary<string, (double avg, double min, double max)> GetStats()
+    public static IReadOnlyDictionary<string, double> GetStats()
     {
-        Dictionary<string, (double avg, double min, double max)> result = new(data.Count);
-        foreach (KeyValuePair<string, MetricBuffer> kvp in data)
+        Dictionary<string, double> result = new(data.Count);
+        foreach (StatEnum stat in Enum.GetValues<StatEnum>())
         {
-            (double avg, double min, double max) = kvp.Value.Stats();
-            result[kvp.Key] = (avg, min, max);
+            if (!data.TryGetValue(stat, out MetricBuffer? buffer)) continue;
+            result[stat.ToString()] = buffer.GetAverage();
         }
         return result;
     }
@@ -53,12 +55,12 @@ public static class PerformanceMonitor
     private sealed class MetricBuffer
     {
         // Initialization
-        private const int BufferSize = 300;
+        private const int BufferSize = 1000;
         private readonly double[] values = new double[BufferSize];
         private int head = 0;
         private int count = 0;
 
-        // Add a new sample
+        // Add a new record
         public void Add(double us)
         {
             values[head] = us;
@@ -66,19 +68,16 @@ public static class PerformanceMonitor
             if (count < BufferSize) count++;
         }
 
-        // Compute average, min, max
-        public (double avg, double min, double max) Stats()
+        // Get average
+        public double GetAverage()
         {
-            if (count == 0) return (0, 0, 0);
-            double sum = 0, min = double.MaxValue, max = 0;
+            if (count == 0) return 0;
+            double sum = 0;
             for (int i = 0; i < count; i++)
             {
-                double v = values[i];
-                sum += v;
-                if (v < min) min = v;
-                if (v > max) max = v;
+                sum += values[i];
             }
-            return (sum / count, min, max);
+            return sum / count;
         }
 
         // Clear buffer

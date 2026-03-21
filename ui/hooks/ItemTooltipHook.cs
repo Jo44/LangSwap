@@ -239,7 +239,7 @@ public unsafe partial class ItemTooltipHook(
         }
         finally
         {
-            PerformanceMonitor.Record("Item tooltip", startTimestamp);
+            PerformanceMonitor.Record(StatEnum.Item_Tooltip, startTimestamp);
         }
 
         // Call original function with modified data

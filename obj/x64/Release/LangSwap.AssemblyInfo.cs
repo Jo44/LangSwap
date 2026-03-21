@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LangSwap")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+3ecb85427a6831189b8c20dc06fc6ebe96bbb51a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+141a96fc5b3abf44b800d6637f919fdff821acce")]
 [assembly: System.Reflection.AssemblyProductAttribute("LangSwap")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LangSwap")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

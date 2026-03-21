@@ -35,6 +35,10 @@ public unsafe abstract class CastBarsBaseHook(
     // Tracking variables
     protected readonly Dictionary<ulong, uint> listCasts = [];
 
+    // Linger counts
+    protected readonly Dictionary<ulong, int> lingeringCasts = [];
+    protected const int CastLingerFrames = 5;
+
     // ----------------------------
     // Check if member is in list (party/enmity)
     // ----------------------------

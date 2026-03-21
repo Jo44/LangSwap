@@ -11,7 +11,6 @@ using LangSwap.translation;
 using LangSwap.ui.hooks.@base;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace LangSwap.ui.hooks;
 
@@ -47,6 +46,10 @@ public unsafe class EnemiesCastBarsHook(
     // Tracking variables
     private uint currentTargetActionId = 0;
     private uint currentFocusActionId = 0;
+
+    // Linger counts
+    private int targetLingerCount = 0;
+    private int focusLingerCount = 0;
 
     // ----------------------------
     // Enable the hook
@@ -107,8 +110,11 @@ public unsafe class EnemiesCastBarsHook(
             if (!isLanguageSwapped)
             {
                 currentTargetActionId = 0;
+                targetLingerCount = 0;
                 currentFocusActionId = 0;
+                focusLingerCount = 0;
                 listCasts.Clear();
+                lingeringCasts.Clear();
                 return;
             }
 
@@ -117,8 +123,11 @@ public unsafe class EnemiesCastBarsHook(
             if (player == null)
             {
                 currentTargetActionId = 0;
+                targetLingerCount = 0;
                 currentFocusActionId = 0;
+                focusLingerCount = 0;
                 listCasts.Clear();
+                lingeringCasts.Clear();
                 return;
             }
 
@@ -191,13 +200,29 @@ public unsafe class EnemiesCastBarsHook(
             }
 
             // Reset if target not found
-            if (!foundTarget) currentTargetActionId = 0;
+            if (foundTarget) targetLingerCount = CastLingerFrames;
+            else if (targetLingerCount > 0) targetLingerCount--;
+            else currentTargetActionId = 0;
 
             // Reset if focus not found
-            if (!foundFocus) currentFocusActionId = 0;
+            if (foundFocus) focusLingerCount = CastLingerFrames;
+            else if (focusLingerCount > 0) focusLingerCount--;
+            else currentFocusActionId = 0;
 
             // Clean up enemy list of non-casting enemies
-            List<ulong> toRemove = [.. listCasts.Keys.Where(id => !currentCasting.Contains(id))];
+            List<ulong> toRemove = [];
+            foreach (ulong id in listCasts.Keys)
+            {
+                // Lingering casts
+                if (currentCasting.Contains(id)) lingeringCasts.Remove(id);
+                else if (!lingeringCasts.TryGetValue(id, out int frames)) lingeringCasts[id] = CastLingerFrames;
+                else if (frames > 0) lingeringCasts[id] = frames - 1;
+                else
+                {
+                    toRemove.Add(id);
+                    lingeringCasts.Remove(id);
+                }
+            }
             foreach (ulong id in toRemove)
             {
                 listCasts.Remove(id);

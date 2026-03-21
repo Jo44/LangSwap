@@ -6,10 +6,10 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using LangSwap.hook;
 using LangSwap.input;
 using LangSwap.tool;
 using LangSwap.translation;
-using LangSwap.ui;
 using LangSwap.Windows;
 using System;
 

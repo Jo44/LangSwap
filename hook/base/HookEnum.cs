@@ -1,4 +1,4 @@
-﻿namespace LangSwap.translation
+﻿namespace LangSwap.hook.@base
 {
     // ----------------------------
     // Enumeration for supported hooks

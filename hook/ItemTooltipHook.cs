@@ -1,14 +1,14 @@
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using LangSwap.hook.@base;
 using LangSwap.tool;
 using LangSwap.translation;
-using LangSwap.ui.hooks.@base;
 using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace LangSwap.ui.hooks;
+namespace LangSwap.hook;
 
 // ----------------------------
 // Item Tooltip Hook

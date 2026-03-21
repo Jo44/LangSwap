@@ -8,7 +8,7 @@ using LangSwap.translation;
 using System;
 using System.Collections.Generic;
 
-namespace LangSwap.ui.hooks.@base;
+namespace LangSwap.hook.@base;
 
 // ----------------------------
 // Base class for all cast bars hooks

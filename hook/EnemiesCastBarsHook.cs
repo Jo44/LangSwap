@@ -6,19 +6,19 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using LangSwap.hook.@base;
 using LangSwap.tool;
 using LangSwap.translation;
-using LangSwap.ui.hooks.@base;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace LangSwap.ui.hooks;
+namespace LangSwap.hook;
 
 // ----------------------------
-// Allies CastBars Hook
+// Enemies CastBars Hook
 // ----------------------------
-public unsafe class AlliesCastBarsHook(
+public unsafe class EnemiesCastBarsHook(
     IAddonLifecycle addonLifecycle,
     Configuration config,
     IFramework framework,
@@ -29,29 +29,26 @@ public unsafe class AlliesCastBarsHook(
     IPluginLog log) : CastBarsBaseHook(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log)
 {
     // Log
-    private const string Class = "[AlliesCastBarsHook.cs]";
+    private const string Class = "[EnemiesCastBarsHook.cs]";
 
     // UI components
     private bool castBarsTarget = false;
     private bool castBarsFocus = false;
-    private bool castBarsPartyList = false;
+    private bool castBarsEnmityList = false;
 
     // Castbars fields
-    private readonly int castBarField = config.CastBarField;
     private readonly int targetInfoField = config.TargetInfoField;
     private readonly int targetCastBarField = config.TargetCastBarField;
     private readonly int focusCastBarField = config.FocusCastBarField;
-    private readonly int partyListStartField = config.PartyListStartField;
-    private readonly int partyListEndField = config.PartyListEndField;
-    private readonly int partyListCastField = config.PartyListCastField;
+    private readonly int enemyListStartField = config.EnemyListStartField;
+    private readonly int enemyListEndField = config.EnemyListEndField;
+    private readonly int enemyListCastField = config.EnemyListCastField;
 
     // Tracking variables
-    private uint currentActionId = 0;
     private uint currentTargetActionId = 0;
     private uint currentFocusActionId = 0;
 
     // Linger counts
-    private int playerLingerCount = 0;
     private int targetLingerCount = 0;
     private int focusLingerCount = 0;
 
@@ -69,11 +66,10 @@ public unsafe class AlliesCastBarsHook(
             framework.Update += OnFrameworkUpdate;
 
             // Register addon lifecycle listeners
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
             addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnemyListUpdate);
 
             // Set enabled flag
             isEnabled = true;
@@ -93,16 +89,15 @@ public unsafe class AlliesCastBarsHook(
     protected override void OnLanguageSwap()
     {
         // Initialize UI components
-        castBarsTarget = config.AlliesCastBarsTarget;
-        castBarsFocus = config.AlliesCastBarsFocus;
-        castBarsPartyList = config.AlliesCastBarsPartyList;
+        castBarsTarget = config.EnemiesCastBarsTarget;
+        castBarsFocus = config.EnemiesCastBarsFocus;
+        castBarsEnmityList = config.EnemiesCastBarsEnmityList;
 
         // Refresh addons
-        utilities.RefreshAddon(utilities.GetAddon(config.CastBarAddon), "castbar");
         utilities.RefreshAddon(utilities.GetAddon(config.TargetInfoAddon), "target info");
         utilities.RefreshAddon(utilities.GetAddon(config.TargetCastBarAddon), "target castbar");
         utilities.RefreshAddon(utilities.GetAddon(config.FocusCastBarAddon), "focus castbar");
-        utilities.RefreshAddon(utilities.GetAddon(config.PartyListAddon), "party list");
+        utilities.RefreshAddon(utilities.GetAddon(config.EnemyListAddon), "enemy list");
     }
 
     // ----------------------------
@@ -116,8 +111,6 @@ public unsafe class AlliesCastBarsHook(
             // Check if language is swapped
             if (!isLanguageSwapped)
             {
-                currentActionId = 0;
-                playerLingerCount = 0;
                 currentTargetActionId = 0;
                 targetLingerCount = 0;
                 currentFocusActionId = 0;
@@ -131,8 +124,6 @@ public unsafe class AlliesCastBarsHook(
             IPlayerCharacter? player = objectTable.LocalPlayer;
             if (player == null)
             {
-                currentActionId = 0;
-                playerLingerCount = 0;
                 currentTargetActionId = 0;
                 targetLingerCount = 0;
                 currentFocusActionId = 0;
@@ -147,12 +138,11 @@ public unsafe class AlliesCastBarsHook(
 
             // Get player's target ID
             ulong targetId = player.TargetObjectId;
-            
+
             // Get player's focus ID
             ulong focusId = targetManager.FocusTarget?.GameObjectId ?? 0;
 
             // Initialize tracking variables
-            bool foundPlayer = false;
             bool foundTarget = false;
             bool foundFocus = false;
             HashSet<ulong> currentCasting = [];
@@ -160,26 +150,23 @@ public unsafe class AlliesCastBarsHook(
             // Iterate through all battle NPCs
             foreach (IGameObject obj in objectTable)
             {
-                // Filter for players
-                if (obj == null || obj.ObjectKind != ObjectKind.Player) continue;
+                // Filter for battle NPCs
+                if (obj == null || obj.ObjectKind != ObjectKind.BattleNpc) continue;
 
                 // Filter for battle characters
                 if (obj is not IBattleChara battleChara) continue;
 
-                // Check if this character is the current player
-                bool isCharacter = battleChara.GameObjectId == playerId;
-                
                 // Check if this character is the current player's target
                 bool isTarget = battleChara.GameObjectId == targetId;
 
                 // Check if this character is the current player's focus
                 bool isFocus = battleChara.GameObjectId == focusId;
 
-                // Check if this character is in the current player's party list
-                bool inPartyList = IsInList(battleChara, StatusFlags.PartyMember);
+                // Check if this character is in the current player's enmity list
+                bool inEnmityList = IsInList(battleChara, StatusFlags.InCombat);
 
                 // Skip if not relevant
-                if (!isCharacter && !isTarget && !isFocus && !inPartyList) continue;
+                if (!isTarget && !isFocus && !inEnmityList) continue;
 
                 // Check if casting
                 if (battleChara.IsCasting)
@@ -190,13 +177,6 @@ public unsafe class AlliesCastBarsHook(
                     {
                         // Add to current casting set
                         currentCasting.Add(battleChara.GameObjectId);
-
-                        // Update player
-                        if (isCharacter)
-                        {
-                            currentActionId = actionId;
-                            foundPlayer = true;
-                        }
 
                         // Update target
                         if (isTarget)
@@ -212,19 +192,14 @@ public unsafe class AlliesCastBarsHook(
                             foundFocus = true;
                         }
 
-                        // Update party list
-                        if (isCharacter || inPartyList)
+                        // Update enemy list
+                        if (inEnmityList)
                         {
                             listCasts[battleChara.GameObjectId] = actionId;
                         }
                     }
                 }
             }
-
-            // Reset if player not found
-            if (foundPlayer) playerLingerCount = CastLingerFrames;
-            else if (playerLingerCount > 0) playerLingerCount--;
-            else currentActionId = 0;
 
             // Reset if target not found
             if (foundTarget) targetLingerCount = CastLingerFrames;
@@ -236,7 +211,7 @@ public unsafe class AlliesCastBarsHook(
             else if (focusLingerCount > 0) focusLingerCount--;
             else currentFocusActionId = 0;
 
-            // Clean up party list of non-casting members
+            // Clean up enemy list of non-casting enemies
             List<ulong> toRemove = [];
             foreach (ulong id in listCasts.Keys)
             {
@@ -266,19 +241,6 @@ public unsafe class AlliesCastBarsHook(
     }
 
     // ----------------------------
-    // On cast bar update
-    // ----------------------------
-    private void OnCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
-    {
-        if (castBarsTarget || castBarsFocus || castBarsPartyList)
-        {
-            long startTimestamp = Stopwatch.GetTimestamp();
-            UpdateCastBar(utilities.GetAddon(config.CastBarAddon), currentActionId, castBarField, "castbar");
-            PerformanceMonitor.Record(StatEnum.Ally_Cast, startTimestamp);
-        }
-    }
-
-    // ----------------------------
     // On target info update
     // ----------------------------
     private void OnTargetInfoUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
@@ -287,7 +249,7 @@ public unsafe class AlliesCastBarsHook(
         {
             long startTimestamp = Stopwatch.GetTimestamp();
             UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), currentTargetActionId, targetInfoField, "target info");
-            PerformanceMonitor.Record(StatEnum.Ally_Cast, startTimestamp);
+            PerformanceMonitor.Record(StatEnum.Enemy_Cast, startTimestamp);
         }
     }
 
@@ -300,7 +262,7 @@ public unsafe class AlliesCastBarsHook(
         {
             long startTimestamp = Stopwatch.GetTimestamp();
             UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), currentTargetActionId, targetCastBarField, "target castbar");
-            PerformanceMonitor.Record(StatEnum.Ally_Cast, startTimestamp);
+            PerformanceMonitor.Record(StatEnum.Enemy_Cast, startTimestamp);
         }
     }
 
@@ -313,25 +275,25 @@ public unsafe class AlliesCastBarsHook(
         {
             long startTimestamp = Stopwatch.GetTimestamp();
             UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), currentFocusActionId, focusCastBarField, "focus castbar");
-            PerformanceMonitor.Record(StatEnum.Ally_Cast, startTimestamp);
+            PerformanceMonitor.Record(StatEnum.Enemy_Cast, startTimestamp);
         }
     }
 
     // ----------------------------
-    // On party list update
+    // On enemy list update
     // ----------------------------
-    private void OnPartyListUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
+    private void OnEnemyListUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        if (castBarsPartyList)
+        if (castBarsEnmityList)
         {
             long startTimestamp = Stopwatch.GetTimestamp();
-            UpdateList(utilities.GetAddon(config.PartyListAddon), partyListStartField, partyListEndField, partyListCastField);
-            PerformanceMonitor.Record(StatEnum.Party_List, startTimestamp);
+            UpdateList(utilities.GetAddon(config.EnemyListAddon), enemyListStartField, enemyListEndField, enemyListCastField);
+            PerformanceMonitor.Record(StatEnum.Enmity_List, startTimestamp);
         }
     }
 
     // ----------------------------
-    // Translate the cast text in the party list slot
+    // Translate the cast text in the enemy list slot
     // ----------------------------
     protected override void TranslateCastText(AtkTextNode* textNode)
     {
@@ -339,12 +301,10 @@ public unsafe class AlliesCastBarsHook(
         string currentText = textNode -> NodeText.ToString();
         if (string.IsNullOrWhiteSpace(currentText)) return;
 
-        // Remove target indicator for comparison
-        string[] textParts = utilities.RemoveTargetIndicator(currentText);
-        string textWithoutIndicator = Utilities.RemoveEllipsis(textParts[0]);
-        string targetIndicator = textParts[1];
+        // Remove ellipsis for comparison
+        currentText = Utilities.RemoveEllipsis(currentText);
 
-        // Check if the current text contains any of the casts in the party list and translate it
+        // Check if the current text contains any of the casts in the enemy list and translate it
         foreach (KeyValuePair<ulong, uint> cast in listCasts)
         {
             // Get the action ID
@@ -355,24 +315,15 @@ public unsafe class AlliesCastBarsHook(
             if (clientActionName == null) continue;
 
             // If the client language action name contains the current text, translate it
-            if (clientActionName.StartsWith(textWithoutIndicator))
+            if (clientActionName.StartsWith(currentText))
             {
                 // Get the translated action name
                 string? translatedName = translationCache.GetActionName(actionId, config.TargetLanguage);
                 if (!translatedName.IsNullOrWhitespace())
                 {
-                    if (!targetIndicator.IsNullOrWhitespace())
-                    {
-                        // Update the text node with the translated name and target indicator
-                        textNode -> SetText(translatedName + " " + targetIndicator);
-                        break;
-                    }
-                    else
-                    {
-                        // Update the text node with the translated name
-                        textNode -> SetText(translatedName);
-                        break;
-                    }
+                    // Update the text node with the translated name
+                    textNode -> SetText(translatedName);
+                    break;
                 }
             }
         }
@@ -392,11 +343,10 @@ public unsafe class AlliesCastBarsHook(
             framework.Update -= OnFrameworkUpdate;
 
             // Unregister addon lifecycle listeners
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
+            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnemyListUpdate);
 
             // Set disabled flag
             isEnabled = false;
@@ -419,11 +369,10 @@ public unsafe class AlliesCastBarsHook(
             framework.Update -= OnFrameworkUpdate;
 
             // Unregister addon lifecycle listeners
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
+            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnemyListUpdate);
 
             // Set disabled flag
             isEnabled = false;

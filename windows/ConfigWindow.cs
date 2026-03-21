@@ -5,7 +5,6 @@ using LangSwap.tool;
 using LangSwap.translation;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 
 namespace LangSwap.Windows;

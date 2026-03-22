@@ -50,11 +50,6 @@ public unsafe class AlliesCastBarsHook(
     private uint currentTargetActionId = 0;
     private uint currentFocusActionId = 0;
 
-    // Linger counts
-    private int playerLingerCount = 0;
-    private int targetLingerCount = 0;
-    private int focusLingerCount = 0;
-
     // ----------------------------
     // Enable the hook
     // ----------------------------
@@ -117,13 +112,10 @@ public unsafe class AlliesCastBarsHook(
             if (!isLanguageSwapped)
             {
                 currentActionId = 0;
-                playerLingerCount = 0;
                 currentTargetActionId = 0;
-                targetLingerCount = 0;
                 currentFocusActionId = 0;
-                focusLingerCount = 0;
                 listCasts.Clear();
-                lingeringCasts.Clear();
+                listCastsExpiry.Clear();
                 return;
             }
 
@@ -132,13 +124,10 @@ public unsafe class AlliesCastBarsHook(
             if (player == null)
             {
                 currentActionId = 0;
-                playerLingerCount = 0;
                 currentTargetActionId = 0;
-                targetLingerCount = 0;
                 currentFocusActionId = 0;
-                focusLingerCount = 0;
                 listCasts.Clear();
-                lingeringCasts.Clear();
+                listCastsExpiry.Clear();
                 return;
             }
 
@@ -151,13 +140,10 @@ public unsafe class AlliesCastBarsHook(
             // Get player's focus ID
             ulong focusId = targetManager.FocusTarget?.GameObjectId ?? 0;
 
-            // Initialize tracking variables
-            bool foundPlayer = false;
-            bool foundTarget = false;
-            bool foundFocus = false;
-            HashSet<ulong> currentCasting = [];
+            // Clean expired list casts
+            CleanExpiredListCasts();
 
-            // Iterate through all battle NPCs
+            // Iterate through all players
             foreach (IGameObject obj in objectTable)
             {
                 // Filter for players
@@ -188,71 +174,23 @@ public unsafe class AlliesCastBarsHook(
                     uint actionId = (uint)battleChara.CastActionId;
                     if (actionId > 0)
                     {
-                        // Add to current casting set
-                        currentCasting.Add(battleChara.GameObjectId);
-
                         // Update player
-                        if (isCharacter)
-                        {
-                            currentActionId = actionId;
-                            foundPlayer = true;
-                        }
+                        if (isCharacter) currentActionId = actionId;
 
                         // Update target
-                        if (isTarget)
-                        {
-                            currentTargetActionId = actionId;
-                            foundTarget = true;
-                        }
+                        if (isTarget) currentTargetActionId = actionId;
 
                         // Update focus
-                        if (isFocus)
-                        {
-                            currentFocusActionId = actionId;
-                            foundFocus = true;
-                        }
+                        if (isFocus) currentFocusActionId = actionId;
 
                         // Update party list
                         if (isCharacter || inPartyList)
                         {
                             listCasts[battleChara.GameObjectId] = actionId;
+                            listCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
                         }
                     }
                 }
-            }
-
-            // Reset if player not found
-            if (foundPlayer) playerLingerCount = CastLingerFrames;
-            else if (playerLingerCount > 0) playerLingerCount--;
-            else currentActionId = 0;
-
-            // Reset if target not found
-            if (foundTarget) targetLingerCount = CastLingerFrames;
-            else if (targetLingerCount > 0) targetLingerCount--;
-            else currentTargetActionId = 0;
-
-            // Reset if focus not found
-            if (foundFocus) focusLingerCount = CastLingerFrames;
-            else if (focusLingerCount > 0) focusLingerCount--;
-            else currentFocusActionId = 0;
-
-            // Clean up party list of non-casting members
-            List<ulong> toRemove = [];
-            foreach (ulong id in listCasts.Keys)
-            {
-                // Lingering casts
-                if (currentCasting.Contains(id)) lingeringCasts.Remove(id);
-                else if (!lingeringCasts.TryGetValue(id, out int frames)) lingeringCasts[id] = CastLingerFrames;
-                else if (frames > 0) lingeringCasts[id] = frames - 1;
-                else
-                {
-                    toRemove.Add(id);
-                    lingeringCasts.Remove(id);
-                }
-            }
-            foreach (ulong id in toRemove)
-            {
-                listCasts.Remove(id);
             }
         }
         catch (Exception ex)

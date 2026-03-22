@@ -7,6 +7,7 @@ using LangSwap.tool;
 using LangSwap.translation;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace LangSwap.hook.@base;
 
@@ -34,13 +35,11 @@ public unsafe abstract class CastBarsBaseHook(
 
     // Tracking variables
     protected readonly Dictionary<ulong, uint> listCasts = [];
-
-    // Linger counts
-    protected readonly Dictionary<ulong, int> lingeringCasts = [];
-    protected const int CastLingerFrames = 5;
+    protected readonly Dictionary<ulong, long> listCastsExpiry = [];
+    protected const long ListCastExpiryTicks = 10L * 10_000_000L;
 
     // ----------------------------
-    // Check if member is in list (party/enmity)
+    // Check if member is in list
     // ----------------------------
     protected static bool IsInList(IBattleChara character, StatusFlags flag)
     {
@@ -140,5 +139,23 @@ public unsafe abstract class CastBarsBaseHook(
     // Translate cast text in the list slot
     // ----------------------------
     protected abstract void TranslateCastText(AtkTextNode* textNode);
+
+    // ----------------------------
+    // Clean expired list casts
+    // ----------------------------
+    protected void CleanExpiredListCasts()
+    {
+        long now = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
+        List<ulong> toRemove = [];
+        foreach (ulong id in listCastsExpiry.Keys)
+        {
+            if (now - listCastsExpiry[id] > ListCastExpiryTicks) toRemove.Add(id);
+        }
+        foreach (ulong id in toRemove)
+        {
+            listCasts.Remove(id);
+            listCastsExpiry.Remove(id);
+        }
+    }
 
 }

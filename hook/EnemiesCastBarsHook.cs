@@ -48,10 +48,6 @@ public unsafe class EnemiesCastBarsHook(
     private uint currentTargetActionId = 0;
     private uint currentFocusActionId = 0;
 
-    // Linger counts
-    private int targetLingerCount = 0;
-    private int focusLingerCount = 0;
-
     // ----------------------------
     // Enable the hook
     // ----------------------------
@@ -112,11 +108,9 @@ public unsafe class EnemiesCastBarsHook(
             if (!isLanguageSwapped)
             {
                 currentTargetActionId = 0;
-                targetLingerCount = 0;
                 currentFocusActionId = 0;
-                focusLingerCount = 0;
                 listCasts.Clear();
-                lingeringCasts.Clear();
+                listCastsExpiry.Clear();
                 return;
             }
 
@@ -125,11 +119,9 @@ public unsafe class EnemiesCastBarsHook(
             if (player == null)
             {
                 currentTargetActionId = 0;
-                targetLingerCount = 0;
                 currentFocusActionId = 0;
-                focusLingerCount = 0;
                 listCasts.Clear();
-                lingeringCasts.Clear();
+                listCastsExpiry.Clear();
                 return;
             }
 
@@ -142,10 +134,8 @@ public unsafe class EnemiesCastBarsHook(
             // Get player's focus ID
             ulong focusId = targetManager.FocusTarget?.GameObjectId ?? 0;
 
-            // Initialize tracking variables
-            bool foundTarget = false;
-            bool foundFocus = false;
-            HashSet<ulong> currentCasting = [];
+            // Clean expired list casts
+            CleanExpiredListCasts();
 
             // Iterate through all battle NPCs
             foreach (IGameObject obj in objectTable)
@@ -175,59 +165,20 @@ public unsafe class EnemiesCastBarsHook(
                     uint actionId = (uint)battleChara.CastActionId;
                     if (actionId > 0)
                     {
-                        // Add to current casting set
-                        currentCasting.Add(battleChara.GameObjectId);
-
                         // Update target
-                        if (isTarget)
-                        {
-                            currentTargetActionId = actionId;
-                            foundTarget = true;
-                        }
+                        if (isTarget) currentTargetActionId = actionId;
 
                         // Update focus
-                        if (isFocus)
-                        {
-                            currentFocusActionId = actionId;
-                            foundFocus = true;
-                        }
+                        if (isFocus) currentFocusActionId = actionId;
 
                         // Update enemy list
                         if (inEnmityList)
                         {
                             listCasts[battleChara.GameObjectId] = actionId;
+                            listCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
                         }
                     }
                 }
-            }
-
-            // Reset if target not found
-            if (foundTarget) targetLingerCount = CastLingerFrames;
-            else if (targetLingerCount > 0) targetLingerCount--;
-            else currentTargetActionId = 0;
-
-            // Reset if focus not found
-            if (foundFocus) focusLingerCount = CastLingerFrames;
-            else if (focusLingerCount > 0) focusLingerCount--;
-            else currentFocusActionId = 0;
-
-            // Clean up enemy list of non-casting enemies
-            List<ulong> toRemove = [];
-            foreach (ulong id in listCasts.Keys)
-            {
-                // Lingering casts
-                if (currentCasting.Contains(id)) lingeringCasts.Remove(id);
-                else if (!lingeringCasts.TryGetValue(id, out int frames)) lingeringCasts[id] = CastLingerFrames;
-                else if (frames > 0) lingeringCasts[id] = frames - 1;
-                else
-                {
-                    toRemove.Add(id);
-                    lingeringCasts.Remove(id);
-                }
-            }
-            foreach (ulong id in toRemove)
-            {
-                listCasts.Remove(id);
             }
         }
         catch (Exception ex)

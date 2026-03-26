@@ -279,6 +279,9 @@ public sealed class Plugin : IDalamudPlugin
             hookManager.SwapLanguage();
             isSwapEnabled = true;
 
+            // Notify swap modification
+            ChatLog($"Swapped to {Enum.GetName(config.TargetLanguage)}");
+
             // Log
             Log.Information($"{Class} - Re-applied translation to {Enum.GetName(config.TargetLanguage)}");
         }

@@ -206,15 +206,6 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
-        // Warning if translation is active
-        if (plugin.IsSwapEnabled())
-        {
-            ImGui.SameLine(0, 15f);
-            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.5f, 0.0f, 1.0f));
-            ImGui.TextWrapped("WARNING : Disable translation before changing settings !");
-            ImGui.PopStyleColor();
-            ImGui.Spacing();
-        }
         ImGui.SameLine(0, 15f);
         ImGui.Text("Select the UI components to translate");
         ImGui.Spacing();
@@ -230,27 +221,21 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 25f);
         if (ImGui.Checkbox(" Ally target", ref alliesCastBarsTarget))
         {
-            log.Information($"{Class} - Setting Allies Target to {alliesCastBarsTarget}");
-            config.AlliesCastBarsTarget = alliesCastBarsTarget;
-            config.Save();
+            UIComponentChange("Allies Target", alliesCastBarsTarget, () => config.AlliesCastBarsTarget = alliesCastBarsTarget);
         }
 
         // Ally focus
         ImGui.SameLine(0, 34f);
         if (ImGui.Checkbox(" Ally focus", ref alliesCastBarsFocus))
         {
-            log.Information($"{Class} - Setting Allies Focus to {alliesCastBarsFocus}");
-            config.AlliesCastBarsFocus = alliesCastBarsFocus;
-            config.Save();
+            UIComponentChange("Allies Focus", alliesCastBarsFocus, () => config.AlliesCastBarsFocus = alliesCastBarsFocus);
         }
 
         // Party list
         ImGui.SameLine(0, 34f);
         if (ImGui.Checkbox(" Party list", ref alliesCastBarsPartyList))
         {
-            log.Information($"{Class} - Setting Allies Party List to {alliesCastBarsPartyList}");
-            config.AlliesCastBarsPartyList = alliesCastBarsPartyList;
-            config.Save();
+            UIComponentChange("Allies Party List", alliesCastBarsPartyList, () => config.AlliesCastBarsPartyList = alliesCastBarsPartyList);
         }
         ImGui.Spacing();
         ImGui.Spacing();
@@ -259,27 +244,21 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 25f);
         if (ImGui.Checkbox(" Enemy target", ref enemiesCastBarsTarget))
         {
-            log.Information($"{Class} - Setting Enemies Target to {enemiesCastBarsTarget}");
-            config.EnemiesCastBarsTarget = enemiesCastBarsTarget;
-            config.Save();
+            UIComponentChange("Enemies Target", enemiesCastBarsTarget, () => config.EnemiesCastBarsTarget = enemiesCastBarsTarget);
         }
 
         // Enemy focus
         ImGui.SameLine(0, 15f);
         if (ImGui.Checkbox(" Enemy focus", ref enemiesCastBarsFocus))
         {
-            log.Information($"{Class} - Setting Enemies Focus to {enemiesCastBarsFocus}");
-            config.EnemiesCastBarsFocus = enemiesCastBarsFocus;
-            config.Save();
+            UIComponentChange("Enemies Focus", enemiesCastBarsFocus, () => config.EnemiesCastBarsFocus = enemiesCastBarsFocus);
         }
 
         // Enmity list
         ImGui.SameLine(0, 15f);
         if (ImGui.Checkbox(" Enmity list", ref enemiesCastBarsEnmityList))
         {
-            log.Information($"{Class} - Setting Enemies Enmity List to {enemiesCastBarsEnmityList}");
-            config.EnemiesCastBarsEnmityList = enemiesCastBarsEnmityList;
-            config.Save();
+            UIComponentChange("Enemies Enmity List", enemiesCastBarsEnmityList, () => config.EnemiesCastBarsEnmityList = enemiesCastBarsEnmityList);
         }
         ImGui.Spacing();
         ImGui.Spacing();
@@ -294,18 +273,14 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 25f);
         if (ImGui.Checkbox(" Action", ref actionTooltip))
         {
-            log.Information($"{Class} - Setting Action tooltip to {actionTooltip}");
-            config.ActionTooltip = actionTooltip;
-            config.Save();
+            UIComponentChange("Action tooltip", actionTooltip, () => config.ActionTooltip = actionTooltip);
         }
 
         // Item tooltip
         ImGui.SameLine(0, 58f);
         if (ImGui.Checkbox(" Item", ref itemTooltip))
         {
-            log.Information($"{Class} - Setting Item tooltip to {itemTooltip}");
-            config.ItemTooltip = itemTooltip;
-            config.Save();
+            UIComponentChange("Item tooltip", itemTooltip, () => config.ItemTooltip = itemTooltip);
         }
         ImGui.Spacing();
         ImGui.Spacing();
@@ -316,12 +291,23 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
-        if (ImGui.Button("Clear translation caches", new Vector2(220f, 0)))
+        if (ImGui.Button("Clear translation caches", new Vector2(200f, 0)))
         {
             translationCache.Clear();
             log.Information($"{Class} - All translation caches cleared");
         }
         ImGui.Spacing();
+    }
+
+    // ----------------------------
+    // UI component change
+    // ----------------------------
+    private void UIComponentChange(string settingName, bool value, Action applyValue)
+    {
+        log.Information($"{Class} - Setting {settingName} to {value}");
+        applyValue();
+        config.Save();
+        plugin.ApplyNewUIComponents();
     }
 
     // ----------------------------

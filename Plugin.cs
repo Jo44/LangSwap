@@ -250,6 +250,39 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
+    // Apply new UI component
+    // ----------------------------
+    public void ApplyNewUIComponents()
+    {
+        try
+        {
+            // Get current swap state
+            bool wasSwapEnabled = isSwapEnabled;
+
+            // Temporarily restore language if enabled
+            if (wasSwapEnabled)
+            {
+                hookManager.RestoreLanguage();
+                isSwapEnabled = false;
+            }
+
+            // Update hooks with new configuration
+            hookManager.UpdateHooks();
+
+            // Re-apply swap if it was previously enabled
+            if (wasSwapEnabled)
+            {
+                hookManager.SwapLanguage();
+                isSwapEnabled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"{Class} - Failed to apply new UI component");
+        }
+    }
+
+    // ----------------------------
     // Configuration
     // ----------------------------
     private void DetectClientLanguage()

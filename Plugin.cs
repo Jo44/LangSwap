@@ -250,6 +250,45 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
+    // Apply new target language
+    // ----------------------------
+    public void ApplyNewTargetLanguage()
+    {
+        try
+        {
+            // If swap is not enabled, no need to apply
+            if (!isSwapEnabled) return;
+
+            // Temporarily restore language
+            hookManager.RestoreLanguage();
+            isSwapEnabled = false;
+
+            // Check if new target language is different from client language
+            if (config.TargetLanguage == config.ClientLanguage)
+            {
+                string error = "Target language is the same as client language, swap aborted";
+                ChatLog(error);
+                Log.Warning($"{Class} - {error}");
+                return;
+            }
+
+            // Update hooks with new target language
+            hookManager.UpdateHooks();
+
+            // Re-apply swap with new target language
+            hookManager.SwapLanguage();
+            isSwapEnabled = true;
+
+            // Log
+            Log.Information($"{Class} - Re-applied translation to {Enum.GetName(config.TargetLanguage)}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"{Class} - Failed to apply target language change");
+        }
+    }
+
+    // ----------------------------
     // Apply new UI component
     // ----------------------------
     public void ApplyNewUIComponents()

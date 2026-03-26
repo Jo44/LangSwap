@@ -122,9 +122,10 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SetNextItemWidth(100f);
         if (ImGui.Combo("##Language", ref currentLang, languages, languages.Length))
         {
-            log.Information($"{Class} - Setting target language to {languages[currentLang]} ({currentLang})");
+            log.Information($"{Class} - Setting target language to {Enum.GetName(typeof(LanguageEnum), currentLang)} ({currentLang})");
             config.TargetLanguage = (LanguageEnum)currentLang;
             config.Save();
+            plugin.ApplyNewTargetLanguage();
         }
 
         // Startup behavior
@@ -302,10 +303,10 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     // UI component change
     // ----------------------------
-    private void UIComponentChange(string settingName, bool value, Action applyValue)
+    private void UIComponentChange(string settingName, bool value, Action applyChange)
     {
         log.Information($"{Class} - Setting {settingName} to {value}");
-        applyValue();
+        applyChange();
         config.Save();
         plugin.ApplyNewUIComponents();
     }

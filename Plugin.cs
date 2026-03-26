@@ -11,6 +11,7 @@ using LangSwap.input;
 using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.Windows;
+using Serilog;
 using System;
 
 namespace LangSwap;
@@ -304,6 +305,7 @@ public sealed class Plugin : IDalamudPlugin
             {
                 new UIForegroundPayload(LogTagColor),
                 new TextPayload("[LangSwap] "),
+                new UIForegroundPayload(0),
                 new UIForegroundPayload(MessageColor),
                 new TextPayload(message),
                 new UIForegroundPayload(0)

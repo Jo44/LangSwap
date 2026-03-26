@@ -113,8 +113,8 @@ public unsafe class AlliesCastBarsHook(
                 currentActionId = 0;
                 currentAllyTargetActionId = 0;
                 currentAllyFocusActionId = 0;
-                listCasts.Clear();
-                listCastsExpiry.Clear();
+                alliesListCasts.Clear();
+                alliesListCastsExpiry.Clear();
                 return;
             }
 
@@ -125,8 +125,8 @@ public unsafe class AlliesCastBarsHook(
                 currentActionId = 0;
                 currentAllyTargetActionId = 0;
                 currentAllyFocusActionId = 0;
-                listCasts.Clear();
-                listCastsExpiry.Clear();
+                alliesListCasts.Clear();
+                alliesListCastsExpiry.Clear();
                 return;
             }
 
@@ -139,8 +139,8 @@ public unsafe class AlliesCastBarsHook(
             // Get player's focus ID
             ulong focusId = targetManager.FocusTarget?.GameObjectId ?? 0;
 
-            // Clean expired list casts
-            CleanExpiredListCasts();
+            // Clean expired allies list casts
+            CleanExpiredAlliesListCasts();
 
             // Iterate through all players
             foreach (IGameObject obj in objectTable)
@@ -182,8 +182,8 @@ public unsafe class AlliesCastBarsHook(
                         // Update party list
                         if (isCharacter || inPartyList)
                         {
-                            listCasts[battleChara.GameObjectId] = actionId;
-                            listCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
+                            alliesListCasts[battleChara.GameObjectId] = actionId;
+                            alliesListCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
                         }
                     }
                 }
@@ -265,7 +265,7 @@ public unsafe class AlliesCastBarsHook(
         string targetIndicator = textParts[1];
 
         // Check if the current text contains any of the casts in the party list and translate it
-        foreach (KeyValuePair<ulong, uint> cast in listCasts)
+        foreach (KeyValuePair<ulong, uint> cast in alliesListCasts)
         {
             // Get the action ID
             uint actionId = cast.Value;

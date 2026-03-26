@@ -108,8 +108,8 @@ public unsafe class EnemiesCastBarsHook(
             {
                 currentEnemyTargetActionId = 0;
                 currentEnemyFocusActionId = 0;
-                listCasts.Clear();
-                listCastsExpiry.Clear();
+                enemiesListCasts.Clear();
+                enemiesListCastsExpiry.Clear();
                 return;
             }
 
@@ -119,8 +119,8 @@ public unsafe class EnemiesCastBarsHook(
             {
                 currentEnemyTargetActionId = 0;
                 currentEnemyFocusActionId = 0;
-                listCasts.Clear();
-                listCastsExpiry.Clear();
+                enemiesListCasts.Clear();
+                enemiesListCastsExpiry.Clear();
                 return;
             }
 
@@ -133,8 +133,8 @@ public unsafe class EnemiesCastBarsHook(
             // Get player's focus ID
             ulong focusId = targetManager.FocusTarget?.GameObjectId ?? 0;
 
-            // Clean expired list casts
-            CleanExpiredListCasts();
+            // Clean expired enemies list casts
+            CleanExpiredEnemiesListCasts();
 
             // Iterate through all battle NPCs
             foreach (IGameObject obj in objectTable)
@@ -170,8 +170,8 @@ public unsafe class EnemiesCastBarsHook(
                         // Update enemy list
                         if (inEnmityList)
                         {
-                            listCasts[battleChara.GameObjectId] = actionId;
-                            listCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
+                            enemiesListCasts[battleChara.GameObjectId] = actionId;
+                            enemiesListCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
                         }
                     }
                 }
@@ -240,7 +240,7 @@ public unsafe class EnemiesCastBarsHook(
         currentText = Utilities.RemoveEllipsis(currentText);
 
         // Check if the current text contains any of the casts in the enemy list and translate it
-        foreach (KeyValuePair<ulong, uint> cast in listCasts)
+        foreach (KeyValuePair<ulong, uint> cast in enemiesListCasts)
         {
             // Get the action ID
             uint actionId = cast.Value;

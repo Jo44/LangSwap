@@ -328,7 +328,7 @@ public unsafe class Utilities(
     }
 
     // ----------------------------
-    // Log the structure of StringArrayData (debugging)
+    // Log the structure of StringArrayData (for debugging)
     // ----------------------------
     public void LogSADStructure(StringArrayData* stringArrayData)
     {

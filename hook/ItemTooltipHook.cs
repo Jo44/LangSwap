@@ -24,7 +24,7 @@ public unsafe partial class ItemTooltipHook(
     private const string Class = "[ItemTooltipHook.cs]";
 
     // Memory signature
-    protected override string MemorySignature => config.ItemTooltipSig;
+    protected override string MemorySignature => config.ItemTooltipSignature;
 
     // Item detail fields
     private readonly int itemNameField = config.ItemNameField;

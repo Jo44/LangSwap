@@ -22,7 +22,7 @@ public unsafe class ActionTooltipHook(
     private const string Class = "[ActionTooltipHook.cs]";
 
     // Memory signature
-    protected override string MemorySignature => config.ActionTooltipSig;
+    protected override string MemorySignature => config.ActionTooltipSignature;
 
     // Action detail fields
     private readonly int actionNameField = config.ActionNameField;

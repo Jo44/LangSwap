@@ -146,10 +146,7 @@ public unsafe class AlliesCastBarsHook(
             foreach (IGameObject obj in objectTable)
             {
                 // Filter for players
-                if (obj == null || obj.ObjectKind != ObjectKind.Player) continue;
-
-                // Filter for battle characters
-                if (obj is not IBattleChara battleChara) continue;
+                if (obj == null || obj.ObjectKind != ObjectKind.Player || obj is not IBattleChara battleChara || obj is not IPlayerCharacter) continue;
 
                 // Check if this character is the current player
                 bool isCharacter = battleChara.GameObjectId == playerId;

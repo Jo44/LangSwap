@@ -33,36 +33,14 @@ public class Configuration : IPluginConfiguration
     public bool Shift { get; set; } = true;
 
     // UI components
-    public bool ActionTooltip { get; set; } = true;
-    public bool ItemTooltip { get; set; } = true;
     public bool AlliesCastBarsTarget { get; set; } = true;
     public bool AlliesCastBarsFocus { get; set; } = true;
     public bool AlliesCastBarsPartyList { get; set; } = true;
     public bool EnemiesCastBarsTarget { get; set; } = true;
     public bool EnemiesCastBarsFocus { get; set; } = true;
     public bool EnemiesCastBarsEnmityList { get; set; } = true;
-
-    // Memory signatures
-    public string ActionTooltipSig { get; } = "E8 ?? ?? ?? ?? 48 8B 43 28 48 8B AF";
-    public string ItemTooltipSig { get; } = "48 89 5C 24 ?? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ?? 48 8B 42 ?? 4C 8B EA";
-
-    // Action Detail Addon
-    public string ActionDetailAddon { get; } = "ActionDetail";
-    public int ActionNameField { get; } = 0;
-    public int ActionDescriptionField { get; } = 13;
-
-    // Item Detail Addon
-    public string ItemDetailAddon { get; } = "ItemDetail";
-    public int ItemNameField { get; } = 0;
-    public int GlamourNameField { get; } = 1;
-    public int ItemDescriptionField { get; } = 13;
-    public int ItemEffectsField { get; } = 16;
-    public int ItemBonusesStartField { get; } = 37;
-    public int ItemBonusesEndField { get; } = 49;
-    public int ItemMateriaNameStartField { get; } = 53;
-    public int ItemMateriaNameEndField { get; } = 57;
-    public int ItemMateriaStatStartField { get; } = 58;
-    public int ItemMateriaStatEndField { get; } = 62;
+    public bool ActionTooltip { get; set; } = true;
+    public bool ItemTooltip { get; set; } = true;
 
     // Common CastBar Addons
     public string TargetInfoAddon { get; } = "_TargetInfo";
@@ -86,6 +64,26 @@ public class Configuration : IPluginConfiguration
     public int EnemyListEndField { get; } = 11;
     public int EnemyListCastField { get; } = 16;
 
+    // Action Detail Addon
+    public string ActionTooltipSignature { get; } = "E8 ?? ?? ?? ?? 48 8B 43 28 48 8B AF";
+    public string ActionDetailAddon { get; } = "ActionDetail";
+    public int ActionNameField { get; } = 0;
+    public int ActionDescriptionField { get; } = 13;
+
+    // Item Detail Addon
+    public string ItemTooltipSignature { get; } = "48 89 5C 24 ?? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ?? 48 8B 42 ?? 4C 8B EA";
+    public string ItemDetailAddon { get; } = "ItemDetail";
+    public int ItemNameField { get; } = 0;
+    public int GlamourNameField { get; } = 1;
+    public int ItemDescriptionField { get; } = 13;
+    public int ItemEffectsField { get; } = 16;
+    public int ItemBonusesStartField { get; } = 37;
+    public int ItemBonusesEndField { get; } = 49;
+    public int ItemMateriaNameStartField { get; } = 53;
+    public int ItemMateriaNameEndField { get; } = 57;
+    public int ItemMateriaStatStartField { get; } = 58;
+    public int ItemMateriaStatEndField { get; } = 62;
+
     // Miscellaneous
     public int MaxValidActionId { get; } = 100000;
     public int MaxValidItemId { get; } = 100000;
@@ -104,7 +102,7 @@ public class Configuration : IPluginConfiguration
     // Save configuration
     public void Save()
     {
-        Plugin.PluginInterface.SavePluginConfig(this);
+        Plugin.DalamudPluginInterface.SavePluginConfig(this);
     }
 
 }

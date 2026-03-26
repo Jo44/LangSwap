@@ -11,7 +11,6 @@ using LangSwap.input;
 using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.Windows;
-using Serilog;
 using System;
 
 namespace LangSwap;
@@ -29,6 +28,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+    [PluginService] internal static IDalamudPluginInterface DalamudPluginInterface { get; private set; } = null!;
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
@@ -36,7 +36,6 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
-    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
     [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
 
@@ -76,7 +75,7 @@ public sealed class Plugin : IDalamudPlugin
             Log.Information($"{Class} === LangSwap plugin initialization ===");
 
             // Load configuration
-            config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+            config = DalamudPluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
             // Detect client language
             DetectClientLanguage();
@@ -99,9 +98,9 @@ public sealed class Plugin : IDalamudPlugin
             hookManager.EnableAll();
 
             // Register UI callbacks
-            PluginInterface.UiBuilder.Draw += windowSystem.Draw;
-            PluginInterface.UiBuilder.Draw += OnDraw;
-            PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
+            DalamudPluginInterface.UiBuilder.Draw += windowSystem.Draw;
+            DalamudPluginInterface.UiBuilder.Draw += OnDraw;
+            DalamudPluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
 
             // Log plugin informations
             Log.Information($"{Class} === LangSwap plugin configuration ===");
@@ -113,14 +112,14 @@ public sealed class Plugin : IDalamudPlugin
             Log.Debug($"{Class} - Ctrl = {config.Ctrl}");
             Log.Debug($"{Class} - Alt = {config.Alt}");
             Log.Debug($"{Class} - Shift = {config.Shift}");
-            Log.Debug($"{Class} - Tooltip - Action = {config.ActionTooltip}");
-            Log.Debug($"{Class} - Tooltip - Item = {config.ItemTooltip}");
             Log.Debug($"{Class} - Allies CastBars - Target = {config.AlliesCastBarsTarget}");
             Log.Debug($"{Class} - Allies CastBars - Focus = {config.AlliesCastBarsFocus}");
             Log.Debug($"{Class} - Allies CastBars - Party List = {config.AlliesCastBarsPartyList}");
             Log.Debug($"{Class} - Enemies CastBars - Target = {config.EnemiesCastBarsTarget}");
             Log.Debug($"{Class} - Enemies CastBars - Focus = {config.EnemiesCastBarsFocus}");
             Log.Debug($"{Class} - Enemies CastBars - Enmity List = {config.EnemiesCastBarsEnmityList}");
+            Log.Debug($"{Class} - Tooltip - Action = {config.ActionTooltip}");
+            Log.Debug($"{Class} - Tooltip - Item = {config.ItemTooltip}");
             Log.Information($"{Class} === LangSwap plugin loaded ===");
 
             // Auto startup swap if enabled
@@ -341,9 +340,9 @@ public sealed class Plugin : IDalamudPlugin
         hookManager.Dispose();
 
         // Unregister UI callbacks
-        PluginInterface.UiBuilder.Draw -= windowSystem.Draw;
-        PluginInterface.UiBuilder.Draw -= OnDraw;
-        PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
+        DalamudPluginInterface.UiBuilder.Draw -= windowSystem.Draw;
+        DalamudPluginInterface.UiBuilder.Draw -= OnDraw;
+        DalamudPluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
 
         // Dispose window
         windowSystem.RemoveAllWindows();

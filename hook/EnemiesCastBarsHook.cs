@@ -140,10 +140,7 @@ public unsafe class EnemiesCastBarsHook(
             foreach (IGameObject obj in objectTable)
             {
                 // Filter for battle NPCs
-                if (obj == null || obj.ObjectKind != ObjectKind.BattleNpc) continue;
-
-                // Filter for battle characters
-                if (obj is not IBattleChara battleChara) continue;
+                if (obj == null || obj.ObjectKind != ObjectKind.BattleNpc || obj is not IBattleChara battleChara || obj is IPlayerCharacter) continue;
 
                 // Check if this character is the current player's target
                 bool isTarget = battleChara.GameObjectId == targetId;

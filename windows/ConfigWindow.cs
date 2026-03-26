@@ -70,6 +70,9 @@ public class ConfigWindow : Window, IDisposable
         int selIndex = keyValues.IndexOf(config.PrimaryKey);
         if (selIndex < 0) selIndex = 0;
 
+        // Startup behavior
+        bool autoStartup = config.AutoStartup;
+
         // Shortcut state
         bool shortcutEnabled = config.ShortcutEnabled;
 
@@ -79,17 +82,14 @@ public class ConfigWindow : Window, IDisposable
         bool shift = config.Shift;
 
         // UI Components
-        bool actionTooltip = config.ActionTooltip;
-        bool itemTooltip = config.ItemTooltip;
         bool alliesCastBarsTarget = config.AlliesCastBarsTarget;
         bool alliesCastBarsFocus = config.AlliesCastBarsFocus;
         bool alliesCastBarsPartyList = config.AlliesCastBarsPartyList;
         bool enemiesCastBarsTarget = config.EnemiesCastBarsTarget;
         bool enemiesCastBarsFocus = config.EnemiesCastBarsFocus;
         bool enemiesCastBarsEnmityList = config.EnemiesCastBarsEnmityList;
-
-        // Startup behavior
-        bool autoStartup = config.AutoStartup;
+        bool actionTooltip = config.ActionTooltip;
+        bool itemTooltip = config.ItemTooltip;
 
         /// Draw UI
 

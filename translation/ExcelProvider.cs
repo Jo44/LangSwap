@@ -105,7 +105,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     }
 
     // ----------------------------
-    // Get action transient
+    // Get action transient (for description)
     // ----------------------------
     private Lumina.Excel.Sheets.ActionTransient? GetActionTransient(uint actionId, LanguageEnum targetLang)
     {

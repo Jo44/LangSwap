@@ -12,7 +12,7 @@ using System.Diagnostics;
 namespace LangSwap.hook.@base;
 
 // ----------------------------
-// Base class for all cast bars hooks
+// Base class for all castbars hooks
 // ----------------------------
 public unsafe abstract class CastBarsBaseHook(
     IAddonLifecycle addonLifecycle,

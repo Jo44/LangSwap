@@ -45,7 +45,7 @@ public class ConfigWindow : Window, IDisposable
         // Auto-adjust size
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(420, 400),
+            MinimumSize = new Vector2(420, 420),
             MaximumSize = new Vector2(420, float.MaxValue)
         };
 
@@ -92,6 +92,26 @@ public class ConfigWindow : Window, IDisposable
         bool itemTooltip = config.ItemTooltip;
 
         /// Draw UI
+
+        // Current state
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 15f);
+        ImGui.Text("Current state : ");
+        if (plugin.IsSwapEnabled())
+        {
+            ImGui.SameLine(0, 26f);
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.0f, 1.0f, 0.0f, 1.0f));
+            ImGui.Text("Enabled");
+            ImGui.PopStyleColor();
+        }
+        else
+        {
+            ImGui.SameLine(0, 26f);
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+            ImGui.Text("Disabled");
+            ImGui.PopStyleColor();
+        }
 
         // Target language
         ImGui.Spacing();
@@ -147,7 +167,7 @@ public class ConfigWindow : Window, IDisposable
             ImGui.SameLine(0, 25f);
             ImGui.Text("Key :");
             ImGui.SameLine();
-            ImGui.SetNextItemWidth(55f);
+            ImGui.SetNextItemWidth(65f);
             if (ImGui.Combo("##PrimaryKey", ref selIndex, keyNames.ToArray(), keyNames.Count))
             {
                 log.Information($"{Class} - Setting primary key to {keyNames[selIndex]} ({keyValues[selIndex]})");
@@ -156,7 +176,7 @@ public class ConfigWindow : Window, IDisposable
             }
 
             // Modifier keys
-            ImGui.SameLine(0, 34f);
+            ImGui.SameLine(0, 24f);
             if (ImGui.Checkbox(" Ctrl", ref ctrl))
             {
                 log.Information($"{Class} - Setting Ctrl to {ctrl}");

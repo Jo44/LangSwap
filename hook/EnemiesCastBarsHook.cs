@@ -45,8 +45,8 @@ public unsafe class EnemiesCastBarsHook(
     private readonly int enemyListCastField = config.EnemyListCastField;
 
     // Tracking variables
-    private uint currentTargetActionId = 0;
-    private uint currentFocusActionId = 0;
+    private uint currentEnemyTargetActionId = 0;
+    private uint currentEnemyFocusActionId = 0;
 
     // ----------------------------
     // Enable the hook
@@ -106,8 +106,8 @@ public unsafe class EnemiesCastBarsHook(
             // Check if language is swapped
             if (!isLanguageSwapped)
             {
-                currentTargetActionId = 0;
-                currentFocusActionId = 0;
+                currentEnemyTargetActionId = 0;
+                currentEnemyFocusActionId = 0;
                 listCasts.Clear();
                 listCastsExpiry.Clear();
                 return;
@@ -117,8 +117,8 @@ public unsafe class EnemiesCastBarsHook(
             IPlayerCharacter? player = objectTable.LocalPlayer;
             if (player == null)
             {
-                currentTargetActionId = 0;
-                currentFocusActionId = 0;
+                currentEnemyTargetActionId = 0;
+                currentEnemyFocusActionId = 0;
                 listCasts.Clear();
                 listCastsExpiry.Clear();
                 return;
@@ -162,10 +162,10 @@ public unsafe class EnemiesCastBarsHook(
                     if (actionId > 0)
                     {
                         // Update target
-                        if (isTarget) currentTargetActionId = actionId;
+                        if (isTarget) currentEnemyTargetActionId = actionId;
 
                         // Update focus
-                        if (isFocus) currentFocusActionId = actionId;
+                        if (isFocus) currentEnemyFocusActionId = actionId;
 
                         // Update enemy list
                         if (inEnmityList)
@@ -190,7 +190,7 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), currentTargetActionId, targetInfoField, "target info");
+            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), currentEnemyTargetActionId, targetInfoField, "target info");
         }
     }
 
@@ -201,7 +201,7 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), currentTargetActionId, targetCastBarField, "target castbar");
+            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), currentEnemyTargetActionId, targetCastBarField, "target castbar");
         }
     }
 
@@ -212,7 +212,7 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsFocus)
         {
-            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), currentFocusActionId, focusCastBarField, "focus castbar");
+            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), currentEnemyFocusActionId, focusCastBarField, "focus castbar");
         }
     }
 

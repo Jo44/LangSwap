@@ -47,8 +47,8 @@ public unsafe class AlliesCastBarsHook(
 
     // Tracking variables
     private uint currentActionId = 0;
-    private uint currentTargetActionId = 0;
-    private uint currentFocusActionId = 0;
+    private uint currentAllyTargetActionId = 0;
+    private uint currentAllyFocusActionId = 0;
 
     // ----------------------------
     // Enable the hook
@@ -111,8 +111,8 @@ public unsafe class AlliesCastBarsHook(
             if (!isLanguageSwapped)
             {
                 currentActionId = 0;
-                currentTargetActionId = 0;
-                currentFocusActionId = 0;
+                currentAllyTargetActionId = 0;
+                currentAllyFocusActionId = 0;
                 listCasts.Clear();
                 listCastsExpiry.Clear();
                 return;
@@ -123,8 +123,8 @@ public unsafe class AlliesCastBarsHook(
             if (player == null)
             {
                 currentActionId = 0;
-                currentTargetActionId = 0;
-                currentFocusActionId = 0;
+                currentAllyTargetActionId = 0;
+                currentAllyFocusActionId = 0;
                 listCasts.Clear();
                 listCastsExpiry.Clear();
                 return;
@@ -174,10 +174,10 @@ public unsafe class AlliesCastBarsHook(
                         if (isCharacter) currentActionId = actionId;
 
                         // Update target
-                        if (isTarget) currentTargetActionId = actionId;
+                        if (isTarget) currentAllyTargetActionId = actionId;
 
                         // Update focus
-                        if (isFocus) currentFocusActionId = actionId;
+                        if (isFocus) currentAllyFocusActionId = actionId;
 
                         // Update party list
                         if (isCharacter || inPartyList)
@@ -213,7 +213,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), currentTargetActionId, targetInfoField, "target info");
+            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), currentAllyTargetActionId, targetInfoField, "target info");
         }
     }
 
@@ -224,7 +224,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), currentTargetActionId, targetCastBarField, "target castbar");
+            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), currentAllyTargetActionId, targetCastBarField, "target castbar");
         }
     }
 
@@ -235,7 +235,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsFocus)
         {
-            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), currentFocusActionId, focusCastBarField, "focus castbar");
+            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), currentAllyFocusActionId, focusCastBarField, "focus castbar");
         }
     }
 

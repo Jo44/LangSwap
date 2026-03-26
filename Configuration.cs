@@ -18,6 +18,12 @@ public class Configuration : IPluginConfiguration
     public LanguageEnum ClientLanguage { get; set; } = LanguageEnum.English;
     public LanguageEnum TargetLanguage { get; set; } = LanguageEnum.English;
 
+    // Startup behavior
+    public bool AutoStartup { get; set; } = false;
+
+    // Shortcut
+    public bool ShortcutEnabled { get; set; } = true;
+
     // Primary key
     public int PrimaryKey { get; set; } = (int)VirtualKey.Y;
 
@@ -35,9 +41,6 @@ public class Configuration : IPluginConfiguration
     public bool EnemiesCastBarsTarget { get; set; } = true;
     public bool EnemiesCastBarsFocus { get; set; } = true;
     public bool EnemiesCastBarsEnmityList { get; set; } = true;
-
-    // Startup behavior
-    public bool AutoStartup { get; set; } = false;
 
     // Memory signatures
     public string ActionTooltipSig { get; } = "E8 ?? ?? ?? ?? 48 8B 43 28 48 8B AF";

@@ -30,7 +30,7 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     // Constructor
     // ----------------------------
-    public ConfigWindow(Configuration config, Plugin plugin, TranslationCache translationCache, IPluginLog log) : base("LangSwap Configuration###LangSwapConfig")
+    public ConfigWindow(Configuration config, Plugin plugin, TranslationCache translationCache, IPluginLog log) : base("LangSwap - Configuration###LangSwapConfig")
     {
         // Initialize core components
         this.config = config;
@@ -45,8 +45,8 @@ public class ConfigWindow : Window, IDisposable
         // Auto-adjust size
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(410, 410),
-            MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
+            MinimumSize = new Vector2(420, 400),
+            MaximumSize = new Vector2(420, float.MaxValue)
         };
 
         // Initialize key names and values
@@ -70,6 +70,9 @@ public class ConfigWindow : Window, IDisposable
         int selIndex = keyValues.IndexOf(config.PrimaryKey);
         if (selIndex < 0) selIndex = 0;
 
+        // Shortcut state
+        bool shortcutEnabled = config.ShortcutEnabled;
+
         // Modifiers
         bool ctrl = config.Ctrl;
         bool alt = config.Alt;
@@ -90,26 +93,10 @@ public class ConfigWindow : Window, IDisposable
 
         /// Draw UI
 
-        // Instructions
-        ImGui.SameLine(0, 5f);
-        ImGui.TextWrapped("Press the keyboard shortcut to toogle language swap\nPress again to restore original language");
-        ImGui.Spacing();
-        // Warning if translation is active
-        if (plugin.IsSwapEnabled())
-        {
-            ImGui.SameLine(0, 5f);
-            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.5f, 0.0f, 1.0f));
-            ImGui.TextWrapped("WARNING : Disable translation before changing settings !");
-            ImGui.PopStyleColor();
-            ImGui.Spacing();
-        }
-        ImGui.Separator();
-
-        // Language selection
+        // Target language
         ImGui.Spacing();
         ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.SameLine(0, 5f);
+        ImGui.SameLine(0, 15f);
         ImGui.Text("Target Language :");
         ImGui.SameLine();
         ImGui.SetNextItemWidth(100f);
@@ -119,51 +106,77 @@ public class ConfigWindow : Window, IDisposable
             config.TargetLanguage = (LanguageEnum)currentLang;
             config.Save();
         }
+
+        // Startup behavior
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 15f);
+        if (ImGui.Checkbox(" Automatically swap at startup", ref autoStartup))
+        {
+            log.Information($"{Class} - Setting AutoStartup to {autoStartup}");
+            config.AutoStartup = autoStartup;
+            config.Save();
+        }
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Separator();
 
-        // Keyboard shortcut
+        // Instructions
         ImGui.Spacing();
         ImGui.Spacing();
-        ImGui.SameLine(0, 5f);
-        ImGui.Text("Keyboard Shortcut :");
+        ImGui.Spacing();
+        ImGui.SameLine(0, 15f);
+        ImGui.TextWrapped("Press the keyboard shortcut to toogle language swap\nPress again to restore original language");
+        ImGui.Spacing();
+        ImGui.Spacing();
 
-        // Primary key
-        ImGui.Spacing();
-        ImGui.Spacing();
+        // Toggle shortcut
         ImGui.SameLine(0, 15f);
-        ImGui.Text("Key :");
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(55f);
-        if (ImGui.Combo("##PrimaryKey", ref selIndex, keyNames.ToArray(), keyNames.Count))
+        if (ImGui.Checkbox("Toggle shortcut##ShortcutEnabled", ref shortcutEnabled))
         {
-            log.Information($"{Class} - Setting primary key to {keyNames[selIndex]} ({keyValues[selIndex]})");
-            config.PrimaryKey = keyValues[selIndex];
+            log.Information($"{Class} - Setting ShortcutEnabled to {shortcutEnabled}");
+            config.ShortcutEnabled = shortcutEnabled;
             config.Save();
         }
+        if (shortcutEnabled)
+        {
+            // Primary key
+            ImGui.Spacing();
+            ImGui.Spacing();
+            ImGui.Spacing();
+            ImGui.SameLine(0, 25f);
+            ImGui.Text("Key :");
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(55f);
+            if (ImGui.Combo("##PrimaryKey", ref selIndex, keyNames.ToArray(), keyNames.Count))
+            {
+                log.Information($"{Class} - Setting primary key to {keyNames[selIndex]} ({keyValues[selIndex]})");
+                config.PrimaryKey = keyValues[selIndex];
+                config.Save();
+            }
 
-        // Modifier keys
-        ImGui.SameLine(0, 40f);
-        if (ImGui.Checkbox(" Ctrl", ref ctrl))
-        {
-            log.Information($"{Class} - Setting Ctrl to {ctrl}");
-            config.Ctrl = ctrl;
-            config.Save();
-        }
-        ImGui.SameLine(0, 15f);
-        if (ImGui.Checkbox(" Alt", ref alt))
-        {
-            log.Information($"{Class} - Setting Alt to {alt}");
-            config.Alt = alt;
-            config.Save();
-        }
-        ImGui.SameLine(0, 15f);
-        if (ImGui.Checkbox(" Shift", ref shift))
-        {
-            log.Information($"{Class} - Setting Shift to {shift}");
-            config.Shift = shift;
-            config.Save();
+            // Modifier keys
+            ImGui.SameLine(0, 34f);
+            if (ImGui.Checkbox(" Ctrl", ref ctrl))
+            {
+                log.Information($"{Class} - Setting Ctrl to {ctrl}");
+                config.Ctrl = ctrl;
+                config.Save();
+            }
+            ImGui.SameLine(0, 13f);
+            if (ImGui.Checkbox(" Alt", ref alt))
+            {
+                log.Information($"{Class} - Setting Alt to {alt}");
+                config.Alt = alt;
+                config.Save();
+            }
+            ImGui.SameLine(0, 13f);
+            if (ImGui.Checkbox(" Shift", ref shift))
+            {
+                log.Information($"{Class} - Setting Shift to {shift}");
+                config.Shift = shift;
+                config.Save();
+            }
         }
         ImGui.Spacing();
         ImGui.Spacing();
@@ -172,7 +185,17 @@ public class ConfigWindow : Window, IDisposable
         // UI Components
         ImGui.Spacing();
         ImGui.Spacing();
-        ImGui.SameLine(0, 5f);
+        ImGui.Spacing();
+        // Warning if translation is active
+        if (plugin.IsSwapEnabled())
+        {
+            ImGui.SameLine(0, 15f);
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.5f, 0.0f, 1.0f));
+            ImGui.TextWrapped("WARNING : Disable translation before changing settings !");
+            ImGui.PopStyleColor();
+            ImGui.Spacing();
+        }
+        ImGui.SameLine(0, 15f);
         ImGui.Text("Select the UI components to translate");
         ImGui.Spacing();
         ImGui.Spacing();
@@ -268,95 +291,17 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Separator();
 
-        // Startup behavior
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.SameLine(0, 5f);
-        if (ImGui.Checkbox(" Automatically swap at startup", ref autoStartup))
-        {
-            log.Information($"{Class} - Setting AutoStartup to {autoStartup}");
-            config.AutoStartup = autoStartup;
-            config.Save();
-        }
-
         // Clear caches button
         ImGui.Spacing();
         ImGui.Spacing();
-        ImGui.SameLine(0, 5f);
-        if (ImGui.Button("Clear all translation caches"))
+        ImGui.Spacing();
+        ImGui.SameLine(0, 15f);
+        if (ImGui.Button("Clear translation caches", new Vector2(220f, 0)))
         {
             translationCache.Clear();
             log.Information($"{Class} - All translation caches cleared");
         }
         ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Separator();
-
-        // Performance stats
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.SameLine(0, 5f);
-        ImGui.Text("Performance Stats :");
-        ImGui.Spacing();
-        ImGui.Spacing();
-        IReadOnlyCollection<KeyValuePair<string, double>> stats = PerformanceMonitor.GetStats();
-        if (stats.Count == 0)
-        {
-            ImGui.SameLine(0, 15f);
-            ImGui.Text("No data yet - enable swap to collect stats");
-            ImGui.Spacing();
-            ImGui.Spacing();
-        }
-        else
-        {
-            // Display stats with color coding
-            foreach (KeyValuePair<string, double> stat in stats)
-            {
-                ImGui.SameLine(0, 15f);
-                ImGui.Text($"{stat.Key.Replace('_', ' ')}  [");
-                ImGui.SameLine(0, 4f);
-                ImGui.PushStyleColor(ImGuiCol.Text, GetTimeColor(stat.Value));
-                ImGui.Text(FormatTime(stat.Value));
-                ImGui.PopStyleColor();
-                ImGui.SameLine(0, 4f);
-                ImGui.Text("]");
-                ImGui.Spacing();
-            }
-            ImGui.Spacing();
-            ImGui.Spacing();
-        }
-        ImGui.SameLine(0, 5f);
-        if (ImGui.Button("Clear all performance stats"))
-        {
-            PerformanceMonitor.Reset();
-        }
-        ImGui.Spacing();
-        ImGui.Spacing();
-    }
-
-    // ----------------------------
-    // Format time
-    // ----------------------------
-    private static string FormatTime(double microseconds)
-    {
-        if (microseconds < 1000.0)
-            return $"{microseconds:F0} µs";
-        if (microseconds < 1_000_000.0)
-            return $"{microseconds / 1000.0:F0} ms";
-        return $"{microseconds / 1_000_000.0:F0} s";
-    }
-
-    // ----------------------------
-    // Get time color
-    // ----------------------------
-    private static Vector4 GetTimeColor(double microseconds)
-    {
-        if (microseconds < 1_000.0)
-            return new Vector4(0.2f, 1.0f, 0.2f, 1.0f);   // vert  (< 1 ms)
-        if (microseconds < 10_000.0)
-            return new Vector4(1.0f, 0.5f, 0.0f, 1.0f);   // orange (< 10 ms)
-        return new Vector4(1.0f, 0.2f, 0.2f, 1.0f);       // rouge (>= 10 ms)
     }
 
     // ----------------------------

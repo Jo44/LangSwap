@@ -103,9 +103,11 @@ public sealed class Plugin : IDalamudPlugin
             PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
 
             // Log plugin informations
-            Log.Debug($"{Class} - Configuration :");
+            Log.Information($"{Class} === LangSwap plugin configuration ===");
             Log.Debug($"{Class} - Client Language = {config.ClientLanguage}");
             Log.Debug($"{Class} - Target Language = {config.TargetLanguage}");
+            Log.Debug($"{Class} - Auto Startup = {config.AutoStartup}");
+            Log.Debug($"{Class} - Shortcut Enabled = {config.ShortcutEnabled}");
             Log.Debug($"{Class} - Primary Key = {config.PrimaryKey}");
             Log.Debug($"{Class} - Ctrl = {config.Ctrl}");
             Log.Debug($"{Class} - Alt = {config.Alt}");
@@ -118,7 +120,6 @@ public sealed class Plugin : IDalamudPlugin
             Log.Debug($"{Class} - Enemies CastBars - Target = {config.EnemiesCastBarsTarget}");
             Log.Debug($"{Class} - Enemies CastBars - Focus = {config.EnemiesCastBarsFocus}");
             Log.Debug($"{Class} - Enemies CastBars - Enmity List = {config.EnemiesCastBarsEnmityList}");
-            Log.Debug($"{Class} - Auto Startup = {config.AutoStartup}");
             Log.Information($"{Class} === LangSwap plugin loaded ===");
 
             // Auto startup swap if enabled
@@ -342,10 +343,10 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw -= OnDraw;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
 
-        // Dispose windows
+        // Dispose window
         windowSystem.RemoveAllWindows();
         configWindow.Dispose();
-
+        
         // Log plugin informations
         Log.Information($"{Class} === LangSwap plugin unloaded ===");
     }

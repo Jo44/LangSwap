@@ -20,6 +20,9 @@ public class ShortcutDetector(Configuration config, IKeyState keyState, IPluginL
         // Validate key state
         if (keyState is null) return false;
 
+        // Shortcut disabled
+        if (!config.ShortcutEnabled) return false;
+
         // Primary key
         bool primary = config.PrimaryKey < 0 || IsKeyDown(config.PrimaryKey);
 

@@ -105,7 +105,6 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnFrameworkUpdate(IFramework framework)
     {
-        long startTimestamp = Stopwatch.GetTimestamp();
         try
         {
             // Check if language is swapped
@@ -197,10 +196,6 @@ public unsafe class AlliesCastBarsHook(
         {
             log.Error(ex, $"{Class} - Error in OnFrameworkUpdate");
         }
-        finally
-        {
-            PerformanceMonitor.Record(StatEnum.Framework, startTimestamp);
-        }
     }
 
     // ----------------------------
@@ -210,9 +205,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget || castBarsFocus || castBarsPartyList)
         {
-            long startTimestamp = Stopwatch.GetTimestamp();
             UpdateCastBar(utilities.GetAddon(config.CastBarAddon), currentActionId, castBarField, "castbar");
-            PerformanceMonitor.Record(StatEnum.Ally_Cast, startTimestamp);
         }
     }
 
@@ -223,9 +216,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            long startTimestamp = Stopwatch.GetTimestamp();
             UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), currentTargetActionId, targetInfoField, "target info");
-            PerformanceMonitor.Record(StatEnum.Ally_Cast, startTimestamp);
         }
     }
 
@@ -236,9 +227,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            long startTimestamp = Stopwatch.GetTimestamp();
             UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), currentTargetActionId, targetCastBarField, "target castbar");
-            PerformanceMonitor.Record(StatEnum.Ally_Cast, startTimestamp);
         }
     }
 
@@ -249,9 +238,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsFocus)
         {
-            long startTimestamp = Stopwatch.GetTimestamp();
             UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), currentFocusActionId, focusCastBarField, "focus castbar");
-            PerformanceMonitor.Record(StatEnum.Ally_Cast, startTimestamp);
         }
     }
 
@@ -262,9 +249,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsPartyList)
         {
-            long startTimestamp = Stopwatch.GetTimestamp();
             UpdateList(utilities.GetAddon(config.PartyListAddon), partyListStartField, partyListEndField, partyListCastField);
-            PerformanceMonitor.Record(StatEnum.Party_List, startTimestamp);
         }
     }
 

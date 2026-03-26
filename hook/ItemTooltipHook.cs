@@ -4,7 +4,6 @@ using LangSwap.hook.@base;
 using LangSwap.tool;
 using LangSwap.translation;
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -57,7 +56,6 @@ public unsafe partial class ItemTooltipHook(
     // ----------------------------
     protected override void* OnTooltipUpdate(AtkUnitBase* itemDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {
-        long startTimestamp = Stopwatch.GetTimestamp();
         try
         {
             // Log the structure of StringArrayData for debugging
@@ -236,10 +234,6 @@ public unsafe partial class ItemTooltipHook(
         catch (Exception ex)
         {
             log.Error(ex, $"{Class} - Exception in OnItemTooltipUpdate");
-        }
-        finally
-        {
-            PerformanceMonitor.Record(StatEnum.Item_Tooltip, startTimestamp);
         }
 
         // Call original function with modified data

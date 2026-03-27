@@ -38,7 +38,6 @@ public unsafe abstract class CastBarsBaseHook(
     protected readonly Dictionary<ulong, long> alliesListCastsExpiry = [];
     protected readonly Dictionary<ulong, uint> enemiesListCasts = [];
     protected readonly Dictionary<ulong, long> enemiesListCastsExpiry = [];
-    // TODO : 30 sec de rétention des noms de sorts dans les listes
     protected const long ListCastExpiryTicks = 30L * 10_000_000L;
 
     // ----------------------------

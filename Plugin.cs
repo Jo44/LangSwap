@@ -355,6 +355,11 @@ public sealed class Plugin : IDalamudPlugin
     public bool IsSwapEnabled() => isSwapEnabled;
 
     // ----------------------------
+    // Toggle translation
+    // ----------------------------
+    public void ToggleTranslation() => ToggleLanguageSwap();
+
+    // ----------------------------
     // Toggle Config UI
     // ----------------------------
     public void ToggleConfigUi() => configWindow.Toggle();

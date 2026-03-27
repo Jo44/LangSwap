@@ -62,6 +62,11 @@ public class ConfigWindow : Window, IDisposable
     {
         /// Settings UI
 
+        // Custom Button
+        const float buttonWidth = 110f;
+        const float buttonRightPadding = 15f;
+        float buttonX = ImGui.GetWindowContentRegionMax().X - buttonWidth - buttonRightPadding;
+
         // Language
         string[] languages = Enum.GetNames<LanguageEnum>();
         int currentLang = (int)config.TargetLanguage;
@@ -97,29 +102,41 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
+        ImGui.AlignTextToFramePadding();
         ImGui.Text("Current state : ");
         if (plugin.IsSwapEnabled())
         {
-            ImGui.SameLine(0, 26f);
+            ImGui.SameLine(0, 55f);
+            ImGui.AlignTextToFramePadding();
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.0f, 1.0f, 0.0f, 1.0f));
             ImGui.Text("Enabled");
             ImGui.PopStyleColor();
         }
         else
         {
-            ImGui.SameLine(0, 26f);
+            ImGui.SameLine(0, 55f);
+            ImGui.AlignTextToFramePadding();
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
             ImGui.Text("Disabled");
             ImGui.PopStyleColor();
+        }
+
+        // Toggle button
+        ImGui.SameLine();
+        ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), buttonX));
+        if (ImGui.Button(plugin.IsSwapEnabled() ? "Disable" : "Enable", new Vector2(buttonWidth, 0f)))
+        {
+            plugin.ToggleTranslation();
         }
 
         // Target language
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
+        ImGui.AlignTextToFramePadding();
         ImGui.Text("Target Language :");
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(100f);
+        ImGui.SameLine(0, 10f);
+        ImGui.SetNextItemWidth(120f);
         if (ImGui.Combo("##Language", ref currentLang, languages, languages.Length))
         {
             log.Information($"{Class} - Setting target language to {Enum.GetName(typeof(LanguageEnum), currentLang)} ({currentLang})");
@@ -128,11 +145,19 @@ public class ConfigWindow : Window, IDisposable
             plugin.ApplyNewTargetLanguage();
         }
 
+        // Custom language
+        ImGui.SameLine();
+        ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), buttonX));
+        if (ImGui.Button("Customize", new Vector2(buttonWidth, 0f)))
+        {
+            // TODO
+        }
+
         // Startup behavior
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
-        if (ImGui.Checkbox(" Automatically swap at startup", ref autoStartup))
+        if (ImGui.Checkbox(" Automatically swap at startup##AutoStartup", ref autoStartup))
         {
             log.Information($"{Class} - Setting AutoStartup to {autoStartup}");
             config.AutoStartup = autoStartup;
@@ -150,10 +175,11 @@ public class ConfigWindow : Window, IDisposable
         ImGui.TextWrapped("Press the keyboard shortcut to toogle language swap\nPress again to restore original language");
         ImGui.Spacing();
         ImGui.Spacing();
+        ImGui.Spacing();
 
         // Toggle shortcut
         ImGui.SameLine(0, 15f);
-        if (ImGui.Checkbox("Toggle shortcut##ShortcutEnabled", ref shortcutEnabled))
+        if (ImGui.Checkbox(" Toggle shortcut##ShortcutEnabled", ref shortcutEnabled))
         {
             log.Information($"{Class} - Setting ShortcutEnabled to {shortcutEnabled}");
             config.ShortcutEnabled = shortcutEnabled;
@@ -166,6 +192,7 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Spacing();
             ImGui.Spacing();
             ImGui.SameLine(0, 25f);
+            ImGui.AlignTextToFramePadding();
             ImGui.Text("Key :");
             ImGui.SameLine();
             ImGui.SetNextItemWidth(65f);
@@ -208,13 +235,14 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
-        ImGui.Text("Select the UI components to translate");
+        ImGui.Text("Select UI components to translate");
         ImGui.Spacing();
         ImGui.Spacing();
 
-        // Casts
+        // Castbars
         ImGui.SameLine(0, 15f);
-        ImGui.Text("Casts :");
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("Castbars :");
         ImGui.Spacing();
         ImGui.Spacing();
         
@@ -266,6 +294,7 @@ public class ConfigWindow : Window, IDisposable
 
         // Tooltips
         ImGui.SameLine(0, 15f);
+        ImGui.AlignTextToFramePadding();
         ImGui.Text("Tooltips :");
         ImGui.Spacing();
         ImGui.Spacing();

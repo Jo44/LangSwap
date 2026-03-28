@@ -2,6 +2,7 @@ using Dalamud.Configuration;
 using Dalamud.Game.ClientState.Keys;
 using LangSwap.translation;
 using System;
+using System.Collections.Generic;
 
 namespace LangSwap;
 
@@ -17,6 +18,9 @@ public class Configuration : IPluginConfiguration
     // Language
     public LanguageEnum ClientLanguage { get; set; } = LanguageEnum.English;
     public LanguageEnum TargetLanguage { get; set; } = LanguageEnum.English;
+
+    // Alternative translations
+    public List<AlternativeTranslation> AlternativeTranslations { get; set; } = [];
 
     // Startup behavior
     public bool AutoStartup { get; set; } = false;

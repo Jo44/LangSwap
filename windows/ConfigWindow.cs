@@ -145,12 +145,12 @@ public class ConfigWindow : Window, IDisposable
             plugin.ApplyNewTargetLanguage();
         }
 
-        // Custom language
+        // Customize button
         ImGui.SameLine();
         ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), buttonX));
         if (ImGui.Button("Customize", new Vector2(buttonWidth, 0f)))
         {
-            // TODO
+            plugin.ToggleCustomizeUI();
         }
 
         // Startup behavior
@@ -316,17 +316,19 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Separator();
 
-        // Clear caches button
+        // Clear translation caches
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
         if (ImGui.Button("Clear translation caches", new Vector2(200f, 0)))
         {
-            translationCache.Clear();
-            log.Information($"{Class} - All translation caches cleared");
+            ImGui.OpenPopup("Confirm clear");
         }
         ImGui.Spacing();
+
+        // Draw clear translation caches popup
+        DrawClearTranslationCachesPopup();
     }
 
     // ----------------------------
@@ -338,6 +340,46 @@ public class ConfigWindow : Window, IDisposable
         applyChange();
         config.Save();
         plugin.ApplyNewUIComponents();
+    }
+
+    // ----------------------------
+    // Draw clear translation caches popup
+    // ----------------------------
+    private void DrawClearTranslationCachesPopup()
+    {
+        // Popup for clear confirmation
+        if (!ImGui.BeginPopupModal("Confirm clear", ImGuiWindowFlags.AlwaysAutoResize)) return;
+
+        // Message
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 30f);
+        ImGui.TextWrapped("This will clear all translation caches.   Are you sure ?");
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.Spacing();
+
+        // Clear button
+        if (ImGui.Button("Yes, clear all", new Vector2(200f, 0f)))
+        {
+            // Clear translation cache
+            translationCache.Clear();
+            log.Information($"{Class} - All translation caches cleared");
+
+            // Close popup
+            ImGui.CloseCurrentPopup();
+        }
+
+        // Cancel button
+        ImGui.SameLine(0, 10f);
+        if (ImGui.Button("Cancel", new Vector2(200f, 0f)))
+        {
+            // Close popup
+            ImGui.CloseCurrentPopup();
+        }
+
+        // End popup
+        ImGui.EndPopup();
     }
 
     // ----------------------------

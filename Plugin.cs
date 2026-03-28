@@ -42,6 +42,7 @@ public sealed class Plugin : IDalamudPlugin
     // Core components
     private readonly Configuration config = null!;
     private readonly ConfigWindow configWindow = null!;
+    private readonly CustomizeWindow customizeWindow = null!;
     private readonly ExcelProvider excelProvider = null!;
     private readonly HookManager hookManager = null!;
     private readonly ShortcutDetector shortcutDetector = null!;
@@ -87,9 +88,11 @@ public sealed class Plugin : IDalamudPlugin
             translationCache = new(excelProvider);
             hookManager = new(AddonLifecycle, config, Framework, GameInterop, ObjectTable, SigScanner, TargetManager, translationCache, utilities, Log);
             configWindow = new(config, this, translationCache, Log);
+            customizeWindow = new(config, Log);
 
-            // Register window
+            // Register windows
             windowSystem.AddWindow(configWindow);
+            windowSystem.AddWindow(customizeWindow);
 
             // Register command
             CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand) { HelpMessage = "Opens the LangSwap configuration window" });
@@ -100,7 +103,7 @@ public sealed class Plugin : IDalamudPlugin
             // Register UI callbacks
             DalamudPluginInterface.UiBuilder.Draw += windowSystem.Draw;
             DalamudPluginInterface.UiBuilder.Draw += OnDraw;
-            DalamudPluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
+            DalamudPluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
 
             // Log plugin informations
             Log.Information($"{Class} === LangSwap plugin configuration ===");
@@ -362,7 +365,12 @@ public sealed class Plugin : IDalamudPlugin
     // ----------------------------
     // Toggle Config UI
     // ----------------------------
-    public void ToggleConfigUi() => configWindow.Toggle();
+    public void ToggleConfigUI() => configWindow.Toggle();
+
+    // ----------------------------
+    // Toggle Customize UI
+    // ----------------------------
+    public void ToggleCustomizeUI() => customizeWindow.Toggle();
 
     // ----------------------------
     // Command Handler
@@ -422,12 +430,13 @@ public sealed class Plugin : IDalamudPlugin
         // Unregister UI callbacks
         DalamudPluginInterface.UiBuilder.Draw -= windowSystem.Draw;
         DalamudPluginInterface.UiBuilder.Draw -= OnDraw;
-        DalamudPluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
+        DalamudPluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUI;
 
-        // Dispose window
+        // Dispose windows
         windowSystem.RemoveAllWindows();
         configWindow.Dispose();
-        
+        customizeWindow.Dispose();
+
         // Log plugin informations
         Log.Information($"{Class} === LangSwap plugin unloaded ===");
     }

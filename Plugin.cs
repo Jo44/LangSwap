@@ -7,7 +7,6 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using LangSwap.hook;
-using LangSwap.input;
 using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.Windows;
@@ -45,7 +44,6 @@ public sealed class Plugin : IDalamudPlugin
     private readonly CustomizeWindow customizeWindow = null!;
     private readonly ExcelProvider excelProvider = null!;
     private readonly HookManager hookManager = null!;
-    private readonly ShortcutDetector shortcutDetector = null!;
     private readonly TranslationCache translationCache = null!;
     private readonly Utilities utilities = null!;
     private readonly WindowSystem windowSystem = new("LangSwap");
@@ -82,8 +80,7 @@ public sealed class Plugin : IDalamudPlugin
             DetectClientLanguage();
 
             // Initialize core components
-            utilities = new(config, GameGui, Log);
-            shortcutDetector = new(config, KeyState, Log);
+            utilities = new(config, GameGui, KeyState, Log);
             excelProvider = new(config, DataManager, Log);
             translationCache = new(excelProvider);
             hookManager = new(AddonLifecycle, config, Framework, GameInterop, ObjectTable, SigScanner, TargetManager, translationCache, utilities, Log);
@@ -144,7 +141,7 @@ public sealed class Plugin : IDalamudPlugin
         if (disposed) return;
 
         // Check current shortcut state
-        bool shortcutPressed = shortcutDetector.IsPressed();
+        bool shortcutPressed = utilities.IsShortcutPressed();
 
         // Toggle language swap
         if (shortcutPressed && !previousShortcutPressed) ToggleLanguageSwap();
@@ -212,15 +209,6 @@ public sealed class Plugin : IDalamudPlugin
         // Check if already swapped
         if (isSwapEnabled) return;
 
-        // Check if target language is different from client language
-        if (config.TargetLanguage == config.ClientLanguage)
-        {
-            string error = "Target language is the same as client language, swap aborted";
-            ChatLog(error);
-            Log.Warning($"{Class} - {error}");
-            return;
-        }
-
         // Update hooks
         hookManager.UpdateHooks();
 
@@ -265,15 +253,6 @@ public sealed class Plugin : IDalamudPlugin
             // Temporarily restore language
             hookManager.RestoreLanguage();
             isSwapEnabled = false;
-
-            // Check if new target language is different from client language
-            if (config.TargetLanguage == config.ClientLanguage)
-            {
-                string error = "Target language is the same as client language, swap aborted";
-                ChatLog(error);
-                Log.Warning($"{Class} - {error}");
-                return;
-            }
 
             // Update hooks with new target language
             hookManager.UpdateHooks();
@@ -353,31 +332,6 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
-    // Swap State
-    // ----------------------------
-    public bool IsSwapEnabled() => isSwapEnabled;
-
-    // ----------------------------
-    // Toggle translation
-    // ----------------------------
-    public void ToggleTranslation() => ToggleLanguageSwap();
-
-    // ----------------------------
-    // Toggle Config UI
-    // ----------------------------
-    public void ToggleConfigUI() => configWindow.Toggle();
-
-    // ----------------------------
-    // Toggle Customize UI
-    // ----------------------------
-    public void ToggleCustomizeUI() => customizeWindow.Toggle();
-
-    // ----------------------------
-    // Command Handler
-    // ----------------------------
-    private void OnCommand(string command, string args) => configWindow.Toggle();
-
-    // ----------------------------
     // Chat Logging
     // ----------------------------
     private static void ChatLog(string message)
@@ -406,6 +360,31 @@ public sealed class Plugin : IDalamudPlugin
             Log.Error(ex, $"{Class} - Failed to print chat log");
         }
     }
+
+    // ----------------------------
+    // Swap State
+    // ----------------------------
+    public bool IsSwapEnabled() => isSwapEnabled;
+
+    // ----------------------------
+    // Toggle translation
+    // ----------------------------
+    public void ToggleTranslation() => ToggleLanguageSwap();
+
+    // ----------------------------
+    // Toggle Config UI
+    // ----------------------------
+    public void ToggleConfigUI() => configWindow.Toggle();
+
+    // ----------------------------
+    // Toggle Customize UI
+    // ----------------------------
+    public void ToggleCustomizeUI() => customizeWindow.Toggle();
+
+    // ----------------------------
+    // Command Handler
+    // ----------------------------
+    private void OnCommand(string command, string args) => configWindow.Toggle();
 
     // ----------------------------
     // Dispose

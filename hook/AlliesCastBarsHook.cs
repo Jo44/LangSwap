@@ -45,7 +45,7 @@ public unsafe class AlliesCastBarsHook(
     private readonly int partyListEndField = config.PartyListEndField;
     private readonly int partyListCastField = config.PartyListCastField;
 
-    // Tracking variables
+    // Action IDs
     private uint currentActionId = 0;
     private uint currentAllyTargetActionId = 0;
     private uint currentAllyFocusActionId = 0;
@@ -113,8 +113,8 @@ public unsafe class AlliesCastBarsHook(
                 currentActionId = 0;
                 currentAllyTargetActionId = 0;
                 currentAllyFocusActionId = 0;
-                alliesListCasts.Clear();
-                alliesListCastsExpiry.Clear();
+                listCasts.Clear();
+                listCastsExpiry.Clear();
                 return;
             }
 
@@ -125,8 +125,8 @@ public unsafe class AlliesCastBarsHook(
                 currentActionId = 0;
                 currentAllyTargetActionId = 0;
                 currentAllyFocusActionId = 0;
-                alliesListCasts.Clear();
-                alliesListCastsExpiry.Clear();
+                listCasts.Clear();
+                listCastsExpiry.Clear();
                 return;
             }
 
@@ -182,8 +182,8 @@ public unsafe class AlliesCastBarsHook(
                         // Update party list
                         if (isCharacter || inPartyList)
                         {
-                            alliesListCasts[battleChara.GameObjectId] = actionId;
-                            alliesListCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
+                            listCasts[battleChara.GameObjectId] = actionId;
+                            listCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
                         }
                     }
                 }
@@ -265,7 +265,7 @@ public unsafe class AlliesCastBarsHook(
         string targetIndicator = textParts[1];
 
         // Check if the current text contains any of the casts in the party list and translate it
-        foreach (KeyValuePair<ulong, uint> cast in alliesListCasts)
+        foreach (KeyValuePair<ulong, uint> cast in listCasts)
         {
             // Get the action ID
             uint actionId = cast.Value;
@@ -295,6 +295,24 @@ public unsafe class AlliesCastBarsHook(
                     }
                 }
             }
+        }
+    }
+
+    // ----------------------------
+    // Clean expired allies list casts
+    // ----------------------------
+    private void CleanExpiredAlliesListCasts()
+    {
+        long now = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
+        List<ulong> toRemove = [];
+        foreach (ulong id in listCastsExpiry.Keys)
+        {
+            if (now - listCastsExpiry[id] > ListCastExpiryTicks) toRemove.Add(id);
+        }
+        foreach (ulong id in toRemove)
+        {
+            listCasts.Remove(id);
+            listCastsExpiry.Remove(id);
         }
     }
 

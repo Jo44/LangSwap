@@ -7,7 +7,6 @@ using LangSwap.tool;
 using LangSwap.translation;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace LangSwap.hook.@base;
 
@@ -33,12 +32,10 @@ public unsafe abstract class CastBarsBaseHook(
     protected IObjectTable objectTable = objectTable;
     protected ITargetManager targetManager = targetManager;
 
-    // Tracking variables
-    protected readonly Dictionary<ulong, uint> alliesListCasts = [];
-    protected readonly Dictionary<ulong, long> alliesListCastsExpiry = [];
-    protected readonly Dictionary<ulong, uint> enemiesListCasts = [];
-    protected readonly Dictionary<ulong, long> enemiesListCastsExpiry = [];
-    protected const long ListCastExpiryTicks = 30L * 10_000_000L;
+    // Lists of casts
+    protected readonly Dictionary<ulong, uint> listCasts = [];
+    protected readonly Dictionary<ulong, long> listCastsExpiry = [];
+    protected const long ListCastExpiryTicks = 30L * 10_000_000L; // 30 seconds
 
     // ----------------------------
     // Check if member is in list
@@ -94,7 +91,7 @@ public unsafe abstract class CastBarsBaseHook(
         try
         {
             // Only update if language is swapped, we have casts to translate and the addon is visible
-            if (!isLanguageSwapped || (alliesListCasts.Count < 1 && enemiesListCasts.Count < 1) || addon == null || !addon -> IsVisible) return;
+            if (!isLanguageSwapped || (listCasts.Count < 1 && listCasts.Count < 1) || addon == null || !addon -> IsVisible) return;
 
             // Process each slot in the list
             for (int slotIndex = listStartField; slotIndex <= listEndField; slotIndex++)
@@ -141,41 +138,5 @@ public unsafe abstract class CastBarsBaseHook(
     // Translate cast text in the list slot
     // ----------------------------
     protected abstract void TranslateCastText(AtkTextNode* textNode);
-
-    // ----------------------------
-    // Clean expired allies list casts
-    // ----------------------------
-    protected void CleanExpiredAlliesListCasts()
-    {
-        long now = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
-        List<ulong> toRemove = [];
-        foreach (ulong id in alliesListCastsExpiry.Keys)
-        {
-            if (now - alliesListCastsExpiry[id] > ListCastExpiryTicks) toRemove.Add(id);
-        }
-        foreach (ulong id in toRemove)
-        {
-            alliesListCasts.Remove(id);
-            alliesListCastsExpiry.Remove(id);
-        }
-    }
-
-    // ----------------------------
-    // Clean expired enemies list casts
-    // ----------------------------
-    protected void CleanExpiredEnemiesListCasts()
-    {
-        long now = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
-        List<ulong> toRemove = [];
-        foreach (ulong id in enemiesListCastsExpiry.Keys)
-        {
-            if (now - enemiesListCastsExpiry[id] > ListCastExpiryTicks) toRemove.Add(id);
-        }
-        foreach (ulong id in toRemove)
-        {
-            enemiesListCasts.Remove(id);
-            enemiesListCastsExpiry.Remove(id);
-        }
-    }
 
 }

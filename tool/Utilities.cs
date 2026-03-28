@@ -18,6 +18,7 @@ namespace LangSwap.tool;
 public unsafe class Utilities(
     Configuration config,
     IGameGui gameGui,
+    IKeyState keyState,
     IPluginLog log)
 {
     // Log
@@ -27,6 +28,216 @@ public unsafe class Utilities(
     private readonly char glamouredSymbol = config.GlamouredSymbol;
     private readonly char highQualitySymbol = config.HighQualitySymbol;
     private readonly char[] targetIndicatorSymbols = config.TargetIndicatorSymbols;
+
+    // ----------------------------
+    // Initialize primary key names and values
+    // ----------------------------
+    public static void InitKeys(List<String> keyNames, List<int> keyValues)
+    {
+        // Letters A-Z
+        int startA = (int)VirtualKey.A;
+        int endZ = (int)VirtualKey.Z;
+        for (int v = startA; v <= endZ; v++)
+        {
+            keyNames.Add(((VirtualKey)v).ToString());
+            keyValues.Add(v);
+        }
+
+        // Function keys F1-F12
+        if (Enum.TryParse<VirtualKey>("F1", out _))
+        {
+            int startF1 = (int)VirtualKey.F1;
+            int endF12 = (int)VirtualKey.F12;
+            for (int v = startF1; v <= endF12; v++)
+            {
+                keyNames.Add(((VirtualKey)v).ToString());
+                keyValues.Add(v);
+            }
+        }
+    }
+
+    // ----------------------------
+    // Check if the configured shortcut is currently pressed
+    // ----------------------------
+    public bool IsShortcutPressed()
+    {
+        // Validate key state
+        if (keyState is null) return false;
+
+        // Shortcut disabled
+        if (!config.ShortcutEnabled) return false;
+
+        // Primary key
+        bool primary = config.PrimaryKey < 0 || IsKeyDown(config.PrimaryKey);
+
+        // Modifier keys
+        bool ctrl = !config.Ctrl || IsKeyDown((int)VirtualKey.LCONTROL) || IsKeyDown((int)VirtualKey.RCONTROL) || IsKeyDown((int)VirtualKey.CONTROL);
+        bool alt = !config.Alt || IsKeyDown((int)VirtualKey.LMENU) || IsKeyDown((int)VirtualKey.RMENU) || IsKeyDown((int)VirtualKey.MENU);
+        bool shift = !config.Shift || IsKeyDown((int)VirtualKey.LSHIFT) || IsKeyDown((int)VirtualKey.RSHIFT) || IsKeyDown((int)VirtualKey.SHIFT);
+
+        // Always return false if no keys are configured
+        if (config.PrimaryKey == 0 && !config.Ctrl && !config.Alt && !config.Shift) return false;
+
+        // Final evaluation
+        return primary && ctrl && alt && shift;
+    }
+
+    // ----------------------------
+    // Check if a specific virtual key is currently down
+    // ----------------------------
+    private bool IsKeyDown(int vkCode)
+    {
+        try
+        {
+            // Attempt to convert vkCode to VirtualKey enum
+            Type underlying = Enum.GetUnderlyingType(typeof(VirtualKey));
+            VirtualKey converted;
+            try
+            {
+                converted = (VirtualKey)Convert.ChangeType(vkCode, underlying);
+            }
+            catch
+            {
+                int rawFallback = keyState.GetRawValue(vkCode);
+                return rawFallback != 0;
+            }
+
+            // Check if the converted value is a defined VirtualKey
+            if (Enum.IsDefined(converted))
+            {
+                VirtualKey vk = (VirtualKey)Enum.ToObject(typeof(VirtualKey), converted);
+                if (keyState.IsVirtualKeyValid(vk))
+                {
+                    int raw = keyState.GetRawValue(vk);
+                    return raw != 0;
+                }
+            }
+
+            // Fallback to raw value check
+            int rawInt = keyState.GetRawValue(vkCode);
+            return rawInt != 0;
+        }
+        catch (Exception ex)
+        {
+            // Log exception and return false
+            log.Warning($"{Class} - ShortcutDetector.IsKeyDown exception for vk = {vkCode} : {ex.Message}");
+            return false;
+        }
+    }
+
+    // ----------------------------
+    // Export CSV
+    // ----------------------------
+    public static string ExportCSV(List<AlternativeTranslation> translations)
+    {
+        // Check for null or empty list
+        if (translations == null || translations.Count == 0) return string.Empty;
+
+        // Build CSV lines
+        List<string> lines = [];
+        foreach (AlternativeTranslation translation in translations)
+        {
+            // Sanitize fields
+            string spell = SanitizeCSVField(translation.SpellName);
+            string replacement = SanitizeCSVField(translation.AlternativeName);
+
+            // Add line to CSV
+            lines.Add($"{spell};{replacement}");
+        }
+
+        // Join lines with newline character
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    // ----------------------------
+    // Sanitize CSV field
+    // ----------------------------
+    private static string SanitizeCSVField(string field)
+    {
+        // Remove line breaks and trim whitespace to prevent CSV formatting issues
+        return (field ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
+    }
+
+    // ----------------------------
+    // Import CSV
+    // ----------------------------
+    public static bool ImportCSV(string csv, List<AlternativeTranslation> translations, out string status)
+    {
+        // Initialize
+        status = string.Empty;
+        List<AlternativeTranslation> imported = [];
+
+        // Check for null target list
+        if (translations == null)
+        {
+            status = "Target list is null";
+            return false;
+        }
+
+        // Clear list if CSV is empty
+        if (string.IsNullOrWhiteSpace(csv))
+        {
+            translations.Clear();
+            return true;
+        }
+
+        // Split CSV into lines and process each line
+        string[] lines = csv.Replace("\r", string.Empty).Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            // Trim line and skip if empty
+            string line = lines[i].Trim();
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            // Validate line format (must contain exactly one ';' separator)
+            int separatorIndex = line.IndexOf(';');
+            if (separatorIndex <= 0 || separatorIndex >= line.Length - 1)
+            {
+                // Invalid format
+                status = $"Invalid CSV at line {i + 1}";
+                return false;
+            }
+
+            // Extract spell name and alternative name
+            string spellName = line[..separatorIndex].Trim();
+            string alternativeName = line[(separatorIndex + 1)..].Trim();
+
+            // Validate extracted values (non-empty and no semicolons)
+            if (string.IsNullOrWhiteSpace(spellName) || spellName.Contains(';') || string.IsNullOrWhiteSpace(alternativeName) || alternativeName.Contains(';'))
+            {
+                status = $"Invalid values at line {i + 1}";
+                return false;
+            }
+
+            // Add to imported list
+            imported.Add(new AlternativeTranslation
+            {
+                SpellName = spellName,
+                AlternativeName = alternativeName
+            });
+        }
+
+        // Replace original list with imported translations
+        translations.Clear();
+        translations.AddRange(imported);
+        return true;
+    }
+
+    // ----------------------------
+    // Convert LanguageEnum to ClientLanguage
+    // ----------------------------
+    public static ClientLanguage EnumToClientLang(LanguageEnum lang)
+    {
+        // Map LanguageEnum to ClientLanguage
+        return lang switch
+        {
+            LanguageEnum.Japanese => ClientLanguage.Japanese,
+            LanguageEnum.English => ClientLanguage.English,
+            LanguageEnum.German => ClientLanguage.German,
+            LanguageEnum.French => ClientLanguage.French,
+            _ => ClientLanguage.English
+        };
+    }
 
     // ----------------------------
     // Get addon
@@ -49,6 +260,7 @@ public unsafe class Utilities(
         }
         return addon;
     }
+
     // ----------------------------
     // Refresh addon
     // ----------------------------
@@ -204,6 +416,40 @@ public unsafe class Utilities(
     }
 
     // ----------------------------
+    // Log the structure of StringArrayData (for debugging)
+    // ----------------------------
+    public void LogSADStructure(StringArrayData* stringArrayData)
+    {
+        if (stringArrayData != null)
+        {
+            log.Debug($"{Class} === StringArrayData Structure ===");
+            log.Debug($"{Class} - Total Size: {stringArrayData->AtkArrayData.Size}");
+
+            // Log each field with its content
+            for (int i = 0; i < stringArrayData->AtkArrayData.Size; i++)
+            {
+                // Read the string at this index
+                string text = ReadStringFromArrayData(stringArrayData, i);
+
+                // Log all non-empty fields
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    // Truncate long text for readability
+                    string displayText = text.Length > 100 ? text[..100] + "..." : text;
+
+                    // Replace line breaks for compact display
+                    displayText = displayText.Replace("\n", " | ");
+
+                    // Log
+                    log.Debug($"{Class} - [{i,2}] {displayText}");
+                }
+            }
+
+            log.Debug($"{Class} === End of StringArrayData ===");
+        }
+    }
+
+    // ----------------------------
     // Remove ellipsis from text
     // ----------------------------
     public static string RemoveEllipsis(string text)
@@ -282,83 +528,6 @@ public unsafe class Utilities(
     {
         if (!string.IsNullOrWhiteSpace(text)) text = text.Replace(glamouredSymbol.ToString(), "").Trim();
         return text;
-    }
-
-    // ----------------------------
-    // Convert LanguageEnum to ClientLanguage
-    // ----------------------------
-    public static ClientLanguage EnumToClientLang(LanguageEnum lang)
-    {
-        // Map LanguageEnum to ClientLanguage
-        return lang switch
-        {
-            LanguageEnum.Japanese => ClientLanguage.Japanese,
-            LanguageEnum.English => ClientLanguage.English,
-            LanguageEnum.German => ClientLanguage.German,
-            LanguageEnum.French => ClientLanguage.French,
-            _ => ClientLanguage.English
-        };
-    }
-
-    // ----------------------------
-    // Initialize primary key names and values
-    // ----------------------------
-    public static void InitKeys(List<String> keyNames, List<int> keyValues)
-    {
-        // Letters A-Z
-        int startA = (int)VirtualKey.A;
-        int endZ = (int)VirtualKey.Z;
-        for (int v = startA; v <= endZ; v++)
-        {
-            keyNames.Add(((VirtualKey)v).ToString());
-            keyValues.Add(v);
-        }
-
-        // Function keys F1-F12
-        if (Enum.TryParse<VirtualKey>("F1", out _))
-        {
-            int startF1 = (int)VirtualKey.F1;
-            int endF12 = (int)VirtualKey.F12;
-            for (int v = startF1; v <= endF12; v++)
-            {
-                keyNames.Add(((VirtualKey)v).ToString());
-                keyValues.Add(v);
-            }
-        }
-    }
-
-    // ----------------------------
-    // Log the structure of StringArrayData (for debugging)
-    // ----------------------------
-    public void LogSADStructure(StringArrayData* stringArrayData)
-    {
-        if (stringArrayData != null)
-        {
-            log.Debug($"{Class} === StringArrayData Structure ===");
-            log.Debug($"{Class} - Total Size: {stringArrayData -> AtkArrayData.Size}");
-
-            // Log each field with its content
-            for (int i = 0; i < stringArrayData -> AtkArrayData.Size; i++)
-            {
-                // Read the string at this index
-                string text = ReadStringFromArrayData(stringArrayData, i);
-
-                // Log all non-empty fields
-                if (!string.IsNullOrWhiteSpace(text))
-                {
-                    // Truncate long text for readability
-                    string displayText = text.Length > 100 ? text[..100] + "..." : text;
-
-                    // Replace line breaks for compact display
-                    displayText = displayText.Replace("\n", " | ");
-
-                    // Log
-                    log.Debug($"{Class} - [{i,2}] {displayText}");
-                }
-            }
-
-            log.Debug($"{Class} === End of StringArrayData ===");
-        }
     }
 
 }

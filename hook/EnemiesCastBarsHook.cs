@@ -44,7 +44,7 @@ public unsafe class EnemiesCastBarsHook(
     private readonly int enemyListEndField = config.EnemyListEndField;
     private readonly int enemyListCastField = config.EnemyListCastField;
 
-    // Tracking variables
+    // Action IDs
     private uint currentEnemyTargetActionId = 0;
     private uint currentEnemyFocusActionId = 0;
 
@@ -108,8 +108,8 @@ public unsafe class EnemiesCastBarsHook(
             {
                 currentEnemyTargetActionId = 0;
                 currentEnemyFocusActionId = 0;
-                enemiesListCasts.Clear();
-                enemiesListCastsExpiry.Clear();
+                listCasts.Clear();
+                listCastsExpiry.Clear();
                 return;
             }
 
@@ -119,8 +119,8 @@ public unsafe class EnemiesCastBarsHook(
             {
                 currentEnemyTargetActionId = 0;
                 currentEnemyFocusActionId = 0;
-                enemiesListCasts.Clear();
-                enemiesListCastsExpiry.Clear();
+                listCasts.Clear();
+                listCastsExpiry.Clear();
                 return;
             }
 
@@ -170,8 +170,8 @@ public unsafe class EnemiesCastBarsHook(
                         // Update enemy list
                         if (inEnmityList)
                         {
-                            enemiesListCasts[battleChara.GameObjectId] = actionId;
-                            enemiesListCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
+                            listCasts[battleChara.GameObjectId] = actionId;
+                            listCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
                         }
                     }
                 }
@@ -239,8 +239,8 @@ public unsafe class EnemiesCastBarsHook(
         // Remove ellipsis for comparison
         currentText = Utilities.RemoveEllipsis(currentText);
 
-        // Check if the current text contains any of the casts in the enemy list and translate it
-        foreach (KeyValuePair<ulong, uint> cast in enemiesListCasts)
+        // Check if the current text contains any of the casts in the enmity list and translate it
+        foreach (KeyValuePair<ulong, uint> cast in listCasts)
         {
             // Get the action ID
             uint actionId = cast.Value;
@@ -261,6 +261,24 @@ public unsafe class EnemiesCastBarsHook(
                     break;
                 }
             }
+        }
+    }
+
+    // ----------------------------
+    // Clean expired enemies list casts
+    // ----------------------------
+    private void CleanExpiredEnemiesListCasts()
+    {
+        long now = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
+        List<ulong> toRemove = [];
+        foreach (ulong id in listCastsExpiry.Keys)
+        {
+            if (now - listCastsExpiry[id] > ListCastExpiryTicks) toRemove.Add(id);
+        }
+        foreach (ulong id in toRemove)
+        {
+            listCasts.Remove(id);
+            listCastsExpiry.Remove(id);
         }
     }
 

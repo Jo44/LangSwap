@@ -1,6 +1,7 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
+using LangSwap.tool;
 using LangSwap.translation;
 using System;
 using System.Collections.Generic;
@@ -21,9 +22,14 @@ public class CustomizeWindow : Window, IDisposable
     private readonly IPluginLog log;
 
     // Alternative translations
-    private readonly List<AlternativeTranslation> workingTranslations = [];
+    private readonly List<AlternativeTranslation> translations = [];
     private bool focusNewRowSpell;
     private int focusNewRowIndex = -1;
+
+    // CSV buffers
+    private string exportCsvText = string.Empty;
+    private string importCsvText = string.Empty;
+    private string importCsvStatus = string.Empty;
 
     // Action cell colors
     private static readonly Vector4 ActionCellColor = new(0.37f, 0.15f, 0.14f, 1.00f);
@@ -72,14 +78,17 @@ public class CustomizeWindow : Window, IDisposable
         ImGui.SameLine(0, 15f);
         if (ImGui.Button("Export CSV", new Vector2(150f, 0f)))
         {
-            // TODO: Implement export functionality
+            exportCsvText = Utilities.ExportCSV(translations);
+            ImGui.OpenPopup("Export CSV");
         }
 
         // Import button
         ImGui.SameLine(0, 15f);
         if (ImGui.Button("Import CSV", new Vector2(150f, 0f)))
         {
-            // TODO: Implement import functionality
+            importCsvText = string.Empty;
+            importCsvStatus = string.Empty;
+            ImGui.OpenPopup("Import CSV");
         }
 
         // Reset button
@@ -99,64 +108,79 @@ public class CustomizeWindow : Window, IDisposable
         }
         ImGui.EndDisabled();
 
-        // Draw reset confirmation popup
+        // Draw popups
+        DrawExportCsvPopup();
+        DrawImportCsvPopup();
         DrawResetPopup();
     }
 
     // ----------------------------
-    // Can save changes
+    // Draw export CSV popup
     // ----------------------------
-    private bool CanSaveChanges()
+    private void DrawExportCsvPopup()
     {
-        // Check for invalid entries
-        if (HasInvalidEntries()) return false;
+        if (!ImGui.BeginPopupModal("Export CSV", ImGuiWindowFlags.AlwaysAutoResize)) return;
 
-        // Check for changes
-        if (!HasChanges()) return false;
+        ImGui.Text("CSV format: spell;replacement");
+        ImGui.Spacing();
 
-        // All checks passed, can save
-        return true;
-    }
+        ImGui.InputTextMultiline("##ExportCsvText", ref exportCsvText, 32768, new Vector2(620f, 220f), ImGuiInputTextFlags.ReadOnly);
 
-    // ----------------------------
-    // Has changes
-    // ----------------------------
-    private bool HasChanges()
-    {
-        // Check for count differences
-        if (workingTranslations.Count != config.AlternativeTranslations.Count) return true;
-
-        // Check for differences in spell names or alternative names
-        for (int i = 0; i < workingTranslations.Count; i++)
+        ImGui.Spacing();
+        if (ImGui.Button("Copy", new Vector2(120f, 0f)))
         {
-            AlternativeTranslation working = workingTranslations[i];
-            AlternativeTranslation saved = config.AlternativeTranslations[i];
-            if (!string.Equals(working.SpellName, saved.SpellName, StringComparison.Ordinal)) return true;
-            if (!string.Equals(working.AlternativeName, saved.AlternativeName, StringComparison.Ordinal)) return true;
+            ImGui.SetClipboardText(exportCsvText);
         }
-        return false;
-    }
 
-    // ----------------------------
-    // Has invalid entries
-    // ----------------------------
-    private bool HasInvalidEntries()
-    {
-        // Check for invalid values in working translations
-        foreach (AlternativeTranslation item in workingTranslations)
+        ImGui.SameLine(0, 10f);
+        if (ImGui.Button("Close", new Vector2(120f, 0f)))
         {
-            if (IsInvalidValue(item.SpellName) || IsInvalidValue(item.AlternativeName)) return true;
+            ImGui.CloseCurrentPopup();
         }
-        return false;
+
+        ImGui.EndPopup();
     }
 
     // ----------------------------
-    // Is invalid value
+    // Draw import CSV popup
     // ----------------------------
-    private static bool IsInvalidValue(string value)
-    {   
-        // Check for invalid characters or empty values
-        return string.IsNullOrWhiteSpace(value) || value.Contains(';');
+    private void DrawImportCsvPopup()
+    {
+        if (!ImGui.BeginPopupModal("Import CSV", ImGuiWindowFlags.AlwaysAutoResize)) return;
+
+        ImGui.Text("CSV format: spell;replacement");
+        ImGui.Spacing();
+
+        ImGui.InputTextMultiline("##ImportCsvText", ref importCsvText, 32768, new Vector2(620f, 220f));
+
+        if (!string.IsNullOrWhiteSpace(importCsvStatus))
+        {
+            ImGui.Spacing();
+            ImGui.TextWrapped(importCsvStatus);
+        }
+
+        ImGui.Spacing();
+        if (ImGui.Button("Apply", new Vector2(120f, 0f)))
+        {
+            if (Utilities.ImportCSV(importCsvText, translations, out string status))
+            {
+                importCsvStatus = string.Empty;
+                ImGui.CloseCurrentPopup();
+            }
+            else
+            {
+                importCsvStatus = status;
+            }
+        }
+
+        ImGui.SameLine(0, 10f);
+        if (ImGui.Button("Close", new Vector2(120f, 0f)))
+        {
+            importCsvStatus = string.Empty;
+            ImGui.CloseCurrentPopup();
+        }
+
+        ImGui.EndPopup();
     }
 
     // ----------------------------
@@ -189,8 +213,8 @@ public class CustomizeWindow : Window, IDisposable
             bool addClicked = DrawActionCell("##AddCell", "Add", rowHeight);
             if (addClicked && !HasPendingEmptyRow())
             {
-                workingTranslations.Add(new AlternativeTranslation());
-                focusNewRowIndex = workingTranslations.Count - 1;
+                translations.Add(new AlternativeTranslation());
+                focusNewRowIndex = translations.Count - 1;
                 focusNewRowSpell = true;
             }
 
@@ -207,7 +231,7 @@ public class CustomizeWindow : Window, IDisposable
             DrawCenteredCellText(" ", rowHeight);
 
             // No entries message
-            if (workingTranslations.Count == 0)
+            if (translations.Count == 0)
             {
                 ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
                 ImGui.TableSetColumnIndex(0);
@@ -221,10 +245,10 @@ public class CustomizeWindow : Window, IDisposable
                 int removeIndex = -1;
 
                 // Draw rows for each alternative translation
-                for (int i = 0; i < workingTranslations.Count; i++)
+                for (int i = 0; i < translations.Count; i++)
                 {
                     // Get current entry
-                    AlternativeTranslation entry = workingTranslations[i];
+                    AlternativeTranslation entry = translations[i];
 
                     // Start of row
                     ImGui.PushID(i);
@@ -266,7 +290,7 @@ public class CustomizeWindow : Window, IDisposable
 
                 if (removeIndex >= 0)
                 {
-                    workingTranslations.RemoveAt(removeIndex);
+                    translations.RemoveAt(removeIndex);
                 }
             }
 
@@ -355,7 +379,7 @@ public class CustomizeWindow : Window, IDisposable
         if (ImGui.Button("Yes, reset all", new Vector2(200f, 0f)))
         {
             // Clear working values
-            workingTranslations.Clear();
+            translations.Clear();
 
             // Clear persisted values
             config.AlternativeTranslations.Clear();
@@ -389,7 +413,7 @@ public class CustomizeWindow : Window, IDisposable
         config.AlternativeTranslations.Clear();
 
         // Save working values into persisted list
-        foreach (AlternativeTranslation item in workingTranslations)
+        foreach (AlternativeTranslation item in translations)
         {
             config.AlternativeTranslations.Add(new AlternativeTranslation
             {
@@ -402,7 +426,63 @@ public class CustomizeWindow : Window, IDisposable
         config.Save();
 
         // Log
-        log.Information($"{Class} - Saved {workingTranslations.Count} alternative translations");
+        log.Information($"{Class} - Saved {translations.Count} alternative translations");
+    }
+
+    // ----------------------------
+    // Can save changes
+    // ----------------------------
+    private bool CanSaveChanges()
+    {
+        // Check for invalid entries
+        if (HasInvalidEntries()) return false;
+
+        // Check for changes
+        if (!HasChanges()) return false;
+
+        // All checks passed, can save
+        return true;
+    }
+
+    // ----------------------------
+    // Has changes
+    // ----------------------------
+    private bool HasChanges()
+    {
+        // Check for count differences
+        if (translations.Count != config.AlternativeTranslations.Count) return true;
+
+        // Check for differences in spell names or alternative names
+        for (int i = 0; i < translations.Count; i++)
+        {
+            AlternativeTranslation working = translations[i];
+            AlternativeTranslation saved = config.AlternativeTranslations[i];
+            if (!string.Equals(working.SpellName, saved.SpellName, StringComparison.Ordinal)) return true;
+            if (!string.Equals(working.AlternativeName, saved.AlternativeName, StringComparison.Ordinal)) return true;
+        }
+        return false;
+    }
+
+    // ----------------------------
+    // Has invalid entries
+    // ----------------------------
+    private bool HasInvalidEntries()
+    {
+        // Check for invalid values in working translations
+        foreach (AlternativeTranslation item in translations)
+        {
+            if (IsInvalidValue(item.SpellName) || IsInvalidValue(item.AlternativeName)) return true;
+        }
+        return false;
+    }
+
+    // ----------------------------
+    // Is invalid value
+    // ----------------------------
+    private static bool IsInvalidValue(string value)
+    {
+        // Check for invalid characters or empty values
+        return string.IsNullOrWhiteSpace(value) || value.Contains(';');
     }
 
     // ----------------------------
@@ -411,7 +491,7 @@ public class CustomizeWindow : Window, IDisposable
     private bool HasPendingEmptyRow()
     {
         // Check if there is already an empty row in the working translations
-        foreach (AlternativeTranslation item in workingTranslations)
+        foreach (AlternativeTranslation item in translations)
         {
             if (string.IsNullOrWhiteSpace(item.SpellName) && string.IsNullOrWhiteSpace(item.AlternativeName)) return true;
         }
@@ -424,12 +504,12 @@ public class CustomizeWindow : Window, IDisposable
     private void LoadFromConfiguration()
     {
         // Clear working list
-        workingTranslations.Clear();
+        translations.Clear();
 
         // Load persisted values into working list
         foreach (AlternativeTranslation item in config.AlternativeTranslations)
         {
-            workingTranslations.Add(new AlternativeTranslation
+            translations.Add(new AlternativeTranslation
             {
                 SpellName = item.SpellName,
                 AlternativeName = item.AlternativeName
@@ -437,7 +517,7 @@ public class CustomizeWindow : Window, IDisposable
         }
 
         // Log
-        log.Information($"{Class} - Loaded {workingTranslations.Count} persisted alternative translations");
+        log.Information($"{Class} - Loaded {translations.Count} persisted alternative translations");
     }
 
     // ----------------------------

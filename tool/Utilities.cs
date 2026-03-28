@@ -129,17 +129,14 @@ public unsafe class Utilities(
     // ----------------------------
     // Get alternative translation
     // ----------------------------
-    public static string GetAlternativeTranslation(string spellName, List<AlternativeTranslation> alternativeTranslations)
+    public static string? GetAlternativeTranslation(string spellName, List<AlternativeTranslation> alternativeTranslations)
     {
-        // Find alternative translation
-        string alternativeName = spellName;
-        AlternativeTranslation? alternativeTranslation = alternativeTranslations.FindLast(alternative => alternative.SpellName == alternativeName);
-        if (alternativeTranslation != null && !alternativeTranslation.SpellName.IsNullOrWhitespace() && !alternativeTranslation.AlternativeName.IsNullOrWhitespace())
-        {
-            // Use alternative name if valid
-            alternativeName = alternativeTranslation.AlternativeName;
-        }
-        return alternativeName;
+        // Check for null or empty spell name or translations list
+        if (spellName.IsNullOrWhitespace() || alternativeTranslations == null || alternativeTranslations.Count == 0) 
+            return null;
+
+        // Find the last alternative translation that matches the spell name
+        return alternativeTranslations.FindLast(alternative => alternative.SpellName == spellName)?.AlternativeName;
     }
 
     // ----------------------------

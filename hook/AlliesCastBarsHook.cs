@@ -277,20 +277,20 @@ public unsafe class AlliesCastBarsHook(
             // If the client language action name contains the current text, translate it
             if (clientActionName.StartsWith(textWithoutIndicator))
             {
-                // Get the translated action name
-                string? translatedName = translationCache.GetActionName(actionId, config.TargetLanguage);
-                if (!translatedName.IsNullOrWhitespace())
+                // Get the display action name
+                string? displayName = GetDisplayActionName(actionId);
+                if (!displayName.IsNullOrWhitespace())
                 {
                     if (!targetIndicator.IsNullOrWhitespace())
                     {
-                        // Update the text node with the translated name and target indicator
-                        textNode -> SetText(translatedName + " " + targetIndicator);
+                        // Update the text node with the display name and target indicator
+                        textNode -> SetText(displayName + " " + targetIndicator);
                         break;
                     }
                     else
                     {
-                        // Update the text node with the translated name
-                        textNode -> SetText(translatedName);
+                        // Update the text node with the display name
+                        textNode -> SetText(displayName);
                         break;
                     }
                 }

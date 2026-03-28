@@ -56,39 +56,43 @@ public unsafe class ActionTooltipHook(
                 // Get target language
                 LanguageEnum targetLang = config.TargetLanguage;
 
-                // Get action name
-                string actionName = utilities.ReadStringFromArrayData(stringArrayData, actionNameField);
-                if (!string.IsNullOrWhiteSpace(actionName))
+                // Only proceed if client language and target language are different
+                if (clientLang != targetLang)
                 {
-                    // Get action ID 
-                    uint actionId = translationCache.GetActionIdByName(actionName, clientLang) ?? 0;
-                    if (actionId > 0 && actionId <= config.MaxValidActionId)
+                    // Get action name
+                    string actionName = utilities.ReadStringFromArrayData(stringArrayData, actionNameField);
+                    if (!string.IsNullOrWhiteSpace(actionName))
                     {
-                        /* Action name */
-
-                        // Translate action name
-                        string translatedActionName = TranslateActionName(actionId, targetLang);
-
-                        // Apply translated action name
-                        if (!string.IsNullOrWhiteSpace(translatedActionName))
+                        // Get action ID 
+                        uint actionId = translationCache.GetActionIdByName(actionName, clientLang) ?? 0;
+                        if (actionId > 0 && actionId <= config.MaxValidActionId)
                         {
-                            if (!utilities.WriteStringToArrayData(stringArrayData, actionNameField, translatedActionName))
+                            /* Action name */
+
+                            // Translate action name
+                            string translatedActionName = TranslateActionName(actionId, targetLang);
+
+                            // Apply translated action name
+                            if (!string.IsNullOrWhiteSpace(translatedActionName))
                             {
-                                log.Error($"{Class} - Failed to write translated action name ({translatedActionName}) to field {actionNameField}");
+                                if (!utilities.WriteStringToArrayData(stringArrayData, actionNameField, translatedActionName))
+                                {
+                                    log.Error($"{Class} - Failed to write translated action name ({translatedActionName}) to field {actionNameField}");
+                                }
                             }
-                        }
 
-                        /* Description */
+                            /* Description */
 
-                        // Translate description
-                        string translatedDescription = TranslateDescription(actionId, targetLang);
-                        
-                        // Apply translated description
-                        if (!string.IsNullOrWhiteSpace(translatedDescription))
-                        {
-                            if (!utilities.WriteStringToArrayData(stringArrayData, actionDescriptionField, translatedDescription))
+                            // Translate description
+                            string translatedDescription = TranslateDescription(actionId, targetLang);
+
+                            // Apply translated description
+                            if (!string.IsNullOrWhiteSpace(translatedDescription))
                             {
-                                log.Error($"{Class} - Failed to write translated description ({translatedDescription}) to field {actionDescriptionField}");
+                                if (!utilities.WriteStringToArrayData(stringArrayData, actionDescriptionField, translatedDescription))
+                                {
+                                    log.Error($"{Class} - Failed to write translated description ({translatedDescription}) to field {actionDescriptionField}");
+                                }
                             }
                         }
                     }

@@ -54,6 +54,45 @@ public unsafe abstract class CastBarsBaseHook(
         return inList;
     }
 
+    // ----------------------------
+    // Get display action name
+    // ----------------------------
+    protected string? GetDisplayActionName(uint actionId)
+    {
+        try
+        {
+            // Check for valid action ID
+            if (actionId == 0) return null;
+
+            // If target language is same as client language
+            if (config.TargetLanguage == config.ClientLanguage)
+            {
+                // Get the client action name
+                string? clientActionName = translationCache.GetActionName(actionId, config.ClientLanguage);
+                if (clientActionName.IsNullOrWhitespace()) return null;
+
+                // Check for alternative translation
+                string? alternativeName = Utilities.GetAlternativeTranslation(clientActionName, config.AlternativeTranslations);
+                if (!alternativeName.IsNullOrWhitespace() && !string.Equals(alternativeName, clientActionName, StringComparison.Ordinal))
+                {
+                    return alternativeName;
+                }
+                return null;
+            }
+
+            // Get the translated action name
+            string? translatedName = translationCache.GetActionName(actionId, config.TargetLanguage);
+            if (translatedName.IsNullOrWhitespace()) return null;
+
+            // Check for alternative translation
+            return Utilities.GetAlternativeTranslation(translatedName, config.AlternativeTranslations);
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Error resolving cast display name");
+            return null;
+        }
+    }
 
     // ----------------------------
     // Update cast bar
@@ -65,9 +104,9 @@ public unsafe abstract class CastBarsBaseHook(
             // Only update if language is swapped, we have a valid action ID and the addon is visible
             if (!isLanguageSwapped || actionId == 0 || addon == null || !addon -> IsVisible) return;
 
-            // Get translated action name
-            string? translatedName = translationCache.GetActionName(actionId, config.TargetLanguage);
-            if (translatedName.IsNullOrWhitespace()) return;
+            // Get display action name
+            string? displayName = GetDisplayActionName(actionId);
+            if (displayName.IsNullOrWhitespace()) return;
 
             // Get the text node
             AtkResNode* fieldNode = addon -> UldManager.NodeList[fieldIndex];
@@ -75,7 +114,7 @@ public unsafe abstract class CastBarsBaseHook(
 
             // Update text
             AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-            if (textNode != null && textNode -> NodeText.Length > 0) textNode -> SetText(translatedName);
+            if (textNode != null && textNode -> NodeText.Length > 0) textNode -> SetText(displayName);
         }
         catch (Exception ex)
         {

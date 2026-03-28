@@ -228,7 +228,7 @@ public unsafe class EnemiesCastBarsHook(
     }
 
     // ----------------------------
-    // Translate the cast text in the enemy list slot
+    // Translate the cast text in the enmity list slot
     // ----------------------------
     protected override void TranslateCastText(AtkTextNode* textNode)
     {
@@ -252,12 +252,12 @@ public unsafe class EnemiesCastBarsHook(
             // If the client language action name contains the current text, translate it
             if (clientActionName.StartsWith(currentText))
             {
-                // Get the translated action name
-                string? translatedName = translationCache.GetActionName(actionId, config.TargetLanguage);
-                if (!translatedName.IsNullOrWhitespace())
+                // Get the display action name
+                string? displayName = GetDisplayActionName(actionId);
+                if (!displayName.IsNullOrWhitespace())
                 {
-                    // Update the text node with the translated name
-                    textNode -> SetText(translatedName);
+                    // Update the text node with the display name
+                    textNode -> SetText(displayName);
                     break;
                 }
             }

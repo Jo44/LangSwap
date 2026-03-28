@@ -70,160 +70,164 @@ public unsafe partial class ItemTooltipHook(
                 // Get target language
                 LanguageEnum targetLang = config.TargetLanguage;
 
-                // Get item name
-                string itemName = utilities.ReadStringFromArrayData(stringArrayData, itemNameField);
-                if (!string.IsNullOrWhiteSpace(itemName))
+                // Only proceed if client language and target language are different
+                if (clientLang != targetLang)
                 {
-                    // Check for high quality symbol in item name
-                    bool isHighQualityItem = utilities.IsHighQuality(itemName);
-
-                    // Remove it temporarily for ID lookup
-                    if (isHighQualityItem) itemName = utilities.UnsetHighQuality(itemName);
-
-                    // Get item ID
-                    uint itemId = translationCache.GetItemIdByName(itemName, clientLang) ?? 0;
-                    if (itemId > 0 && itemId <= config.MaxValidItemId)
+                    // Get item name
+                    string itemName = utilities.ReadStringFromArrayData(stringArrayData, itemNameField);
+                    if (!string.IsNullOrWhiteSpace(itemName))
                     {
-                        /* Item name */
+                        // Check for high quality symbol in item name
+                        bool isHighQualityItem = utilities.IsHighQuality(itemName);
 
-                        // Translate item name
-                        string translatedItemName = TranslateItemName(itemId, isHighQualityItem, targetLang);
+                        // Remove it temporarily for ID lookup
+                        if (isHighQualityItem) itemName = utilities.UnsetHighQuality(itemName);
 
-                        // Apply translated item name
-                        if (!string.IsNullOrWhiteSpace(translatedItemName))
+                        // Get item ID
+                        uint itemId = translationCache.GetItemIdByName(itemName, clientLang) ?? 0;
+                        if (itemId > 0 && itemId <= config.MaxValidItemId)
                         {
-                            if (!utilities.WriteStringToArrayData(stringArrayData, itemNameField, translatedItemName))
+                            /* Item name */
+
+                            // Translate item name
+                            string translatedItemName = TranslateItemName(itemId, isHighQualityItem, targetLang);
+
+                            // Apply translated item name
+                            if (!string.IsNullOrWhiteSpace(translatedItemName))
                             {
-                                log.Error($"{Class} - Failed to write translated item name ({translatedItemName}) to field {itemNameField}");
-                            }
-                        }
-
-                        /* Glamour name */
-
-                        // Get glamour name
-                        string glamourName = utilities.ReadStringFromArrayData(stringArrayData, glamourNameField);
-                        if (!string.IsNullOrWhiteSpace(glamourName))
-                        {
-                            // Check for high quality symbol in glamour name
-                            bool isHighQualityGlamour = utilities.IsHighQuality(glamourName);
-
-                            // Remove symbols temporarily for ID lookup
-                            glamourName = utilities.UnsetGlamour(glamourName);
-                            if (isHighQualityGlamour) glamourName = utilities.UnsetHighQuality(glamourName);
-
-                            // Get glamour ID
-                            uint glamourId = translationCache.GetItemIdByName(glamourName, clientLang) ?? 0;
-                            if (glamourId > 0 && glamourId <= config.MaxValidItemId)
-                            {
-                                // Translate glamour name
-                                string translatedGlamourName = TranslateGlamourName(glamourId, isHighQualityGlamour, targetLang);
-
-                                // Apply translated glamour name
-                                if (!string.IsNullOrWhiteSpace(translatedGlamourName))
+                                if (!utilities.WriteStringToArrayData(stringArrayData, itemNameField, translatedItemName))
                                 {
-                                    if (!utilities.WriteStringToArrayData(stringArrayData, glamourNameField, translatedGlamourName))
+                                    log.Error($"{Class} - Failed to write translated item name ({translatedItemName}) to field {itemNameField}");
+                                }
+                            }
+
+                            /* Glamour name */
+
+                            // Get glamour name
+                            string glamourName = utilities.ReadStringFromArrayData(stringArrayData, glamourNameField);
+                            if (!string.IsNullOrWhiteSpace(glamourName))
+                            {
+                                // Check for high quality symbol in glamour name
+                                bool isHighQualityGlamour = utilities.IsHighQuality(glamourName);
+
+                                // Remove symbols temporarily for ID lookup
+                                glamourName = utilities.UnsetGlamour(glamourName);
+                                if (isHighQualityGlamour) glamourName = utilities.UnsetHighQuality(glamourName);
+
+                                // Get glamour ID
+                                uint glamourId = translationCache.GetItemIdByName(glamourName, clientLang) ?? 0;
+                                if (glamourId > 0 && glamourId <= config.MaxValidItemId)
+                                {
+                                    // Translate glamour name
+                                    string translatedGlamourName = TranslateGlamourName(glamourId, isHighQualityGlamour, targetLang);
+
+                                    // Apply translated glamour name
+                                    if (!string.IsNullOrWhiteSpace(translatedGlamourName))
                                     {
-                                        log.Error($"{Class} - Failed to write translated glamour name ({translatedGlamourName}) to field {glamourNameField}");
+                                        if (!utilities.WriteStringToArrayData(stringArrayData, glamourNameField, translatedGlamourName))
+                                        {
+                                            log.Error($"{Class} - Failed to write translated glamour name ({translatedGlamourName}) to field {glamourNameField}");
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        /* Description */
+                            /* Description */
 
-                        // Translate description
-                        string translatedDescription = TranslateDescription(itemId, targetLang);
+                            // Translate description
+                            string translatedDescription = TranslateDescription(itemId, targetLang);
 
-                        // Apply translated description
-                        if (!string.IsNullOrWhiteSpace(translatedDescription))
-                        {
-                            if (!utilities.WriteStringToArrayData(stringArrayData, itemDescriptionField, translatedDescription))
+                            // Apply translated description
+                            if (!string.IsNullOrWhiteSpace(translatedDescription))
                             {
-                                log.Error($"{Class} - Failed to write translated description ({translatedDescription}) to field {itemDescriptionField}");
-                            }
-                        }
-
-                        /* Effects */
-
-                        // Get effects
-                        string effects = utilities.ReadStringFromArrayData(stringArrayData, itemEffectsField);
-
-                        // Translate effects
-                        string translatedEffects = TranslateEffects(effects, clientLang, targetLang);
-
-                        // Apply translated effects
-                        if (!string.IsNullOrWhiteSpace(translatedEffects))
-                        {
-                            if (!utilities.WriteStringToArrayData(stringArrayData, itemEffectsField, translatedEffects))
-                            {
-                                log.Error($"{Class} - Failed to write translated effects ({translatedEffects}) to field {itemEffectsField}");
-                            }
-                        }
-                        
-                        /* Bonuses */
-
-                        // Translate bonuses
-                        for (int i = itemBonusesStartField; i <= itemBonusesEndField; i++)
-                        {
-                            // Get bonus
-                            string bonus = utilities.ReadStringFromArrayData(stringArrayData, i);
-
-                            // Translate bonus
-                            string translatedBonus = TranslateBonus(bonus, clientLang, targetLang);
-
-                            // Apply translated bonus
-                            if (!string.IsNullOrWhiteSpace(translatedBonus))
-                            {
-                                if (!utilities.WriteStringToArrayData(stringArrayData, i, translatedBonus))
+                                if (!utilities.WriteStringToArrayData(stringArrayData, itemDescriptionField, translatedDescription))
                                 {
-                                    log.Error($"{Class} - Failed to write translated bonus ({translatedBonus}) to field {i}");
+                                    log.Error($"{Class} - Failed to write translated description ({translatedDescription}) to field {itemDescriptionField}");
                                 }
                             }
-                        }
 
-                        /* Materia names */
+                            /* Effects */
 
-                        // Translate materia names
-                        for (int j = itemMateriaNameStartField; j <= itemMateriaNameEndField; j++)
-                        {
-                            // Get materia name
-                            string materiaName = utilities.ReadStringFromArrayData(stringArrayData, j);
+                            // Get effects
+                            string effects = utilities.ReadStringFromArrayData(stringArrayData, itemEffectsField);
 
-                            // Get materia ID
-                            uint materiaId = translationCache.GetItemIdByName(materiaName, clientLang) ?? 0;
-                            if (materiaId > 0 && materiaId <= config.MaxValidItemId)
+                            // Translate effects
+                            string translatedEffects = TranslateEffects(effects, clientLang, targetLang);
+
+                            // Apply translated effects
+                            if (!string.IsNullOrWhiteSpace(translatedEffects))
                             {
-                                // Translate materia name
-                                string translatedMateriaName = TranslateMateriaName(materiaId, targetLang);
-
-                                // Apply translated materia name
-                                if (!string.IsNullOrWhiteSpace(translatedMateriaName))
+                                if (!utilities.WriteStringToArrayData(stringArrayData, itemEffectsField, translatedEffects))
                                 {
-                                    if (!utilities.WriteStringToArrayData(stringArrayData, j, translatedMateriaName))
+                                    log.Error($"{Class} - Failed to write translated effects ({translatedEffects}) to field {itemEffectsField}");
+                                }
+                            }
+
+                            /* Bonuses */
+
+                            // Translate bonuses
+                            for (int i = itemBonusesStartField; i <= itemBonusesEndField; i++)
+                            {
+                                // Get bonus
+                                string bonus = utilities.ReadStringFromArrayData(stringArrayData, i);
+
+                                // Translate bonus
+                                string translatedBonus = TranslateBonus(bonus, clientLang, targetLang);
+
+                                // Apply translated bonus
+                                if (!string.IsNullOrWhiteSpace(translatedBonus))
+                                {
+                                    if (!utilities.WriteStringToArrayData(stringArrayData, i, translatedBonus))
                                     {
-                                        log.Error($"{Class} - Failed to write translated materia name ({translatedMateriaName}) to field {j}");
+                                        log.Error($"{Class} - Failed to write translated bonus ({translatedBonus}) to field {i}");
                                     }
                                 }
                             }
-                        }
 
-                        /* Materia stats */
+                            /* Materia names */
 
-                        // Translate materia stats
-                        for (int k = itemMateriaStatStartField; k <= itemMateriaStatEndField; k++)
-                        {
-                            // Get materia stat
-                            string materiaStat = utilities.ReadStringFromArrayData(stringArrayData, k);
-
-                            // Translate materia stat
-                            string translatedMateriaStat = TranslateMateriaStat(materiaStat, clientLang, targetLang);
-
-                            // Apply translated materia stat
-                            if (!string.IsNullOrWhiteSpace(translatedMateriaStat))
+                            // Translate materia names
+                            for (int j = itemMateriaNameStartField; j <= itemMateriaNameEndField; j++)
                             {
-                                if (!utilities.WriteStringToArrayData(stringArrayData, k, translatedMateriaStat))
+                                // Get materia name
+                                string materiaName = utilities.ReadStringFromArrayData(stringArrayData, j);
+
+                                // Get materia ID
+                                uint materiaId = translationCache.GetItemIdByName(materiaName, clientLang) ?? 0;
+                                if (materiaId > 0 && materiaId <= config.MaxValidItemId)
                                 {
-                                    log.Error($"{Class} - Failed to write translated materia stat ({translatedMateriaStat}) to field {k}");
+                                    // Translate materia name
+                                    string translatedMateriaName = TranslateMateriaName(materiaId, targetLang);
+
+                                    // Apply translated materia name
+                                    if (!string.IsNullOrWhiteSpace(translatedMateriaName))
+                                    {
+                                        if (!utilities.WriteStringToArrayData(stringArrayData, j, translatedMateriaName))
+                                        {
+                                            log.Error($"{Class} - Failed to write translated materia name ({translatedMateriaName}) to field {j}");
+                                        }
+                                    }
+                                }
+                            }
+
+                            /* Materia stats */
+
+                            // Translate materia stats
+                            for (int k = itemMateriaStatStartField; k <= itemMateriaStatEndField; k++)
+                            {
+                                // Get materia stat
+                                string materiaStat = utilities.ReadStringFromArrayData(stringArrayData, k);
+
+                                // Translate materia stat
+                                string translatedMateriaStat = TranslateMateriaStat(materiaStat, clientLang, targetLang);
+
+                                // Apply translated materia stat
+                                if (!string.IsNullOrWhiteSpace(translatedMateriaStat))
+                                {
+                                    if (!utilities.WriteStringToArrayData(stringArrayData, k, translatedMateriaStat))
+                                    {
+                                        log.Error($"{Class} - Failed to write translated materia stat ({translatedMateriaStat}) to field {k}");
+                                    }
                                 }
                             }
                         }

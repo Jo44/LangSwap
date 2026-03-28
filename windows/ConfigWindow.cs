@@ -108,7 +108,7 @@ public class ConfigWindow : Window, IDisposable
         {
             ImGui.SameLine(0, 55f);
             ImGui.AlignTextToFramePadding();
-            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.0f, 1.0f, 0.0f, 1.0f));
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.00f, 0.80f, 0.13f, 1.00f));
             ImGui.Text("Enabled");
             ImGui.PopStyleColor();
         }
@@ -116,7 +116,7 @@ public class ConfigWindow : Window, IDisposable
         {
             ImGui.SameLine(0, 55f);
             ImGui.AlignTextToFramePadding();
-            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.57f, 0.13f, 0.13f, 1.00f));
             ImGui.Text("Disabled");
             ImGui.PopStyleColor();
         }

@@ -5,6 +5,7 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Memory;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.translation;
 using System;
@@ -123,6 +124,22 @@ public unsafe class Utilities(
             log.Warning($"{Class} - ShortcutDetector.IsKeyDown exception for vk = {vkCode} : {ex.Message}");
             return false;
         }
+    }
+
+    // ----------------------------
+    // Get alternative translation
+    // ----------------------------
+    public static string GetAlternativeTranslation(string spellName, List<AlternativeTranslation> alternativeTranslations)
+    {
+        // Find alternative translation
+        string alternativeName = spellName;
+        AlternativeTranslation? alternativeTranslation = alternativeTranslations.FindLast(alternative => alternative.SpellName == alternativeName);
+        if (alternativeTranslation != null && !alternativeTranslation.SpellName.IsNullOrWhitespace() && !alternativeTranslation.AlternativeName.IsNullOrWhitespace())
+        {
+            // Use alternative name if valid
+            alternativeName = alternativeTranslation.AlternativeName;
+        }
+        return alternativeName;
     }
 
     // ----------------------------

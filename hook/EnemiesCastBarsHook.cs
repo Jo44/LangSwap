@@ -249,11 +249,18 @@ public unsafe class EnemiesCastBarsHook(
             string? clientActionName = translationCache.GetActionName(actionId, config.ClientLanguage);
             if (clientActionName == null) continue;
 
+            // Resolve obfuscated client action name from known mappings
+            if (clientActionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
+            {
+                string? knownClientActionName = GetObfuscatedTranslationName(clientActionName, config.ClientLanguage);
+                if (!knownClientActionName.IsNullOrWhitespace()) clientActionName = knownClientActionName;
+            }
+
             // If the client language action name contains the current text, translate it
             if (clientActionName.StartsWith(currentText))
             {
                 // Get the display action name
-                string? displayName = GetDisplayActionName(actionId);
+                string? displayName = GetDisplayActionName(actionId, currentText);
                 if (!displayName.IsNullOrWhitespace())
                 {
                     // Update the text node with the display name

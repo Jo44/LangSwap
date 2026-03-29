@@ -168,7 +168,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
                     string actionName = action.Name.ToString();
 
                     // Check if the name is obfuscated (starts with "_rsv_")
-                    if (!string.IsNullOrWhiteSpace(actionName) && actionName.StartsWith("_rsv_", StringComparison.Ordinal))
+                    if (!string.IsNullOrWhiteSpace(actionName) && actionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
                     {
                         // Add to the set of obfuscated translations
                         obfuscatedTranslations.Add(new ObfuscatedTranslation { Id = actionId, ObfuscatedName = actionName });

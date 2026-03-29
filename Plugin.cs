@@ -11,6 +11,8 @@ using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.Windows;
 using System;
+using System.Collections.Generic;
+using System.Net.Http;
 
 namespace LangSwap;
 
@@ -76,6 +78,9 @@ public sealed class Plugin : IDalamudPlugin
 
             // Load configuration
             config = DalamudPluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+
+            // Load remote obfuscated translations
+            LoadRemoteObfuscatedTranslations();
 
             // Detect client language
             DetectClientLanguage();
@@ -306,6 +311,47 @@ public sealed class Plugin : IDalamudPlugin
         catch (Exception ex)
         {
             Log.Error(ex, $"{Class} - Failed to apply new UI component");
+        }
+    }
+
+    // ----------------------------
+    // Load remote obfuscated translations
+    // ----------------------------
+    private void LoadRemoteObfuscatedTranslations()
+    {
+        try
+        {
+            // Validate URL
+            if (string.IsNullOrWhiteSpace(config.RemoteUrl)) return;
+
+            // Download remote CSV
+            using HttpClient httpClient = new();
+            string csv = httpClient.GetStringAsync(config.RemoteUrl).GetAwaiter().GetResult();
+            if (string.IsNullOrWhiteSpace(csv))
+            {
+                Log.Warning($"{Class} - Remote obfuscated translations CSV is empty");
+                return;
+            }
+
+            // Import CSV content into a temporary list
+            List<ObfuscatedTranslation> importedTranslations = [];
+            if (!Utilities.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
+            {
+                Log.Warning($"{Class} - Failed to import remote obfuscated translations CSV: {status}");
+                return;
+            }
+
+            // Replace current remote translations and persist
+            config.RemoteObfuscatedTranslations.Clear();
+            config.RemoteObfuscatedTranslations.AddRange(importedTranslations);
+            config.Save();
+
+            // Log
+            Log.Information($"{Class} - Loaded {importedTranslations.Count} remote obfuscated translations");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, $"{Class} - Failed to download remote obfuscated translations CSV");
         }
     }
 

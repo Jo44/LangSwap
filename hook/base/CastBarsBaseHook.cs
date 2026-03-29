@@ -156,6 +156,8 @@ public unsafe abstract class CastBarsBaseHook(
             // Check for obfuscated name
             if (clientActionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
             {
+                // TODO : à voir si utile
+                log.Information($"{Class} - Obfuscated cast detected for action {actionId}: {clientActionName} | Visible: {visibleAddonName}");
                 SaveScannedObfuscatedTranslation((int)actionId, clientActionName, visibleAddonName);
             }
 
@@ -178,11 +180,19 @@ public unsafe abstract class CastBarsBaseHook(
             // Resolve obfuscated translated name using known mappings
             if (translatedName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
             {
-                return GetObfuscatedTranslationName(translatedName, config.TargetLanguage);
+                translatedName = GetObfuscatedTranslationName(translatedName, config.TargetLanguage);
+                if (translatedName.IsNullOrWhitespace()) return null;
             }
 
             // Check for alternative translation
-            return Utilities.GetAlternativeTranslation(translatedName, config.AlternativeTranslations);
+            string? alternativeTranslatedName = Utilities.GetAlternativeTranslation(translatedName, config.AlternativeTranslations);
+            if (!alternativeTranslatedName.IsNullOrWhitespace() && !string.Equals(alternativeTranslatedName, translatedName, StringComparison.Ordinal))
+            {
+                return alternativeTranslatedName;
+            }
+
+            // Fallback to translated action name
+            return translatedName;
         }
         catch (Exception ex)
         {

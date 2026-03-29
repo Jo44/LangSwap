@@ -76,8 +76,8 @@ public class DebugWindow : Window, IDisposable
         // Clear translations list
         obfuscatedTranslations.Clear();
 
-        // Load obfuscated translations
-        foreach (ObfuscatedTranslation obfuscatedTranslation in excelProvider.GetObfuscatedTranslations())
+        // Get all obfuscated actions from Excel provider
+        foreach (ObfuscatedTranslation obfuscatedTranslation in excelProvider.GetAllObfuscatedActions())
         {
             obfuscatedTranslations.Add(new ObfuscatedTranslation
             {

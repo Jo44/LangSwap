@@ -145,40 +145,47 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     }
 
     // ----------------------------
-    // Get obfuscated translations
+    // Get all obfuscated actions
     // ----------------------------
-    public List<ObfuscatedTranslation> GetObfuscatedTranslations()
+    public List<ObfuscatedTranslation> GetAllObfuscatedActions()
     {
-        // TODO : comment
         try
         {
+            // Initialize
             HashSet<ObfuscatedTranslation> obfuscatedTranslations = [];
-            LanguageEnum[] languages = [LanguageEnum.English, LanguageEnum.French, LanguageEnum.German, LanguageEnum.Japanese];
 
+            // Get the english action sheet
             ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(Utilities.EnumToClientLang(LanguageEnum.English));
             if (actionSheet != null)
             {
+                // Loop through actions to find obfuscated ones
                 foreach (Lumina.Excel.Sheets.Action action in actionSheet)
                 {
+                    // Get action ID
                     int actionId = (int)action.RowId;
+
+                    // Get action name
                     string actionName = action.Name.ToString();
+
+                    // Check if the name is obfuscated (starts with "_rsv_")
                     if (!string.IsNullOrWhiteSpace(actionName) && actionName.StartsWith("_rsv_", StringComparison.Ordinal))
                     {
+                        // Add to the set of obfuscated translations
                         obfuscatedTranslations.Add(new ObfuscatedTranslation { Id = actionId, ObfuscatedName = actionName });
                     }
                 }
             }
 
+            // Convert to list and sort by ID
             List<ObfuscatedTranslation> result = [.. obfuscatedTranslations];
             result.Sort((a, b) => a.Id.CompareTo(b.Id));
 
-            // TODO : enlever ceux dont on a déjà récupéré l'ensemble des traductions
-
+            // Return obfuscated translations
             return result;
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Exception while getting remaining obfuscated translations");
+            log.Error(ex, $"{Class} - Exception while getting all obfuscated actions");
             return [];
         }
     }

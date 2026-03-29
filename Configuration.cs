@@ -3,6 +3,7 @@ using Dalamud.Game.ClientState.Keys;
 using LangSwap.translation;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace LangSwap;
 
@@ -19,8 +20,18 @@ public class Configuration : IPluginConfiguration
     public LanguageEnum ClientLanguage { get; set; } = LanguageEnum.English;
     public LanguageEnum TargetLanguage { get; set; } = LanguageEnum.English;
 
+    // Colors
+    public Vector4 DarkGreen { get; } = new Vector4(0.00f, 0.80f, 0.13f, 1.00f); // Dark Green
+    public Vector4 LightRed { get; } = new Vector4(0.57f, 0.13f, 0.13f, 1.00f); // Light Red
+    public Vector4 RedDalamud { get; } = new Vector4(0.35f, 0.08f, 0.08f, 1.00f); // Red Dalamud
+
     // Alternative translations
     public List<AlternativeTranslation> AlternativeTranslations { get; set; } = [];
+
+    // Obfuscated translations
+    public List<ObfuscatedTranslation> RemoteObfuscatedTranslations { get; set; } = [];
+    public List<ObfuscatedTranslation> ScannedObfuscatedTranslations { get; set; } = [];
+    public List<ObfuscatedTranslation> LocalObfuscatedTranslations { get; set; } = [];
 
     // Startup behavior
     public bool AutoStartup { get; set; } = false;

@@ -45,7 +45,7 @@ public class ConfigWindow : Window, IDisposable
         // Auto-adjust size
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(420, 420),
+            MinimumSize = new Vector2(420, 410),
             MaximumSize = new Vector2(420, float.MaxValue)
         };
 
@@ -108,7 +108,7 @@ public class ConfigWindow : Window, IDisposable
         {
             ImGui.SameLine(0, 55f);
             ImGui.AlignTextToFramePadding();
-            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.00f, 0.80f, 0.13f, 1.00f));
+            ImGui.PushStyleColor(ImGuiCol.Text, config.DarkGreen);
             ImGui.Text("Enabled");
             ImGui.PopStyleColor();
         }
@@ -116,7 +116,7 @@ public class ConfigWindow : Window, IDisposable
         {
             ImGui.SameLine(0, 55f);
             ImGui.AlignTextToFramePadding();
-            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.57f, 0.13f, 0.13f, 1.00f));
+            ImGui.PushStyleColor(ImGuiCol.Text, config.LightRed);
             ImGui.Text("Disabled");
             ImGui.PopStyleColor();
         }
@@ -124,10 +124,12 @@ public class ConfigWindow : Window, IDisposable
         // Toggle button
         ImGui.SameLine();
         ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), buttonX));
+        ImGui.PushStyleColor(ImGuiCol.Button, config.RedDalamud);
         if (ImGui.Button(plugin.IsSwapEnabled() ? "Disable" : "Enable", new Vector2(buttonWidth, 0f)))
         {
             plugin.ToggleTranslation();
         }
+        ImGui.PopStyleColor(1);
 
         // Target language
         ImGui.Spacing();
@@ -135,7 +137,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 15f);
         ImGui.AlignTextToFramePadding();
         ImGui.Text("Target Language :");
-        ImGui.SameLine(0, 10f);
+        ImGui.SameLine(0, 15f);
         ImGui.SetNextItemWidth(120f);
         if (ImGui.Combo("##Language", ref currentLang, languages, languages.Length))
         {
@@ -163,19 +165,20 @@ public class ConfigWindow : Window, IDisposable
             config.AutoStartup = autoStartup;
             config.Save();
         }
+
+        // Clear translation caches
+        ImGui.SameLine(0);
+        ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), buttonX));
+        if (ImGui.Button("Clear cache", new Vector2(buttonWidth, 0)))
+        {
+            ImGui.OpenPopup("Confirm clear");
+        }
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Separator();
 
         // Instructions
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.SameLine(0, 15f);
-        ImGui.TextWrapped("Press the keyboard shortcut to toogle language swap\nPress again to restore original language");
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Spacing();
+        DrawInstructions();
 
         // Toggle shortcut
         ImGui.SameLine(0, 15f);
@@ -313,22 +316,62 @@ public class ConfigWindow : Window, IDisposable
             UIComponentChange("Item tooltip", itemTooltip, () => config.ItemTooltip = itemTooltip);
         }
         ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Separator();
 
-        // Clear translation caches
+        // Draw clear translation caches popup
+        DrawClearPopup();
+    }
+
+    // ----------------------------
+    // Draw instructions
+    // ----------------------------
+    private void DrawInstructions()
+    {
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
-        if (ImGui.Button("Clear translation caches", new Vector2(200f, 0)))
-        {
-            ImGui.OpenPopup("Confirm clear");
-        }
+        DrawDebugButton("Press the keyboard shortcut to toogle language swap", "Press the keyboard sh");
         ImGui.Spacing();
+        ImGui.SameLine(0, 15f);
+        ImGui.TextUnformatted("Press again to restore original language");
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.Spacing();
+    }
 
-        // Draw clear translation caches popup
-        DrawClearTranslationCachesPopup();
+    // ----------------------------
+    // Draw debug button (invisible button over 'o' in "shortcut")
+    // ----------------------------
+    private void DrawDebugButton(string lineText, string prefixText)
+    {
+        // Get positions and sizes
+        Vector2 linePos = ImGui.GetCursorScreenPos();
+        Vector2 prefixSize = ImGui.CalcTextSize(prefixText);
+        Vector2 letterSize = ImGui.CalcTextSize("o");
+
+        // Draw text
+        ImGui.TextUnformatted(lineText);
+
+        //  Draw invisible button
+        ImGui.SetCursorScreenPos(new Vector2(linePos.X + prefixSize.X, linePos.Y));
+        if (ImGui.InvisibleButton("##DebugLetter", letterSize))
+        {
+            plugin.ToggleDebugUI();
+        }
+    }
+
+    // ----------------------------
+    // Draw clear popup
+    // ----------------------------
+    private void DrawClearPopup()
+    {
+        // Draw confirmation popup
+        PopupHelper.DrawConfirmationPopup("Confirm clear", "This will clear all translations cache.    Are you sure ?", "Yes, clear all", "Cancel", new Vector2(400f, 0f), () =>
+        {
+            // Clear translation cache
+            translationCache.Clear();
+            log.Information($"{Class} - All translation cache cleared");
+        });
     }
 
     // ----------------------------
@@ -337,49 +380,12 @@ public class ConfigWindow : Window, IDisposable
     private void UIComponentChange(string settingName, bool value, Action applyChange)
     {
         log.Information($"{Class} - Setting {settingName} to {value}");
+        // Apply change
         applyChange();
+        // Save config
         config.Save();
+        // Apply new UI components
         plugin.ApplyNewUIComponents();
-    }
-
-    // ----------------------------
-    // Draw clear translation caches popup
-    // ----------------------------
-    private void DrawClearTranslationCachesPopup()
-    {
-        // Popup for clear confirmation
-        if (!ImGui.BeginPopupModal("Confirm clear", ImGuiWindowFlags.AlwaysAutoResize)) return;
-
-        // Message
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.SameLine(0, 30f);
-        ImGui.TextWrapped("This will clear all translation caches.   Are you sure ?");
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Spacing();
-
-        // Clear button
-        if (ImGui.Button("Yes, clear all", new Vector2(200f, 0f)))
-        {
-            // Clear translation cache
-            translationCache.Clear();
-            log.Information($"{Class} - All translation caches cleared");
-
-            // Close popup
-            ImGui.CloseCurrentPopup();
-        }
-
-        // Cancel button
-        ImGui.SameLine(0, 10f);
-        if (ImGui.Button("Cancel", new Vector2(200f, 0f)))
-        {
-            // Close popup
-            ImGui.CloseCurrentPopup();
-        }
-
-        // End popup
-        ImGui.EndPopup();
     }
 
     // ----------------------------

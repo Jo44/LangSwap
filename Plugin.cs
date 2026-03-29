@@ -40,12 +40,13 @@ public sealed class Plugin : IDalamudPlugin
 
     // Core components
     private readonly Configuration config = null!;
-    private readonly ConfigWindow configWindow = null!;
-    private readonly CustomizeWindow customizeWindow = null!;
     private readonly ExcelProvider excelProvider = null!;
     private readonly HookManager hookManager = null!;
     private readonly TranslationCache translationCache = null!;
     private readonly Utilities utilities = null!;
+    private readonly ConfigWindow configWindow = null!;
+    private readonly CustomizeWindow customizeWindow = null!;
+    private readonly DebugWindow debugWindow = null!;
     private readonly WindowSystem windowSystem = new("LangSwap");
 
     // Global constants
@@ -86,10 +87,12 @@ public sealed class Plugin : IDalamudPlugin
             hookManager = new(AddonLifecycle, config, Framework, GameInterop, ObjectTable, SigScanner, TargetManager, translationCache, utilities, Log);
             configWindow = new(config, this, translationCache, Log);
             customizeWindow = new(config, Log);
+            debugWindow = new(config, excelProvider, Log);
 
             // Register windows
             windowSystem.AddWindow(configWindow);
             windowSystem.AddWindow(customizeWindow);
+            windowSystem.AddWindow(debugWindow);
 
             // Register command
             CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand) { HelpMessage = "Opens the LangSwap configuration window" });
@@ -382,6 +385,11 @@ public sealed class Plugin : IDalamudPlugin
     public void ToggleCustomizeUI() => customizeWindow.Toggle();
 
     // ----------------------------
+    // Toggle Debug UI
+    // ----------------------------
+    public void ToggleDebugUI() => debugWindow.Toggle();
+
+    // ----------------------------
     // Command Handler
     // ----------------------------
     private void OnCommand(string command, string args) => configWindow.Toggle();
@@ -413,8 +421,9 @@ public sealed class Plugin : IDalamudPlugin
 
         // Dispose windows
         windowSystem.RemoveAllWindows();
-        configWindow.Dispose();
+        debugWindow.Dispose();
         customizeWindow.Dispose();
+        configWindow.Dispose();
 
         // Log plugin informations
         Log.Information($"{Class} === LangSwap plugin unloaded ===");

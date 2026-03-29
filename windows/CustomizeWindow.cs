@@ -22,7 +22,7 @@ public class CustomizeWindow : Window, IDisposable
     private readonly IPluginLog log;
 
     // Alternative translations
-    private readonly List<AlternativeTranslation> translations = [];
+    private readonly List<AlternativeTranslation> alternativeTranslations = [];
 
     // CSV export/import
     private string exportCSV = string.Empty;
@@ -62,8 +62,8 @@ public class CustomizeWindow : Window, IDisposable
             MaximumSize = new Vector2(690, 478)
         };
 
-        // Load persisted values
-        LoadFromConfiguration();
+        // Load alternative translations
+        LoadAlternativeTranslations();
     }
 
     // ----------------------------
@@ -71,30 +71,30 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     public override void OnClose()
     {
-        // Reload persisted values to discard unsaved changes
-        LoadFromConfiguration();
+        // Reload alternative translations to discard unsaved changes
+        LoadAlternativeTranslations();
     }
 
     // ----------------------------
-    // Load from configuration
+    // Load alternative translations
     // ----------------------------
-    private void LoadFromConfiguration()
+    private void LoadAlternativeTranslations()
     {
         // Clear translation list
-        translations.Clear();
+        alternativeTranslations.Clear();
 
         // Load persisted values into translation list
-        foreach (AlternativeTranslation translation in config.AlternativeTranslations)
+        foreach (AlternativeTranslation alternativeTranslation in config.AlternativeTranslations)
         {
-            translations.Add(new AlternativeTranslation
+            alternativeTranslations.Add(new AlternativeTranslation
             {
-                SpellName = translation.SpellName,
-                AlternativeName = translation.AlternativeName
+                SpellName = alternativeTranslation.SpellName,
+                AlternativeName = alternativeTranslation.AlternativeName
             });
         }
 
         // Log
-        log.Information($"{Class} - Loaded {translations.Count} persisted alternative translations");
+        log.Information($"{Class} - Loaded {alternativeTranslations.Count} alternative translations");
     }
 
     // ----------------------------
@@ -111,15 +111,15 @@ public class CustomizeWindow : Window, IDisposable
         // Draw information message
         DrawInformationMessage();
 
-        // Draw alternative translations list
-        DrawTranslationList();
+        // Draw alternative translations table
+        DrawAlternativeTranslationsTable();
 
         // Export button
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
         if (ImGui.Button("Export CSV", new Vector2(150f, 0f)))
         {
-            exportCSV = Utilities.ExportCSV(translations);
+            exportCSV = Utilities.ExportAlternativeTranslationsCSV(alternativeTranslations);
             ImGui.OpenPopup("Export CSV");
         }
 
@@ -170,7 +170,7 @@ public class CustomizeWindow : Window, IDisposable
             return;
         }
 
-        // Calculate text position to align it to the right with a margin
+        // Calculate text position
         Vector2 textSize = ImGui.CalcTextSize(information);
         float x = ImGui.GetWindowContentRegionMax().X - textSize.X - 15f;
 
@@ -181,11 +181,11 @@ public class CustomizeWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Draw translation list
+    // Draw alternative translations table
     // ----------------------------
-    private void DrawTranslationList()
+    private void DrawAlternativeTranslationsTable()
     {
-        // Constants for layout
+        // Table dimensions
         const float tableHeight = 374f;
         const float tableWidth = 645f;
         const float rowHeight = 30f;
@@ -195,108 +195,105 @@ public class CustomizeWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
         ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY;
-        if (ImGui.BeginTable("##AlternativeTranslationsTable", 4, tableFlags, new Vector2(tableWidth, tableHeight)))
+        if (!ImGui.BeginTable("##AlternativeTranslationsTable", 4, tableFlags, new Vector2(tableWidth, tableHeight))) return;
+
+        // Setup columns
+        ImGui.TableSetupScrollFreeze(0, 1);
+        ImGui.TableSetupColumn("##AddOrIndex", ImGuiTableColumnFlags.WidthFixed, 40f);
+        ImGui.TableSetupColumn("Spell", ImGuiTableColumnFlags.WidthStretch, 1.0f);
+        ImGui.TableSetupColumn("Replacement", ImGuiTableColumnFlags.WidthStretch, 1.0f);
+        ImGui.TableSetupColumn("##Remove", ImGuiTableColumnFlags.WidthFixed, 60f);
+        ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
+
+        // Add
+        ImGui.TableSetColumnIndex(0);
+        bool addClicked = DrawActionCell("##AddCell", "Add", rowHeight);
+        if (addClicked && !HasPendingEmptyRow())
         {
-            // Setup columns
-            ImGui.TableSetupScrollFreeze(0, 1);
-            ImGui.TableSetupColumn("##AddOrIndex", ImGuiTableColumnFlags.WidthFixed, 40f);
-            ImGui.TableSetupColumn("Spell", ImGuiTableColumnFlags.WidthStretch, 1.0f);
-            ImGui.TableSetupColumn("Replacement", ImGuiTableColumnFlags.WidthStretch, 1.0f);
-            ImGui.TableSetupColumn("##Remove", ImGuiTableColumnFlags.WidthFixed, 60f);
-            ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
-
-            // Add
-            ImGui.TableSetColumnIndex(0);
-            bool addClicked = DrawActionCell("##AddCell", "Add", rowHeight);
-            if (addClicked && !HasPendingEmptyRow())
-            {
-                translations.Add(new AlternativeTranslation());
-                focusNewRowIndex = translations.Count - 1;
-                focusedNewRow = true;
-            }
-
-            // Spell
-            ImGui.TableSetColumnIndex(1);
-            DrawCellText("Spell", rowHeight);
-
-            // Replacement
-            ImGui.TableSetColumnIndex(2);
-            DrawCellText("Replacement", rowHeight);
-
-            // Remove
-            ImGui.TableSetColumnIndex(3);
-            DrawCellText(" ", rowHeight);
-
-            // No entries
-            if (translations.Count == 0)
-            {
-                ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
-                ImGui.TableSetColumnIndex(0);
-                DrawCellText(" ", rowHeight);
-                ImGui.TableSetColumnIndex(1);
-                DrawCellText("No alternative translations", rowHeight);
-                ImGui.TableSetColumnIndex(2);
-                DrawCellText("No alternative translations", rowHeight);
-            }
-            else
-            {
-                // Initialize index
-                int removeIndex = -1;
-
-                // Draw rows for each alternative translation
-                for (int i = 0; i < translations.Count; i++)
-                {
-                    // Get current entry
-                    AlternativeTranslation entry = translations[i];
-
-                    // Start of row
-                    ImGui.PushID(i);
-                    ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
-
-                    // Index
-                    ImGui.TableSetColumnIndex(0);
-                    DrawCellText($"#{i + 1}", rowHeight);
-
-                    // Spell name input
-                    ImGui.TableSetColumnIndex(1);
-                    string spellName = entry.SpellName;
-                    bool setFocus = focusedNewRow && i == focusNewRowIndex;
-                    DrawInputText("##Spell", ref spellName, 256, rowHeight, setFocus);
-                    entry.SpellName = spellName;
-                   
-                    // Set focus
-                    if (setFocus)
-                    {
-                        ImGui.SetScrollHereY();
-                        focusedNewRow = false;
-                        focusNewRowIndex = -1;
-                    }
-
-                    // Alternative name input
-                    ImGui.TableSetColumnIndex(2);
-                    string alternativeName = entry.AlternativeName;
-                    DrawInputText("##Replacement", ref alternativeName, 256, rowHeight);
-                    entry.AlternativeName = alternativeName;
-
-                    // Remove cell
-                    ImGui.TableSetColumnIndex(3);
-                    if (DrawActionCell($"##RemoveCell_{i}", "Remove", rowHeight))
-                    {
-                        removeIndex = i;
-                    }
-
-                    // End of row
-                    ImGui.PopID();
-                }
-
-                // Remove entry if requested
-                if (removeIndex >= 0)
-                {
-                    translations.RemoveAt(removeIndex);
-                }
-            }
-            ImGui.EndTable();
+            alternativeTranslations.Add(new AlternativeTranslation());
+            focusNewRowIndex = alternativeTranslations.Count - 1;
+            focusedNewRow = true;
         }
+
+        // Spell
+        ImGui.TableSetColumnIndex(1);
+        DrawCellText("Spell", rowHeight);
+
+        // Replacement
+        ImGui.TableSetColumnIndex(2);
+        DrawCellText("Replacement", rowHeight);
+
+        // Remove
+        ImGui.TableSetColumnIndex(3);
+        DrawCellText(" ", rowHeight);
+
+        // No entries
+        if (alternativeTranslations.Count == 0)
+        {
+            ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
+            ImGui.TableSetColumnIndex(0);
+            DrawCellText(" ", rowHeight);
+            ImGui.TableSetColumnIndex(1);
+            DrawCellText("No alternative translations", rowHeight);
+        }
+        else
+        {
+            // Initialize index
+            int removeIndex = -1;
+
+            // Draw rows for each alternative translation
+            for (int i = 0; i < alternativeTranslations.Count; i++)
+            {
+                // Get current translation
+                AlternativeTranslation alternativeTranslation = alternativeTranslations[i];
+
+                // Start of row
+                ImGui.PushID(i);
+                ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
+
+                // Index
+                ImGui.TableSetColumnIndex(0);
+                DrawCellText($"#{i + 1}", rowHeight);
+
+                // Spell name input
+                ImGui.TableSetColumnIndex(1);
+                string spellName = alternativeTranslation.SpellName;
+                bool setFocus = focusedNewRow && i == focusNewRowIndex;
+                DrawInputText("##Spell", ref spellName, 256, rowHeight, setFocus);
+                alternativeTranslation.SpellName = spellName;
+                   
+                // Set focus
+                if (setFocus)
+                {
+                    ImGui.SetScrollHereY();
+                    focusedNewRow = false;
+                    focusNewRowIndex = -1;
+                }
+
+                // Alternative name input
+                ImGui.TableSetColumnIndex(2);
+                string alternativeName = alternativeTranslation.AlternativeName;
+                DrawInputText("##Replacement", ref alternativeName, 256, rowHeight);
+                alternativeTranslation.AlternativeName = alternativeName;
+
+                // Remove cell
+                ImGui.TableSetColumnIndex(3);
+                if (DrawActionCell($"##RemoveCell_{i}", "Remove", rowHeight))
+                {
+                    removeIndex = i;
+                }
+
+                // End of row
+                ImGui.PopID();
+            }
+
+            // Remove entry if requested
+            if (removeIndex >= 0)
+            {
+                alternativeTranslations.RemoveAt(removeIndex);
+            }
+        }
+        ImGui.EndTable();
         ImGui.Spacing();
         ImGui.Spacing();
     }
@@ -306,7 +303,7 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     private static void DrawCellText(string text, float rowHeight)
     {
-        // Calculate text position to center it within the cell
+        // Calculate text position
         Vector2 pos = ImGui.GetCursorScreenPos();
         float width = MathF.Max(1f, ImGui.GetContentRegionAvail().X);
         Vector2 textSize = ImGui.CalcTextSize(text);
@@ -322,7 +319,7 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     private static void DrawInputText(string id, ref string value, int maxLength, float rowHeight, bool setFocus = false)
     {
-        // Calculate input position and set width to fill the cell
+        // Calculate input position and set width
         float width = MathF.Max(1f, ImGui.GetContentRegionAvail().X);
         float y = ImGui.GetCursorPosY();
         float offsetY = MathF.Max(0f, (rowHeight - ImGui.GetFrameHeight()) * 0.5f);
@@ -334,21 +331,6 @@ public class CustomizeWindow : Window, IDisposable
         // Draw input text
         ImGui.SetNextItemWidth(width);
         ImGui.InputText(id, ref value, maxLength);
-    }
-
-    // ----------------------------
-    // Draw input text multiline
-    // ----------------------------
-    private static void DrawInputTextMultiline(string id, ref string value, int maxLength, float width, float height, ImGuiInputTextFlags flags = ImGuiInputTextFlags.None)
-    {
-        // Calculate input position and apply horizontal margin
-        float x = ImGui.GetCursorPosX();
-        ImGui.SetCursorPosX(x + 15f);
-
-        // Draw input text multiline
-        ImGui.InputTextMultiline(id, ref value, maxLength, new Vector2(width, height), flags);
-        ImGui.SameLine(0, 0f);
-        ImGui.Dummy(new Vector2(15f, 0f));
     }
 
     // ----------------------------
@@ -379,7 +361,7 @@ public class CustomizeWindow : Window, IDisposable
         uint bgColor = ImGui.GetColorU32(bg);
         ImGui.GetWindowDrawList().AddRectFilled(drawMin, drawMax, bgColor);
 
-        // Calculate text position to center it within the cell
+        // Calculate text position to center it
         Vector2 textSize = ImGui.CalcTextSize(label);
         Vector2 textPos = new(drawMin.X + (drawMax.X - drawMin.X - textSize.X) * 0.5f, drawMin.Y + (drawMax.Y - drawMin.Y - textSize.Y) * 0.5f);
 
@@ -393,41 +375,17 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     private void DrawExportPopup()
     {
-        // Popup for export CSV
-        if (!ImGui.BeginPopupModal("Export CSV", ImGuiWindowFlags.AlwaysAutoResize)) return;
-
-        // CSV
-        ImGui.Spacing();
-        ImGui.Spacing();
-        DrawInputTextMultiline("##ExportCSVText", ref exportCSV, 32768, 400f, 196f, ImGuiInputTextFlags.ReadOnly);
-        ImGui.Spacing();
-        ImGui.Spacing();
-
-        // Copy button
-        ImGui.Spacing();
-        ImGui.SameLine(0, 15f);
-        if (ImGui.Button("Copy", new Vector2(192f, 0f)))
+        // Draw export CSV popup
+        PopupHelper.DrawExportCSVPopup("Export CSV", "##ExportCSVText", ref exportCSV, new Vector2(400f, 400f), true, () =>
         {
-            // Copy CSV to clipboard
-            ImGui.SetClipboardText(exportCSV);
-            int count = translations.Count;
-            string message = $"{count} alternative translations copied";
+            // Count exported translations
+            int count = alternativeTranslations.Count;
+
+            // Log
+            string message = $"{count} alternative translations exported";
             SetInformation(message);
             log.Information($"{Class} - {message}");
-            // Close popup
-            ImGui.CloseCurrentPopup();
-        }
-
-        // Close button
-        ImGui.SameLine(0, 15f);
-        if (ImGui.Button("Close", new Vector2(192f, 0f)))
-        {
-            // Close popup
-            ImGui.CloseCurrentPopup();
-        }
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.EndPopup();
+        });
     }
 
     // ----------------------------
@@ -435,56 +393,26 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     private void DrawImportPopup()
     {
-        // Popup for import CSV
-        if (!ImGui.BeginPopupModal("Import CSV", ImGuiWindowFlags.AlwaysAutoResize)) return;
-
-        // CSV
-        ImGui.Spacing();
-        ImGui.Spacing();
-        DrawInputTextMultiline("##ImportCSVText", ref importCSV, 32768, 400f, 196f);
-        ImGui.Spacing();
-        ImGui.Spacing();
-
-        // Import status
-        if (!string.IsNullOrWhiteSpace(importStatus))
+        // Draw import CSV popup
+        PopupHelper.DrawImportCSVPopup("Import CSV", "##ImportCSVText", ref importCSV, ref importStatus, new Vector2(400f, 400f), csv =>
         {
-            ImGui.SameLine(0, 15f);
-            ImGui.TextWrapped(importStatus);
-            ImGui.Spacing();
-        }
-
-        // Apply button
-        ImGui.Spacing();
-        ImGui.SameLine(0, 15f);
-        if (ImGui.Button("Apply", new Vector2(192f, 0f)))
-        {
-            // Try to import CSV, update status or close popup if successful
-            if (Utilities.ImportCSV(importCSV, translations, out string status))
+            // Try to import alternative translations from CSV
+            if (Utilities.ImportAlternativeTranslationsCSV(csv, alternativeTranslations, out string status))
             {
-                importStatus = string.Empty;
-                int count = translations.Count;
+                // Count imported translations
+                int count = alternativeTranslations.Count;
+
+                // Log
                 string message = $"{count} alternative translations imported";
                 SetInformation(message);
                 log.Information($"{Class} - {message}");
-                ImGui.CloseCurrentPopup();
-            }
-            else
-            {
-                importStatus = status;
-            }
-        }
 
-        // Close button
-        ImGui.SameLine(0, 15f);
-        if (ImGui.Button("Close", new Vector2(192f, 0f)))
-        {
-            // Close popup
-            importStatus = string.Empty;
-            ImGui.CloseCurrentPopup();
-        }
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.EndPopup();
+                // Reset status
+                return string.Empty;
+            }
+            // Reset status
+            return status;
+        });
     }
 
     // ----------------------------
@@ -492,50 +420,24 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     private void DrawResetPopup()
     {
-        // Popup for reset confirmation
-        if (!ImGui.BeginPopupModal("Confirm reset", ImGuiWindowFlags.AlwaysAutoResize)) return;
-
-        // Message
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.SameLine(0, 30f);
-        ImGui.TextWrapped("This will clear all alternative translations.   Are you sure ?");
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Spacing();
-
-        // Confirm button
-        if (ImGui.Button("Yes, reset all", new Vector2(200f, 0f)))
+        // Draw confirmation popup
+        PopupHelper.DrawConfirmationPopup("Confirm reset", "This will clear all alternative translations.    Are you sure ?", "Yes, reset all", "Cancel", new Vector2(430f, 0f), () =>
         {
-            // Count alternative translations
-            int count = translations.Count;
+            // Count removed translations
+            int count = alternativeTranslations.Count;
 
             // Clear alternative translations
-            translations.Clear();
-
-            // Clear persisted values
+            alternativeTranslations.Clear();
             config.AlternativeTranslations.Clear();
 
             // Save configuration
             config.Save();
+
+            // Log
             string message = $"{count} alternative translations cleared";
             SetInformation(message);
             log.Information($"{Class} - {message}");
-
-            // Close popup
-            ImGui.CloseCurrentPopup();
-        }
-
-        // Cancel button
-        ImGui.SameLine(0, 10f);
-        if (ImGui.Button("Cancel", new Vector2(200f, 0f)))
-        {
-            // Close popup
-            ImGui.CloseCurrentPopup();
-        }
-
-        // End popup
-        ImGui.EndPopup();
+        });
     }
 
     // ----------------------------
@@ -547,18 +449,18 @@ public class CustomizeWindow : Window, IDisposable
         config.AlternativeTranslations.Clear();
 
         // Save alternative translations into persisted list
-        foreach (AlternativeTranslation translation in translations)
+        foreach (AlternativeTranslation alternativeTranslation in alternativeTranslations)
         {
             config.AlternativeTranslations.Add(new AlternativeTranslation
             {
-                SpellName = translation.SpellName,
-                AlternativeName = translation.AlternativeName
+                SpellName = alternativeTranslation.SpellName,
+                AlternativeName = alternativeTranslation.AlternativeName
             });
         }
 
         // Save configuration
         config.Save();
-        string message = $"{translations.Count} alternative translations saved";
+        string message = $"{alternativeTranslations.Count} alternative translations saved";
         SetInformation(message);
         log.Information($"{Class} - {message}");
     }
@@ -584,12 +486,12 @@ public class CustomizeWindow : Window, IDisposable
     private bool HasChanges()
     {
         // Check for count differences
-        if (translations.Count != config.AlternativeTranslations.Count) return true;
+        if (alternativeTranslations.Count != config.AlternativeTranslations.Count) return true;
 
         // Check for differences in memory vs persisted values
-        for (int i = 0; i < translations.Count; i++)
+        for (int i = 0; i < alternativeTranslations.Count; i++)
         {
-            AlternativeTranslation inMemory = translations[i];
+            AlternativeTranslation inMemory = alternativeTranslations[i];
             AlternativeTranslation saved = config.AlternativeTranslations[i];
             if (!string.Equals(inMemory.SpellName, saved.SpellName, StringComparison.Ordinal)) return true;
             if (!string.Equals(inMemory.AlternativeName, saved.AlternativeName, StringComparison.Ordinal)) return true;
@@ -603,9 +505,9 @@ public class CustomizeWindow : Window, IDisposable
     private bool HasInvalidEntries()
     {
         // Check for invalid values in alternative translations
-        foreach (AlternativeTranslation translation in translations)
+        foreach (AlternativeTranslation alternativeTranslation in alternativeTranslations)
         {
-            if (IsInvalidValue(translation.SpellName) || IsInvalidValue(translation.AlternativeName)) return true;
+            if (IsInvalidValue(alternativeTranslation.SpellName) || IsInvalidValue(alternativeTranslation.AlternativeName)) return true;
         }
         return false;
     }
@@ -625,9 +527,9 @@ public class CustomizeWindow : Window, IDisposable
     private bool HasPendingEmptyRow()
     {
         // Check if there is already an empty row in the translations list
-        foreach (AlternativeTranslation translation in translations)
+        foreach (AlternativeTranslation alternativeTranslation in alternativeTranslations)
         {
-            if (string.IsNullOrWhiteSpace(translation.SpellName) && string.IsNullOrWhiteSpace(translation.AlternativeName)) return true;
+            if (string.IsNullOrWhiteSpace(alternativeTranslation.SpellName) && string.IsNullOrWhiteSpace(alternativeTranslation.AlternativeName)) return true;
         }
         return false;
     }

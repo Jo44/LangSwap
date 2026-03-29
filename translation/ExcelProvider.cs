@@ -3,6 +3,7 @@ using LangSwap.tool;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
 using System;
+using System.Collections.Generic;
 
 namespace LangSwap.translation;
 
@@ -140,6 +141,45 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         {
             log.Error(ex, $"{Class} - Exception while getting action transient {actionId} in language {targetLang}");
             return null;
+        }
+    }
+
+    // ----------------------------
+    // Get obfuscated translations
+    // ----------------------------
+    public List<ObfuscatedTranslation> GetObfuscatedTranslations()
+    {
+        // TODO : comment
+        try
+        {
+            HashSet<ObfuscatedTranslation> obfuscatedTranslations = [];
+            LanguageEnum[] languages = [LanguageEnum.English, LanguageEnum.French, LanguageEnum.German, LanguageEnum.Japanese];
+
+            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(Utilities.EnumToClientLang(LanguageEnum.English));
+            if (actionSheet != null)
+            {
+                foreach (Lumina.Excel.Sheets.Action action in actionSheet)
+                {
+                    int actionId = (int)action.RowId;
+                    string actionName = action.Name.ToString();
+                    if (!string.IsNullOrWhiteSpace(actionName) && actionName.StartsWith("_rsv_", StringComparison.Ordinal))
+                    {
+                        obfuscatedTranslations.Add(new ObfuscatedTranslation { Id = actionId, ObfuscatedName = actionName });
+                    }
+                }
+            }
+
+            List<ObfuscatedTranslation> result = [.. obfuscatedTranslations];
+            result.Sort((a, b) => a.Id.CompareTo(b.Id));
+
+            // TODO : enlever ceux dont on a déjà récupéré l'ensemble des traductions
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Exception while getting remaining obfuscated translations");
+            return [];
         }
     }
 

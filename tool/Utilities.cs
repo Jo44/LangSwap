@@ -127,22 +127,9 @@ public unsafe class Utilities(
     }
 
     // ----------------------------
-    // Get alternative translation
+    // Export alternative translations CSV
     // ----------------------------
-    public static string? GetAlternativeTranslation(string spellName, List<AlternativeTranslation> alternativeTranslations)
-    {
-        // Check for null or empty spell name or translations list
-        if (spellName.IsNullOrWhitespace() || alternativeTranslations == null || alternativeTranslations.Count == 0) 
-            return null;
-
-        // Find the last alternative translation that matches the spell name
-        return alternativeTranslations.FindLast(alternative => alternative.SpellName == spellName)?.AlternativeName;
-    }
-
-    // ----------------------------
-    // Export CSV
-    // ----------------------------
-    public static string ExportCSV(List<AlternativeTranslation> translations)
+    public static string ExportAlternativeTranslationsCSV(List<AlternativeTranslation> translations)
     {
         // Check for null or empty list
         if (translations == null || translations.Count == 0) return string.Empty;
@@ -164,18 +151,9 @@ public unsafe class Utilities(
     }
 
     // ----------------------------
-    // Sanitize CSV field
+    // Import alternative translations CSV
     // ----------------------------
-    private static string SanitizeCSVField(string field)
-    {
-        // Remove line breaks and trim whitespace to prevent CSV formatting issues
-        return (field ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
-    }
-
-    // ----------------------------
-    // Import CSV
-    // ----------------------------
-    public static bool ImportCSV(string csv, List<AlternativeTranslation> translations, out string status)
+    public static bool ImportAlternativeTranslationsCSV(string csv, List<AlternativeTranslation> translations, out string status)
     {
         // Initialize
         status = string.Empty;
@@ -235,6 +213,160 @@ public unsafe class Utilities(
         translations.Clear();
         translations.AddRange(imported);
         return true;
+    }
+
+    // ----------------------------
+    // Export obfuscated translations CSV
+    // ----------------------------
+    public static string ExportObfuscatedTranslationsCSV(List<ObfuscatedTranslation> translations)
+    {
+        // Check for null or empty list
+        if (translations == null || translations.Count == 0) return string.Empty;
+
+        // Build CSV lines
+        List<string> lines = [];
+        foreach (ObfuscatedTranslation translation in translations)
+        {
+            string id = translation.Id.ToString();
+            string obfuscatedName = SanitizeCSVField(translation.ObfuscatedName);
+            string englishName = SanitizeCSVField(translation.EnglishName);
+            string frenchName = SanitizeCSVField(translation.FrenchName);
+            string germanName = SanitizeCSVField(translation.GermanName);
+            string japaneseName = SanitizeCSVField(translation.JapaneseName);
+            lines.Add($"{id};{obfuscatedName};{englishName};{frenchName};{germanName};{japaneseName}");
+        }
+
+        // Join lines with newline character
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    // ----------------------------
+    // Import obfuscated translations CSV
+    // ----------------------------
+    public static bool ImportObfuscatedTranslationsCSV(string csv, List<ObfuscatedTranslation> translations, out string status)
+    {
+        // Initialize
+        status = string.Empty;
+        List<ObfuscatedTranslation> imported = [];
+
+        // Check for null target list
+        if (translations == null)
+        {
+            status = "Target list is null";
+            return false;
+        }
+
+        // Clear list if CSV is empty
+        if (string.IsNullOrWhiteSpace(csv))
+        {
+            translations.Clear();
+            return true;
+        }
+
+        // Split CSV into lines and process each line
+        string[] lines = csv.Replace("\r", string.Empty).Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            // Trim line and skip if empty
+            string line = lines[i].Trim();
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            // Validate line format (must contain exactly 5 ';' separators)
+            string[] parts = line.Split(';');
+            if (parts.Length != 6)
+            {
+                status = $"Invalid CSV at line {i + 1}";
+                return false;
+            }
+
+            if (!int.TryParse(parts[0].Trim(), out int id) || id < 0)
+            {
+                status = $"Invalid values at line {i + 1}";
+                return false;
+            }
+
+            // Extract fields
+            string obfuscatedName = parts[1].Trim();
+            string englishName = parts[2].Trim();
+            string frenchName = parts[3].Trim();
+            string germanName = parts[4].Trim();
+            string japaneseName = parts[5].Trim();
+
+            // Validate required field
+            if (string.IsNullOrWhiteSpace(obfuscatedName))
+            {
+                status = $"Invalid values at line {i + 1}";
+                return false;
+            }
+
+            // Add to imported list
+            imported.Add(new ObfuscatedTranslation
+            {
+                Id = id,
+                ObfuscatedName = obfuscatedName,
+                EnglishName = englishName,
+                FrenchName = frenchName,
+                GermanName = germanName,
+                JapaneseName = japaneseName
+            });
+        }
+
+        // Merge imported translations into existing list
+        foreach (ObfuscatedTranslation importedTranslation in imported)
+        {
+            ObfuscatedTranslation clone = CloneObfuscatedTranslation(importedTranslation);
+            ObfuscatedTranslation? existingTranslation = translations.FindLast(translation => translation.Id == clone.Id && string.Equals(translation.ObfuscatedName, clone.ObfuscatedName, StringComparison.Ordinal));
+            if (existingTranslation != null)
+            {
+                existingTranslation.EnglishName = clone.EnglishName;
+                existingTranslation.FrenchName = clone.FrenchName;
+                existingTranslation.GermanName = clone.GermanName;
+                existingTranslation.JapaneseName = clone.JapaneseName;
+            }
+            else
+            {
+                translations.Add(clone);
+            }
+        }
+        return true;
+    }
+
+    // ----------------------------
+    // Sanitize CSV field
+    // ----------------------------
+    private static string SanitizeCSVField(string field)
+    {
+        // Remove line breaks and trim whitespace to prevent CSV formatting issues
+        return (field ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
+    }
+
+    // ----------------------------
+    // Clone obfuscated translation
+    // ----------------------------
+    public static ObfuscatedTranslation CloneObfuscatedTranslation(ObfuscatedTranslation translation)
+    {
+        return new ObfuscatedTranslation
+        {
+            Id = translation.Id,
+            ObfuscatedName = translation.ObfuscatedName,
+            EnglishName = translation.EnglishName,
+            FrenchName = translation.FrenchName,
+            GermanName = translation.GermanName,
+            JapaneseName = translation.JapaneseName
+        };
+    }
+
+    // ----------------------------
+    // Get alternative translation
+    // ----------------------------
+    public static string? GetAlternativeTranslation(string spellName, List<AlternativeTranslation> alternativeTranslations)
+    {
+        // Check for null or empty spell name or translations list
+        if (spellName.IsNullOrWhitespace() || alternativeTranslations == null || alternativeTranslations.Count == 0)
+            return null;
+
+        // Find the last alternative translation that matches the spell name
+        return alternativeTranslations.FindLast(alternative => alternative.SpellName == spellName)?.AlternativeName;
     }
 
     // ----------------------------

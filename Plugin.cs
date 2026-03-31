@@ -79,11 +79,14 @@ public sealed class Plugin : IDalamudPlugin
             // Load configuration
             config = DalamudPluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
+            // Detect client language
+            DetectClientLanguage();
+
             // Load remote obfuscated translations
             LoadRemoteObfuscatedTranslations();
 
-            // Detect client language
-            DetectClientLanguage();
+            // Log persisted translations
+            LogPersistedTranslations();
 
             // Initialize core components
             utilities = new(config, GameGui, KeyState, Log);
@@ -112,22 +115,22 @@ public sealed class Plugin : IDalamudPlugin
 
             // Log plugin informations
             Log.Information($"{Class} === LangSwap plugin configuration ===");
-            Log.Debug($"{Class} - Client Language = {config.ClientLanguage}");
-            Log.Debug($"{Class} - Target Language = {config.TargetLanguage}");
-            Log.Debug($"{Class} - Auto Startup = {config.AutoStartup}");
-            Log.Debug($"{Class} - Shortcut Enabled = {config.ShortcutEnabled}");
-            Log.Debug($"{Class} - Primary Key = {config.PrimaryKey}");
-            Log.Debug($"{Class} - Ctrl = {config.Ctrl}");
-            Log.Debug($"{Class} - Alt = {config.Alt}");
-            Log.Debug($"{Class} - Shift = {config.Shift}");
-            Log.Debug($"{Class} - Allies CastBars - Target = {config.AlliesCastBarsTarget}");
-            Log.Debug($"{Class} - Allies CastBars - Focus = {config.AlliesCastBarsFocus}");
-            Log.Debug($"{Class} - Allies CastBars - Party List = {config.AlliesCastBarsPartyList}");
-            Log.Debug($"{Class} - Enemies CastBars - Target = {config.EnemiesCastBarsTarget}");
-            Log.Debug($"{Class} - Enemies CastBars - Focus = {config.EnemiesCastBarsFocus}");
-            Log.Debug($"{Class} - Enemies CastBars - Enmity List = {config.EnemiesCastBarsEnmityList}");
-            Log.Debug($"{Class} - Tooltip - Action = {config.ActionTooltip}");
-            Log.Debug($"{Class} - Tooltip - Item = {config.ItemTooltip}");
+            Log.Information($"{Class} - Client Language = {config.ClientLanguage}");
+            Log.Information($"{Class} - Target Language = {config.TargetLanguage}");
+            Log.Information($"{Class} - Auto Startup = {config.AutoStartup}");
+            Log.Information($"{Class} - Shortcut Enabled = {config.ShortcutEnabled}");
+            Log.Information($"{Class} - Primary Key = {config.PrimaryKey}");
+            Log.Information($"{Class} - Ctrl = {config.Ctrl}");
+            Log.Information($"{Class} - Alt = {config.Alt}");
+            Log.Information($"{Class} - Shift = {config.Shift}");
+            Log.Information($"{Class} - Allies CastBars - Target = {config.AlliesCastBarsTarget}");
+            Log.Information($"{Class} - Allies CastBars - Focus = {config.AlliesCastBarsFocus}");
+            Log.Information($"{Class} - Allies CastBars - Party List = {config.AlliesCastBarsPartyList}");
+            Log.Information($"{Class} - Enemies CastBars - Target = {config.EnemiesCastBarsTarget}");
+            Log.Information($"{Class} - Enemies CastBars - Focus = {config.EnemiesCastBarsFocus}");
+            Log.Information($"{Class} - Enemies CastBars - Enmity List = {config.EnemiesCastBarsEnmityList}");
+            Log.Information($"{Class} - Tooltip - Action = {config.ActionTooltip}");
+            Log.Information($"{Class} - Tooltip - Item = {config.ItemTooltip}");
             Log.Information($"{Class} === LangSwap plugin loaded ===");
 
             // Auto startup swap if enabled
@@ -249,6 +252,155 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
+    // Configuration
+    // ----------------------------
+    private void DetectClientLanguage()
+    {
+        // Detect client language
+        ClientLanguage lang = ClientState.ClientLanguage;
+
+        // Map client language to configuration
+        config.ClientLanguage = lang switch
+        {
+            ClientLanguage.Japanese => LanguageEnum.Japanese,
+            ClientLanguage.English => LanguageEnum.English,
+            ClientLanguage.German => LanguageEnum.German,
+            ClientLanguage.French => LanguageEnum.French,
+            _ => LanguageEnum.English
+        };
+
+        // Log unrecognized language
+        if ((int)lang > 3) Log.Warning($"{Class} - Unrecognized client language: {lang}, defaulting to English");
+
+        // Save configuration
+        config.Save();
+    }
+
+    // ----------------------------
+    // Load remote obfuscated translations
+    // ----------------------------
+    private void LoadRemoteObfuscatedTranslations()
+    {
+        try
+        {
+            // Validate URL
+            if (string.IsNullOrWhiteSpace(config.RemoteUrl)) return;
+
+            // Download remote CSV
+            using HttpClient httpClient = new();
+            string csv = httpClient.GetStringAsync(config.RemoteUrl).GetAwaiter().GetResult();
+            if (string.IsNullOrWhiteSpace(csv))
+            {
+                Log.Warning($"{Class} - Remote obfuscated translations CSV is empty");
+                return;
+            }
+
+            // Import CSV content into a temporary list
+            List<ObfuscatedTranslation> importedTranslations = [];
+            if (!Utilities.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
+            {
+                Log.Warning($"{Class} - Failed to import remote obfuscated translations CSV: {status}");
+                return;
+            }
+
+            // Replace current remote translations and persist
+            config.RemoteObfuscatedTranslations.Clear();
+            config.RemoteObfuscatedTranslations.AddRange(importedTranslations);
+            config.Save();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, $"{Class} - Failed to download remote obfuscated translations CSV");
+        }
+    }
+
+    // ----------------------------
+    // Log persisted translations
+    // ----------------------------
+    private void LogPersistedTranslations()
+    {
+        // Remote obfuscated translations
+        LogObfuscatedTranslations("Remote Obfuscated Translations", config.RemoteObfuscatedTranslations);
+
+        // Scanned obfuscated translations
+        LogObfuscatedTranslations("Scanned Obfuscated Translations", config.ScannedObfuscatedTranslations);
+
+        // Local obfuscated translations
+        LogObfuscatedTranslations("Local Obfuscated Translations", config.LocalObfuscatedTranslations);
+
+        // Alternative translations
+        LogAlternativeTranslations();
+    }
+
+    // ----------------------------
+    // Log obfuscated translations
+    // ----------------------------
+    private static void LogObfuscatedTranslations(string listName, List<ObfuscatedTranslation> translations)
+    {
+        // Count translations
+        int count = translations?.Count ?? 0;
+        Log.Information($"{Class} - {listName} ({count})");
+
+        // Check for empty list
+        if (translations == null || translations.Count == 0) return;
+
+        // Log each translation
+        foreach (ObfuscatedTranslation translation in translations)
+        {
+            Log.Information($"{Class} - ID={translation.Id}, Obfuscated={translation.ObfuscatedName}, English={translation.EnglishName}, French={translation.FrenchName}, German={translation.GermanName}, Japanese={translation.JapaneseName}");
+        }
+    }
+
+    // ----------------------------
+    // Log alternative translations
+    // ----------------------------
+    private void LogAlternativeTranslations()
+    {
+        // Count translations
+        int count = config.AlternativeTranslations?.Count ?? 0;
+        Log.Information($"{Class} - Alternative Translations ({count})");
+
+        // Check for empty list
+        if (config.AlternativeTranslations == null || config.AlternativeTranslations.Count == 0) return;
+
+        // Log each translation
+        foreach (AlternativeTranslation translation in config.AlternativeTranslations)
+        {
+            Log.Information($"{Class} - Spell={translation.SpellName}, Alternative={translation.AlternativeName}");
+        }
+    }
+
+    // ----------------------------
+    // Chat Logging
+    // ----------------------------
+    private static void ChatLog(string message)
+    {
+        // Check for empty message
+        if (string.IsNullOrWhiteSpace(message)) return;
+
+        try
+        {
+            // Build log message
+            SeString log = new(new Payload[]
+            {
+                new UIForegroundPayload(LogTagColor),
+                new TextPayload("[LangSwap] "),
+                new UIForegroundPayload(0),
+                new UIForegroundPayload(MessageColor),
+                new TextPayload(message),
+                new UIForegroundPayload(0)
+            });
+
+            // Print to chat
+            ChatGui?.Print(log);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"{Class} - Failed to print chat log");
+        }
+    }
+
+    // ----------------------------
     // Apply new target language
     // ----------------------------
     public void ApplyNewTargetLanguage()
@@ -315,102 +467,6 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
-    // Load remote obfuscated translations
-    // ----------------------------
-    private void LoadRemoteObfuscatedTranslations()
-    {
-        try
-        {
-            // Validate URL
-            if (string.IsNullOrWhiteSpace(config.RemoteUrl)) return;
-
-            // Download remote CSV
-            using HttpClient httpClient = new();
-            string csv = httpClient.GetStringAsync(config.RemoteUrl).GetAwaiter().GetResult();
-            if (string.IsNullOrWhiteSpace(csv))
-            {
-                Log.Warning($"{Class} - Remote obfuscated translations CSV is empty");
-                return;
-            }
-
-            // Import CSV content into a temporary list
-            List<ObfuscatedTranslation> importedTranslations = [];
-            if (!Utilities.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
-            {
-                Log.Warning($"{Class} - Failed to import remote obfuscated translations CSV: {status}");
-                return;
-            }
-
-            // Replace current remote translations and persist
-            config.RemoteObfuscatedTranslations.Clear();
-            config.RemoteObfuscatedTranslations.AddRange(importedTranslations);
-            config.Save();
-
-            // Log
-            Log.Information($"{Class} - Loaded {importedTranslations.Count} remote obfuscated translations");
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, $"{Class} - Failed to download remote obfuscated translations CSV");
-        }
-    }
-
-    // ----------------------------
-    // Configuration
-    // ----------------------------
-    private void DetectClientLanguage()
-    {
-        // Detect client language
-        ClientLanguage lang = ClientState.ClientLanguage;
-
-        // Map client language to configuration
-        config.ClientLanguage = lang switch
-        {
-            ClientLanguage.Japanese => LanguageEnum.Japanese,
-            ClientLanguage.English => LanguageEnum.English,
-            ClientLanguage.German => LanguageEnum.German,
-            ClientLanguage.French => LanguageEnum.French,
-            _ => LanguageEnum.English
-        };
-
-        // Log unrecognized language
-        if ((int)lang > 3) Log.Warning($"{Class} - Unrecognized client language: {lang}, defaulting to English");
-
-        // Save configuration
-        config.Save();
-    }
-
-    // ----------------------------
-    // Chat Logging
-    // ----------------------------
-    private static void ChatLog(string message)
-    {
-        // Check for empty message
-        if (string.IsNullOrWhiteSpace(message)) return;
-
-        try
-        {
-            // Build log message
-            SeString log = new(new Payload[]
-            {
-                new UIForegroundPayload(LogTagColor),
-                new TextPayload("[LangSwap] "),
-                new UIForegroundPayload(0),
-                new UIForegroundPayload(MessageColor),
-                new TextPayload(message),
-                new UIForegroundPayload(0)
-            });
-
-            // Print to chat
-            ChatGui?.Print(log);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, $"{Class} - Failed to print chat log");
-        }
-    }
-
-    // ----------------------------
     // Swap State
     // ----------------------------
     public bool IsSwapEnabled() => isSwapEnabled;
@@ -419,6 +475,11 @@ public sealed class Plugin : IDalamudPlugin
     // Toggle translation
     // ----------------------------
     public void ToggleTranslation() => ToggleLanguageSwap();
+
+    // ----------------------------
+    // Command Handler
+    // ----------------------------
+    private void OnCommand(string command, string args) => configWindow.Toggle();
 
     // ----------------------------
     // Toggle Config UI
@@ -434,11 +495,6 @@ public sealed class Plugin : IDalamudPlugin
     // Toggle Debug UI
     // ----------------------------
     public void ToggleDebugUI() => debugWindow.Toggle();
-
-    // ----------------------------
-    // Command Handler
-    // ----------------------------
-    private void OnCommand(string command, string args) => configWindow.Toggle();
 
     // ----------------------------
     // Dispose

@@ -58,7 +58,7 @@ public unsafe abstract class TooltipBaseHook(
                 isEnabled = true;
 
                 // Log
-                log.Debug($"{Class} - {hookName} hook enabled at 0x{tooltipAddr:X}");
+                log.Information($"{Class} - {hookName} hook enabled at 0x{tooltipAddr:X}");
             }
             else
             {
@@ -91,7 +91,7 @@ public unsafe abstract class TooltipBaseHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug($"{Class} - {hookName} hook disabled");
+            log.Information($"{Class} - {hookName} hook disabled");
         }
         catch (Exception ex)
         {

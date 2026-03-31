@@ -153,12 +153,16 @@ public unsafe abstract class CastBarsBaseHook(
             string? clientActionName = translationCache.GetActionName(actionId, config.ClientLanguage);
             if (clientActionName.IsNullOrWhitespace()) return null;
 
+            string originalClientActionName = clientActionName;
+
             // Check for obfuscated name
             if (clientActionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
             {
-                // TODO : à voir si utile
                 log.Information($"{Class} - Obfuscated cast detected for action {actionId}: {clientActionName} | Visible: {visibleAddonName}");
                 SaveScannedObfuscatedTranslation((int)actionId, clientActionName, visibleAddonName);
+
+                string? resolvedClientActionName = GetObfuscatedTranslationName(clientActionName, config.ClientLanguage);
+                if (!resolvedClientActionName.IsNullOrWhitespace()) clientActionName = resolvedClientActionName;
             }
 
             // If target language is same as client language
@@ -170,7 +174,8 @@ public unsafe abstract class CastBarsBaseHook(
                 {
                     return alternativeName;
                 }
-                return null;
+
+                return string.Equals(clientActionName, originalClientActionName, StringComparison.Ordinal) ? null : clientActionName;
             }
 
             // Get the translated action name
@@ -269,7 +274,7 @@ public unsafe abstract class CastBarsBaseHook(
             if (created || changed)
             {
                 config.Save();
-                log.Information($"{Class} - Scanned obfuscated cast saved for action {actionId}");
+                log.Information($"{Class} - Scanned obfuscated cast saved: ID={actionId}, ObfuscatedName={obfuscatedName}, ClientLanguage={config.ClientLanguage}, ClientName={scannedName}");
             }
         }
         catch (Exception ex)
@@ -283,13 +288,13 @@ public unsafe abstract class CastBarsBaseHook(
     // ----------------------------
     protected string? GetObfuscatedTranslationName(string obfuscatedName, LanguageEnum language)
     {
-        string? translation = FindObfuscatedTranslation(config.LocalObfuscatedTranslations, obfuscatedName, language);
+        string? translation = FindObfuscatedTranslation(config.RemoteObfuscatedTranslations, obfuscatedName, language);
         if (!translation.IsNullOrWhitespace()) return translation;
 
         translation = FindObfuscatedTranslation(config.ScannedObfuscatedTranslations, obfuscatedName, language);
         if (!translation.IsNullOrWhitespace()) return translation;
 
-        return FindObfuscatedTranslation(config.RemoteObfuscatedTranslations, obfuscatedName, language);
+        return FindObfuscatedTranslation(config.LocalObfuscatedTranslations, obfuscatedName, language);
     }
 
     // ----------------------------

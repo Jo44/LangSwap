@@ -14,7 +14,7 @@ namespace LangSwap;
 public class Configuration : IPluginConfiguration
 {
     // Version
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
 
     // Language
     public LanguageEnum ClientLanguage { get; set; } = LanguageEnum.English;
@@ -25,15 +25,15 @@ public class Configuration : IPluginConfiguration
     public Vector4 LightRed { get; } = new Vector4(0.57f, 0.13f, 0.13f, 1.00f); // Light Red
     public Vector4 RedDalamud { get; } = new Vector4(0.35f, 0.08f, 0.08f, 1.00f); // Red Dalamud
 
-    // Alternative translations
-    public List<AlternativeTranslation> AlternativeTranslations { get; set; } = [];
-
     // Obfuscated translations
     public string ObfuscatedPrefix { get; } = "_rsv_";
     public string RemoteUrl { get; } = "https://raw.githubusercontent.com/Jo44/LangSwap/refs/heads/main/data/obfuscated_translations.csv";
     public List<ObfuscatedTranslation> RemoteObfuscatedTranslations { get; set; } = [];
     public List<ObfuscatedTranslation> ScannedObfuscatedTranslations { get; set; } = [];
     public List<ObfuscatedTranslation> LocalObfuscatedTranslations { get; set; } = [];
+
+    // Alternative translations
+    public List<AlternativeTranslation> AlternativeTranslations { get; set; } = [];
 
     // Startup behavior
     public bool AutoStartup { get; set; } = false;

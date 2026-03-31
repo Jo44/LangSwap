@@ -76,28 +76,6 @@ public class CustomizeWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Load alternative translations
-    // ----------------------------
-    private void LoadAlternativeTranslations()
-    {
-        // Clear translation list
-        alternativeTranslations.Clear();
-
-        // Load persisted values into translation list
-        foreach (AlternativeTranslation alternativeTranslation in config.AlternativeTranslations)
-        {
-            alternativeTranslations.Add(new AlternativeTranslation
-            {
-                SpellName = alternativeTranslation.SpellName,
-                AlternativeName = alternativeTranslation.AlternativeName
-            });
-        }
-
-        // Log
-        log.Information($"{Class} - Loaded {alternativeTranslations.Count} alternative translations");
-    }
-
-    // ----------------------------
     // Draw
     // ----------------------------
     public override void Draw()
@@ -319,7 +297,7 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     private static void DrawInputText(string id, ref string value, int maxLength, float rowHeight, bool setFocus = false)
     {
-        // Calculate input position and set width
+        // Calculate input position and width
         float width = MathF.Max(1f, ImGui.GetContentRegionAvail().X);
         float y = ImGui.GetCursorPosY();
         float offsetY = MathF.Max(0f, (rowHeight - ImGui.GetFrameHeight()) * 0.5f);
@@ -441,6 +419,28 @@ public class CustomizeWindow : Window, IDisposable
     }
 
     // ----------------------------
+    // Load alternative translations
+    // ----------------------------
+    private void LoadAlternativeTranslations()
+    {
+        // Clear translation list
+        alternativeTranslations.Clear();
+
+        // Load persisted values into translation list
+        foreach (AlternativeTranslation alternativeTranslation in config.AlternativeTranslations)
+        {
+            alternativeTranslations.Add(new AlternativeTranslation
+            {
+                SpellName = alternativeTranslation.SpellName,
+                AlternativeName = alternativeTranslation.AlternativeName
+            });
+        }
+
+        // Log
+        log.Information($"{Class} - Loaded {alternativeTranslations.Count} alternative translations");
+    }
+
+    // ----------------------------
     // Save changes
     // ----------------------------
     private void SaveChanges()
@@ -460,6 +460,8 @@ public class CustomizeWindow : Window, IDisposable
 
         // Save configuration
         config.Save();
+
+        // Log
         string message = $"{alternativeTranslations.Count} alternative translations saved";
         SetInformation(message);
         log.Information($"{Class} - {message}");

@@ -74,7 +74,7 @@ public unsafe class AlliesCastBarsHook(
             isEnabled = true;
 
             // Log
-            log.Debug($"{Class} - {hookName} hook enabled");
+            log.Information($"{Class} - {hookName} hook enabled");
         }
         catch (Exception ex)
         {
@@ -338,7 +338,7 @@ public unsafe class AlliesCastBarsHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug($"{Class} - {hookName} hook disabled");
+            log.Information($"{Class} - {hookName} hook disabled");
         }
         catch (Exception ex)
         {

@@ -71,7 +71,7 @@ public unsafe class EnemiesCastBarsHook(
             isEnabled = true;
 
             // Log
-            log.Debug($"{Class} - {hookName} hook enabled");
+            log.Information($"{Class} - {hookName} hook enabled");
         }
         catch (Exception ex)
         {
@@ -239,6 +239,10 @@ public unsafe class EnemiesCastBarsHook(
         // Remove ellipsis for comparison
         currentText = Utilities.RemoveEllipsis(currentText);
 
+        // Track a single unresolved obfuscated action for UI-based detection
+        uint unresolvedObfuscatedActionId = 0;
+        bool hasMultipleUnresolvedObfuscatedActions = false;
+
         // Check if the current text contains any of the casts in the enmity list and translate it
         foreach (KeyValuePair<ulong, uint> cast in listCasts)
         {
@@ -250,7 +254,8 @@ public unsafe class EnemiesCastBarsHook(
             if (clientActionName == null) continue;
 
             // Resolve obfuscated client action name from known mappings
-            if (clientActionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
+            bool isObfuscatedClientActionName = clientActionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal);
+            if (isObfuscatedClientActionName)
             {
                 string? knownClientActionName = GetObfuscatedTranslationName(clientActionName, config.ClientLanguage);
                 if (!knownClientActionName.IsNullOrWhitespace()) clientActionName = knownClientActionName;
@@ -267,6 +272,32 @@ public unsafe class EnemiesCastBarsHook(
                     textNode -> SetText(displayName);
                     break;
                 }
+            }
+
+            // If the action is still unresolved and the UI shows a visible name, keep a single safe fallback candidate
+            if (isObfuscatedClientActionName &&
+                clientActionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal) &&
+                !currentText.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
+            {
+                if (unresolvedObfuscatedActionId == 0 || unresolvedObfuscatedActionId == actionId)
+                {
+                    unresolvedObfuscatedActionId = actionId;
+                }
+                else
+                {
+                    hasMultipleUnresolvedObfuscatedActions = true;
+                }
+            }
+        }
+
+        // If exactly one unresolved obfuscated action remains, use the visible UI text to trigger detection and optional translation
+        if (unresolvedObfuscatedActionId > 0 && !hasMultipleUnresolvedObfuscatedActions)
+        {
+            string? displayName = GetDisplayActionName(unresolvedObfuscatedActionId, currentText);
+            if (!displayName.IsNullOrWhitespace())
+            {
+                // Update the text node with the display name
+                textNode -> SetText(displayName);
             }
         }
     }
@@ -310,7 +341,7 @@ public unsafe class EnemiesCastBarsHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Debug($"{Class} - {hookName} hook disabled");
+            log.Information($"{Class} - {hookName} hook disabled");
         }
         catch (Exception ex)
         {

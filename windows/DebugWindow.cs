@@ -69,56 +69,6 @@ public class DebugWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Search obfuscated translations
-    // ----------------------------
-    private void SearchObfuscatedTranslations()
-    {
-        // Clear translations list
-        obfuscatedTranslations.Clear();
-
-        // Get all obfuscated actions from Excel provider
-        foreach (ObfuscatedTranslation obfuscatedTranslation in excelProvider.GetAllObfuscatedActions())
-        {
-            obfuscatedTranslations.Add(new ObfuscatedTranslation
-            {
-                Id = obfuscatedTranslation.Id,
-                ObfuscatedName = obfuscatedTranslation.ObfuscatedName
-            });
-        }
-
-        // Apply obfuscated translations
-        ApplyObfuscatedTranslations(config.ScannedObfuscatedTranslations);
-        ApplyObfuscatedTranslations(config.LocalObfuscatedTranslations);
-
-        // Log
-        log.Information($"{Class} - Loaded {obfuscatedTranslations.Count} obfuscated translations");
-    }
-
-    // ----------------------------
-    // Apply obfuscated translations
-    // ----------------------------
-    private void ApplyObfuscatedTranslations(List<ObfuscatedTranslation> sourceTranslations)
-    {
-        // Check if there are obfuscated translations to apply
-        if (sourceTranslations == null || sourceTranslations.Count == 0) return;
-
-        // Apply obfuscated translations
-        foreach (ObfuscatedTranslation sourceTranslation in sourceTranslations)
-        {
-            // Find matching translation in the list
-            ObfuscatedTranslation? targetTranslation = obfuscatedTranslations.Find(translation => string.Equals(translation.ObfuscatedName, sourceTranslation.ObfuscatedName, StringComparison.Ordinal));
-            if (targetTranslation == null) continue;
-
-            // Apply obfuscated translation
-            targetTranslation.Id = sourceTranslation.Id;
-            if (!string.IsNullOrWhiteSpace(sourceTranslation.EnglishName)) targetTranslation.EnglishName = sourceTranslation.EnglishName;
-            if (!string.IsNullOrWhiteSpace(sourceTranslation.FrenchName)) targetTranslation.FrenchName = sourceTranslation.FrenchName;
-            if (!string.IsNullOrWhiteSpace(sourceTranslation.GermanName)) targetTranslation.GermanName = sourceTranslation.GermanName;
-            if (!string.IsNullOrWhiteSpace(sourceTranslation.JapaneseName)) targetTranslation.JapaneseName = sourceTranslation.JapaneseName;
-        }
-    }
-
-    // ----------------------------
     // Draw
     // ----------------------------
     public override void Draw()
@@ -262,27 +212,27 @@ public class DebugWindow : Window, IDisposable
                 // ID
                 ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
                 ImGui.TableSetColumnIndex(0);
-                DrawObfuscatedTranslationText(obfuscatedTranslation.Id.ToString(), rowHeight);
+                DrawCellText(obfuscatedTranslation.Id.ToString(), rowHeight);
 
                 // Obfuscation
                 ImGui.TableSetColumnIndex(1);
-                DrawObfuscatedTranslationText(obfuscatedTranslation.ObfuscatedName, rowHeight);
+                DrawCellText(obfuscatedTranslation.ObfuscatedName, rowHeight);
 
                 // English
                 ImGui.TableSetColumnIndex(2);
-                DrawObfuscatedTranslationText(obfuscatedTranslation.EnglishName, rowHeight);
+                DrawCellText(obfuscatedTranslation.EnglishName, rowHeight);
 
                 // French
                 ImGui.TableSetColumnIndex(3);
-                DrawObfuscatedTranslationText(obfuscatedTranslation.FrenchName, rowHeight);
+                DrawCellText(obfuscatedTranslation.FrenchName, rowHeight);
 
                 // German
                 ImGui.TableSetColumnIndex(4);
-                DrawObfuscatedTranslationText(obfuscatedTranslation.GermanName, rowHeight);
+                DrawCellText(obfuscatedTranslation.GermanName, rowHeight);
 
-                // Japanesea
+                // Japanese
                 ImGui.TableSetColumnIndex(5);
-                DrawObfuscatedTranslationText(obfuscatedTranslation.JapaneseName, rowHeight);
+                DrawCellText(obfuscatedTranslation.JapaneseName, rowHeight);
             }
         }
         ImGui.EndTable();
@@ -294,22 +244,6 @@ public class DebugWindow : Window, IDisposable
     // Draw cell text
     // ----------------------------
     private static void DrawCellText(string text, float rowHeight)
-    {
-        // Calculate text position
-        Vector2 pos = ImGui.GetCursorScreenPos();
-        float width = MathF.Max(1f, ImGui.GetContentRegionAvail().X);
-        Vector2 textSize = ImGui.CalcTextSize(text);
-        Vector2 textPos = new(pos.X + (width - textSize.X) * 0.5f, pos.Y + (rowHeight - textSize.Y) * 0.5f);
-
-        // Draw text
-        ImGui.GetWindowDrawList().AddText(textPos, ImGui.GetColorU32(ImGuiCol.Text), text);
-        ImGui.Dummy(new Vector2(width, rowHeight));
-    }
-
-    // ----------------------------
-    // Draw obfuscated translation text
-    // ----------------------------
-    private static void DrawObfuscatedTranslationText(string text, float rowHeight)
     {
         // Calculate text position
         Vector2 pos = ImGui.GetCursorScreenPos();
@@ -395,6 +329,56 @@ public class DebugWindow : Window, IDisposable
             // Search obfuscated translations
             SearchObfuscatedTranslations();
         });
+    }
+
+    // ----------------------------
+    // Search obfuscated translations
+    // ----------------------------
+    private void SearchObfuscatedTranslations()
+    {
+        // Clear translations list
+        obfuscatedTranslations.Clear();
+
+        // Get all obfuscated actions from Excel provider
+        foreach (ObfuscatedTranslation obfuscatedTranslation in excelProvider.GetAllObfuscatedActions())
+        {
+            obfuscatedTranslations.Add(new ObfuscatedTranslation
+            {
+                Id = obfuscatedTranslation.Id,
+                ObfuscatedName = obfuscatedTranslation.ObfuscatedName
+            });
+        }
+
+        // Merge obfuscated translations lists
+        MergeObfuscatedTranslations(config.ScannedObfuscatedTranslations);
+        MergeObfuscatedTranslations(config.LocalObfuscatedTranslations);
+
+        // Log
+        log.Information($"{Class} - Loaded {obfuscatedTranslations.Count} obfuscated translations");
+    }
+
+    // ----------------------------
+    // Merge obfuscated translations
+    // ----------------------------
+    private void MergeObfuscatedTranslations(List<ObfuscatedTranslation> sourceTranslations)
+    {
+        // Check if there are obfuscated translations to merge
+        if (sourceTranslations == null || sourceTranslations.Count == 0) return;
+
+        // Merge obfuscated translations
+        foreach (ObfuscatedTranslation sourceTranslation in sourceTranslations)
+        {
+            // Find matching translation in the list
+            ObfuscatedTranslation? targetTranslation = obfuscatedTranslations.Find(translation => string.Equals(translation.ObfuscatedName, sourceTranslation.ObfuscatedName, StringComparison.Ordinal));
+            if (targetTranslation == null) continue;
+
+            // Merge obfuscated translation
+            targetTranslation.Id = sourceTranslation.Id;
+            if (!string.IsNullOrWhiteSpace(sourceTranslation.EnglishName)) targetTranslation.EnglishName = sourceTranslation.EnglishName;
+            if (!string.IsNullOrWhiteSpace(sourceTranslation.FrenchName)) targetTranslation.FrenchName = sourceTranslation.FrenchName;
+            if (!string.IsNullOrWhiteSpace(sourceTranslation.GermanName)) targetTranslation.GermanName = sourceTranslation.GermanName;
+            if (!string.IsNullOrWhiteSpace(sourceTranslation.JapaneseName)) targetTranslation.JapaneseName = sourceTranslation.JapaneseName;
+        }
     }
 
     // ----------------------------

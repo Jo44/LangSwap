@@ -141,10 +141,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SetNextItemWidth(120f);
         if (ImGui.Combo("##Language", ref currentLang, languages, languages.Length))
         {
-            log.Information($"{Class} - Setting target language to {Enum.GetName(typeof(LanguageEnum), currentLang)} ({currentLang})");
-            config.TargetLanguage = (LanguageEnum)currentLang;
-            config.Save();
-            plugin.ApplyNewTargetLanguage();
+            TargetLanguageChange((LanguageEnum)currentLang, () => config.TargetLanguage = (LanguageEnum)currentLang); 
         }
 
         // Customize button
@@ -161,9 +158,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 15f);
         if (ImGui.Checkbox(" Automatically swap at startup##AutoStartup", ref autoStartup))
         {
-            log.Information($"{Class} - Setting AutoStartup to {autoStartup}");
-            config.AutoStartup = autoStartup;
-            config.Save();
+            CommonSettingChange("AutoStartup", autoStartup, () => config.AutoStartup = autoStartup);
         }
 
         // Clear translation caches
@@ -184,9 +179,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 15f);
         if (ImGui.Checkbox(" Toggle shortcut##ShortcutEnabled", ref shortcutEnabled))
         {
-            log.Information($"{Class} - Setting ShortcutEnabled to {shortcutEnabled}");
-            config.ShortcutEnabled = shortcutEnabled;
-            config.Save();
+            CommonSettingChange("ShortcutEnabled", shortcutEnabled, () => config.ShortcutEnabled = shortcutEnabled);
         }
         if (shortcutEnabled)
         {
@@ -201,32 +194,24 @@ public class ConfigWindow : Window, IDisposable
             ImGui.SetNextItemWidth(65f);
             if (ImGui.Combo("##PrimaryKey", ref selIndex, keyNames.ToArray(), keyNames.Count))
             {
-                log.Information($"{Class} - Setting primary key to {keyNames[selIndex]} ({keyValues[selIndex]})");
-                config.PrimaryKey = keyValues[selIndex];
-                config.Save();
+                PrimaryKeyChange(keyValues[selIndex], () => config.PrimaryKey = keyValues[selIndex]);
             }
 
             // Modifier keys
             ImGui.SameLine(0, 24f);
             if (ImGui.Checkbox(" Ctrl", ref ctrl))
             {
-                log.Information($"{Class} - Setting Ctrl to {ctrl}");
-                config.Ctrl = ctrl;
-                config.Save();
+                CommonSettingChange("Ctrl", ctrl, () => config.Ctrl = ctrl);
             }
             ImGui.SameLine(0, 13f);
             if (ImGui.Checkbox(" Alt", ref alt))
             {
-                log.Information($"{Class} - Setting Alt to {alt}");
-                config.Alt = alt;
-                config.Save();
+                CommonSettingChange("Alt", alt, () => config.Alt = alt);
             }
             ImGui.SameLine(0, 13f);
             if (ImGui.Checkbox(" Shift", ref shift))
             {
-                log.Information($"{Class} - Setting Shift to {shift}");
-                config.Shift = shift;
-                config.Save();
+                CommonSettingChange("Shift", shift, () => config.Shift = shift);
             }
         }
         ImGui.Spacing();
@@ -352,7 +337,7 @@ public class ConfigWindow : Window, IDisposable
         // Draw text
         ImGui.TextUnformatted(lineText);
 
-        //  Draw invisible button
+        // Draw invisible button
         ImGui.SetCursorScreenPos(new Vector2(linePos.X + prefixSize.X, linePos.Y));
         if (ImGui.InvisibleButton("##DebugLetter", letterSize))
         {
@@ -375,6 +360,44 @@ public class ConfigWindow : Window, IDisposable
     }
 
     // ----------------------------
+    // Target language change
+    // ----------------------------
+    private void TargetLanguageChange(LanguageEnum targetLanguage, Action applyChange)
+    {
+        log.Information($"{Class} - Setting target language to {Enum.GetName(targetLanguage)} ({targetLanguage})");
+        // Apply change
+        applyChange();
+        // Save config
+        config.Save();
+        // Apply new target language immediately
+        plugin.ApplyNewTargetLanguage();
+    }
+
+    // ----------------------------
+    // Common setting change
+    // ----------------------------
+    private void CommonSettingChange(string settingName, bool value, Action applyChange)
+    {
+        log.Information($"{Class} - Setting {settingName} to {value}");
+        // Apply change
+        applyChange();
+        // Save config
+        config.Save();
+    }
+    // ----------------------------
+    // Primary key change
+    // ----------------------------
+    private void PrimaryKeyChange(int value, Action applyChange)
+    {
+        log.Information($"{Class} - Setting PrimaryKey to {value}");
+        // Apply change
+        applyChange();
+        // Save config
+        config.Save();
+    }
+
+
+    // ----------------------------
     // UI component change
     // ----------------------------
     private void UIComponentChange(string settingName, bool value, Action applyChange)
@@ -384,7 +407,7 @@ public class ConfigWindow : Window, IDisposable
         applyChange();
         // Save config
         config.Save();
-        // Apply new UI components
+        // Apply new UI components immediately
         plugin.ApplyNewUIComponents();
     }
 

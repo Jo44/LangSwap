@@ -89,7 +89,7 @@ public static class PopupHelper
         ImGui.Spacing();
         ImGui.Spacing();
 
-        // Copy button
+        // Apply button
         ImGui.SameLine(15f);
         if (ImGui.Button("Apply", new Vector2((windowSize.X - 45f) / 2, 0f)))
         {

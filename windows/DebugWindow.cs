@@ -3,6 +3,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using LangSwap.tool;
 using LangSwap.translation;
+using LangSwap.translation.@base;
 using System;
 using System.Collections.Generic;
 using System.Numerics;

@@ -3,6 +3,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.hook.@base;
 using LangSwap.tool;
 using LangSwap.translation;
+using LangSwap.translation.@base;
 using System;
 
 namespace LangSwap.hook;

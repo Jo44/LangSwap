@@ -7,9 +7,10 @@ using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using LangSwap.translation;
+using LangSwap.translation.@base;
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 
 namespace LangSwap.tool;
 
@@ -17,6 +18,7 @@ namespace LangSwap.tool;
 // Utilities
 // ----------------------------
 public unsafe class Utilities(
+    IClientState ClientState,
     Configuration config,
     IGameGui gameGui,
     IKeyState keyState,
@@ -29,6 +31,47 @@ public unsafe class Utilities(
     private readonly char glamouredSymbol = config.GlamouredSymbol;
     private readonly char highQualitySymbol = config.HighQualitySymbol;
     private readonly char[] targetIndicatorSymbols = config.TargetIndicatorSymbols;
+
+    // ----------------------------
+    // Detect client language
+    // ----------------------------
+    public void DetectClientLanguage()
+    {
+        // Get client language
+        ClientLanguage lang = ClientState.ClientLanguage;
+
+        // Map client language to configuration
+        config.ClientLanguage = lang switch
+        {
+            ClientLanguage.Japanese => LanguageEnum.Japanese,
+            ClientLanguage.English => LanguageEnum.English,
+            ClientLanguage.German => LanguageEnum.German,
+            ClientLanguage.French => LanguageEnum.French,
+            _ => LanguageEnum.English
+        };
+
+        // Log unrecognized language
+        if ((int)lang > 3) log.Warning($"{Class} - Unrecognized client language: {lang}, defaulting to English");
+
+        // Save configuration
+        config.Save();
+    }
+
+    // ----------------------------
+    // Convert LanguageEnum to ClientLanguage
+    // ----------------------------
+    public static ClientLanguage EnumToClientLang(LanguageEnum lang)
+    {
+        // Map LanguageEnum to ClientLanguage
+        return lang switch
+        {
+            LanguageEnum.Japanese => ClientLanguage.Japanese,
+            LanguageEnum.English => ClientLanguage.English,
+            LanguageEnum.German => ClientLanguage.German,
+            LanguageEnum.French => ClientLanguage.French,
+            _ => ClientLanguage.English
+        };
+    }
 
     // ----------------------------
     // Initialize primary key names and values
@@ -357,6 +400,44 @@ public unsafe class Utilities(
     }
 
     // ----------------------------
+    // Get remote obfuscated translations
+    // ----------------------------
+    public void GetRemoteObfuscatedTranslations()
+    {
+        try
+        {
+            // Validate URL
+            if (string.IsNullOrWhiteSpace(config.RemoteUrl)) return;
+
+            // Download remote CSV
+            using HttpClient httpClient = new();
+            string csv = httpClient.GetStringAsync(config.RemoteUrl).GetAwaiter().GetResult();
+            if (string.IsNullOrWhiteSpace(csv))
+            {
+                log.Warning($"{Class} - Remote obfuscated translations CSV is empty");
+                return;
+            }
+
+            // Import CSV content into a temporary list
+            List<ObfuscatedTranslation> importedTranslations = [];
+            if (!Utilities.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
+            {
+                log.Warning($"{Class} - Failed to import remote obfuscated translations CSV: {status}");
+                return;
+            }
+
+            // Replace current remote translations and persist
+            config.RemoteObfuscatedTranslations.Clear();
+            config.RemoteObfuscatedTranslations.AddRange(importedTranslations);
+            config.Save();
+        }
+        catch (Exception ex)
+        {
+            log.Warning(ex, $"{Class} - Failed to download remote obfuscated translations CSV");
+        }
+    }
+
+    // ----------------------------
     // Get alternative translation
     // ----------------------------
     public static string? GetAlternativeTranslation(string spellName, List<AlternativeTranslation> alternativeTranslations)
@@ -370,19 +451,41 @@ public unsafe class Utilities(
     }
 
     // ----------------------------
-    // Convert LanguageEnum to ClientLanguage
+    // Log obfuscated translations
     // ----------------------------
-    public static ClientLanguage EnumToClientLang(LanguageEnum lang)
+    public void LogObfuscatedTranslations(string listName, List<ObfuscatedTranslation> translations)
     {
-        // Map LanguageEnum to ClientLanguage
-        return lang switch
+        // Count translations
+        int count = translations?.Count ?? 0;
+        log.Information($"{Class} - {listName} ({count})");
+
+        // Check for empty list
+        if (translations == null || translations.Count == 0) return;
+
+        // Log each translation
+        foreach (ObfuscatedTranslation translation in translations)
         {
-            LanguageEnum.Japanese => ClientLanguage.Japanese,
-            LanguageEnum.English => ClientLanguage.English,
-            LanguageEnum.German => ClientLanguage.German,
-            LanguageEnum.French => ClientLanguage.French,
-            _ => ClientLanguage.English
-        };
+            log.Debug($"{Class} - ID = {translation.Id}, Obfuscated = {translation.ObfuscatedName}, English = {translation.EnglishName}, French = {translation.FrenchName}, German = {translation.GermanName}, Japanese = {translation.JapaneseName}");
+        }
+    }
+
+    // ----------------------------
+    // Log alternative translations
+    // ----------------------------
+    public void LogAlternativeTranslations(string listName, List<AlternativeTranslation> alternativeTranslations)
+    {
+        // Count translations
+        int count = alternativeTranslations?.Count ?? 0;
+        log.Information($"{Class} - {listName} ({count})");
+
+        // Check for empty list
+        if (alternativeTranslations == null || alternativeTranslations.Count == 0) return;
+
+        // Log each translation
+        foreach (AlternativeTranslation translation in alternativeTranslations)
+        {
+            log.Debug($"{Class} - Spell = {translation.SpellName}, Alternative = {translation.AlternativeName}");
+        }
     }
 
     // ----------------------------

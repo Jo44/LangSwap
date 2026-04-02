@@ -1,4 +1,3 @@
-using Dalamud.Game;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -11,13 +10,11 @@ using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.Windows;
 using System;
-using System.Collections.Generic;
-using System.Net.Http;
 
 namespace LangSwap;
 
 // ----------------------------
-// Plugin Main Class
+// Plugin
 // ----------------------------
 public sealed class Plugin : IDalamudPlugin
 {
@@ -79,17 +76,8 @@ public sealed class Plugin : IDalamudPlugin
             // Load configuration
             config = DalamudPluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-            // Detect client language
-            DetectClientLanguage();
-
-            // Load remote obfuscated translations
-            LoadRemoteObfuscatedTranslations();
-
-            // Log persisted translations
-            LogPersistedTranslations();
-
             // Initialize core components
-            utilities = new(config, GameGui, KeyState, Log);
+            utilities = new(ClientState, config, GameGui, KeyState, Log);
             excelProvider = new(config, DataManager, Log);
             translationCache = new(excelProvider);
             hookManager = new(AddonLifecycle, config, Framework, GameInterop, ObjectTable, SigScanner, TargetManager, translationCache, utilities, Log);
@@ -102,16 +90,26 @@ public sealed class Plugin : IDalamudPlugin
             windowSystem.AddWindow(customizeWindow);
             windowSystem.AddWindow(debugWindow);
 
-            // Register command
-            CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand) { HelpMessage = "Opens the LangSwap configuration window" });
-
-            // Enable hooks
-            hookManager.EnableAll();
-
             // Register UI callbacks
             DalamudPluginInterface.UiBuilder.Draw += windowSystem.Draw;
             DalamudPluginInterface.UiBuilder.Draw += OnDraw;
             DalamudPluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
+
+            // Register command
+            CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand) { HelpMessage = "Opens the LangSwap configuration window" });
+
+            // Detect client language
+            utilities.DetectClientLanguage();
+
+            // Get remote obfuscated translations
+            utilities.GetRemoteObfuscatedTranslations();
+
+            // Log persisted translations
+            LogPersistedTranslations();
+
+            // Enable hooks
+            Log.Information($"{Class} === LangSwap plugin hooks ===");
+            hookManager.EnableAll();
 
             // Log plugin informations
             Log.Information($"{Class} === LangSwap plugin configuration ===");
@@ -252,122 +250,21 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
-    // Configuration
-    // ----------------------------
-    private void DetectClientLanguage()
-    {
-        // Detect client language
-        ClientLanguage lang = ClientState.ClientLanguage;
-
-        // Map client language to configuration
-        config.ClientLanguage = lang switch
-        {
-            ClientLanguage.Japanese => LanguageEnum.Japanese,
-            ClientLanguage.English => LanguageEnum.English,
-            ClientLanguage.German => LanguageEnum.German,
-            ClientLanguage.French => LanguageEnum.French,
-            _ => LanguageEnum.English
-        };
-
-        // Log unrecognized language
-        if ((int)lang > 3) Log.Warning($"{Class} - Unrecognized client language: {lang}, defaulting to English");
-
-        // Save configuration
-        config.Save();
-    }
-
-    // ----------------------------
-    // Load remote obfuscated translations
-    // ----------------------------
-    private void LoadRemoteObfuscatedTranslations()
-    {
-        try
-        {
-            // Validate URL
-            if (string.IsNullOrWhiteSpace(config.RemoteUrl)) return;
-
-            // Download remote CSV
-            using HttpClient httpClient = new();
-            string csv = httpClient.GetStringAsync(config.RemoteUrl).GetAwaiter().GetResult();
-            if (string.IsNullOrWhiteSpace(csv))
-            {
-                Log.Warning($"{Class} - Remote obfuscated translations CSV is empty");
-                return;
-            }
-
-            // Import CSV content into a temporary list
-            List<ObfuscatedTranslation> importedTranslations = [];
-            if (!Utilities.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
-            {
-                Log.Warning($"{Class} - Failed to import remote obfuscated translations CSV: {status}");
-                return;
-            }
-
-            // Replace current remote translations and persist
-            config.RemoteObfuscatedTranslations.Clear();
-            config.RemoteObfuscatedTranslations.AddRange(importedTranslations);
-            config.Save();
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, $"{Class} - Failed to download remote obfuscated translations CSV");
-        }
-    }
-
-    // ----------------------------
     // Log persisted translations
     // ----------------------------
     private void LogPersistedTranslations()
     {
         // Remote obfuscated translations
-        LogObfuscatedTranslations("Remote Obfuscated Translations", config.RemoteObfuscatedTranslations);
+        utilities.LogObfuscatedTranslations("Remote Obfuscated Translations", config.RemoteObfuscatedTranslations);
 
         // Scanned obfuscated translations
-        LogObfuscatedTranslations("Scanned Obfuscated Translations", config.ScannedObfuscatedTranslations);
+        utilities.LogObfuscatedTranslations("Scanned Obfuscated Translations", config.ScannedObfuscatedTranslations);
 
         // Local obfuscated translations
-        LogObfuscatedTranslations("Local Obfuscated Translations", config.LocalObfuscatedTranslations);
+        utilities.LogObfuscatedTranslations("Local Obfuscated Translations", config.LocalObfuscatedTranslations);
 
         // Alternative translations
-        LogAlternativeTranslations();
-    }
-
-    // ----------------------------
-    // Log obfuscated translations
-    // ----------------------------
-    private static void LogObfuscatedTranslations(string listName, List<ObfuscatedTranslation> translations)
-    {
-        // Count translations
-        int count = translations?.Count ?? 0;
-        Log.Information($"{Class} - {listName} ({count})");
-
-        // Check for empty list
-        if (translations == null || translations.Count == 0) return;
-
-        // Log each translation
-        foreach (ObfuscatedTranslation translation in translations)
-        {
-            Log.Information($"{Class} - ID={translation.Id}, Obfuscated={translation.ObfuscatedName}, English={translation.EnglishName}, French={translation.FrenchName}, German={translation.GermanName}, Japanese={translation.JapaneseName}");
-        }
-    }
-
-    // ----------------------------
-    // Log alternative translations
-    // ----------------------------
-    private void LogAlternativeTranslations()
-    {
-        // Count translations
-        int count = config.AlternativeTranslations?.Count ?? 0;
-        Log.Information($"{Class} - Alternative Translations ({count})");
-
-        // Check for empty list
-        if (config.AlternativeTranslations == null || config.AlternativeTranslations.Count == 0) return;
-
-        // Log each translation
-        foreach (AlternativeTranslation translation in config.AlternativeTranslations)
-        {
-            Log.Information($"{Class} - Spell={translation.SpellName}, Alternative={translation.AlternativeName}");
-        }
+        utilities.LogAlternativeTranslations("Alternative Translations", config.AlternativeTranslations);
     }
 
     // ----------------------------
@@ -429,7 +326,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Failed to apply target language change");
+            Log.Error(ex, $"{Class} - Failed to apply new target language");
         }
     }
 
@@ -510,11 +407,11 @@ public sealed class Plugin : IDalamudPlugin
         // Restore language
         if (isSwapEnabled) RestoreLanguage();
 
-        // Remove command
-        CommandManager.RemoveHandler(CommandName);
-
         // Dispose hook manager
         hookManager.Dispose();
+
+        // Remove command
+        CommandManager.RemoveHandler(CommandName);
 
         // Unregister UI callbacks
         DalamudPluginInterface.UiBuilder.Draw -= windowSystem.Draw;

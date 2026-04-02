@@ -1,4 +1,4 @@
-﻿namespace LangSwap.translation
+﻿namespace LangSwap.translation.@base
 {
     // ----------------------------
     // Enumeration for supported languages
@@ -10,5 +10,4 @@
         German = 2,
         French = 3
     }
-
 }

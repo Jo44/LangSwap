@@ -1,6 +1,6 @@
 using System;
 
-namespace LangSwap.translation;
+namespace LangSwap.translation.@base;
 
 // ----------------------------
 // Obfuscated translation

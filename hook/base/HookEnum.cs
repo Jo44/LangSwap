@@ -10,5 +10,4 @@
         AlliesCastBars = 2,
         EnemiesCastBars = 3
     }
-
 }

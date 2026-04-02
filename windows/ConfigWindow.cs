@@ -3,6 +3,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using LangSwap.tool;
 using LangSwap.translation;
+using LangSwap.translation.@base;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -24,8 +25,8 @@ public class ConfigWindow : Window, IDisposable
     private readonly IPluginLog log;
 
     // Primary key options
-    private readonly List<string> keyNames;
-    private readonly List<int> keyValues;
+    private readonly List<string> keyNames = ["None"];
+    private readonly List<int> keyValues = [-1];
 
     // ----------------------------
     // Constructor
@@ -50,8 +51,6 @@ public class ConfigWindow : Window, IDisposable
         };
 
         // Initialize key names and values
-        keyNames = ["None"];
-        keyValues = [-1];
         Utilities.InitKeys(keyNames, keyValues);
     }
 
@@ -60,43 +59,10 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     public override void Draw()
     {
-        /// Settings UI
-
-        // Custom Button
+        // Button size
         const float buttonWidth = 110f;
         const float buttonRightPadding = 15f;
         float buttonX = ImGui.GetWindowContentRegionMax().X - buttonWidth - buttonRightPadding;
-
-        // Language
-        string[] languages = Enum.GetNames<LanguageEnum>();
-        int currentLang = (int)config.TargetLanguage;
-
-        // Primary Key
-        int selIndex = keyValues.IndexOf(config.PrimaryKey);
-        if (selIndex < 0) selIndex = 0;
-
-        // Startup behavior
-        bool autoStartup = config.AutoStartup;
-
-        // Shortcut state
-        bool shortcutEnabled = config.ShortcutEnabled;
-
-        // Modifiers
-        bool ctrl = config.Ctrl;
-        bool alt = config.Alt;
-        bool shift = config.Shift;
-
-        // UI Components
-        bool alliesCastBarsTarget = config.AlliesCastBarsTarget;
-        bool alliesCastBarsFocus = config.AlliesCastBarsFocus;
-        bool alliesCastBarsPartyList = config.AlliesCastBarsPartyList;
-        bool enemiesCastBarsTarget = config.EnemiesCastBarsTarget;
-        bool enemiesCastBarsFocus = config.EnemiesCastBarsFocus;
-        bool enemiesCastBarsEnmityList = config.EnemiesCastBarsEnmityList;
-        bool actionTooltip = config.ActionTooltip;
-        bool itemTooltip = config.ItemTooltip;
-
-        /// Draw UI
 
         // Current state
         ImGui.Spacing();
@@ -132,6 +98,8 @@ public class ConfigWindow : Window, IDisposable
         ImGui.PopStyleColor(1);
 
         // Target language
+        string[] languages = Enum.GetNames<LanguageEnum>();
+        int currentLang = (int)config.TargetLanguage;
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
@@ -153,6 +121,7 @@ public class ConfigWindow : Window, IDisposable
         }
 
         // Startup behavior
+        bool autoStartup = config.AutoStartup;
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
@@ -176,6 +145,7 @@ public class ConfigWindow : Window, IDisposable
         DrawInstructions();
 
         // Toggle shortcut
+        bool shortcutEnabled = config.ShortcutEnabled;
         ImGui.SameLine(0, 15f);
         if (ImGui.Checkbox(" Toggle shortcut##ShortcutEnabled", ref shortcutEnabled))
         {
@@ -184,6 +154,8 @@ public class ConfigWindow : Window, IDisposable
         if (shortcutEnabled)
         {
             // Primary key
+            int selIndex = keyValues.IndexOf(config.PrimaryKey);
+            if (selIndex < 0) selIndex = 0;
             ImGui.Spacing();
             ImGui.Spacing();
             ImGui.Spacing();
@@ -198,16 +170,19 @@ public class ConfigWindow : Window, IDisposable
             }
 
             // Modifier keys
+            bool ctrl = config.Ctrl;
             ImGui.SameLine(0, 24f);
             if (ImGui.Checkbox(" Ctrl", ref ctrl))
             {
                 CommonSettingChange("Ctrl", ctrl, () => config.Ctrl = ctrl);
             }
+            bool alt = config.Alt;
             ImGui.SameLine(0, 13f);
             if (ImGui.Checkbox(" Alt", ref alt))
             {
                 CommonSettingChange("Alt", alt, () => config.Alt = alt);
             }
+            bool shift = config.Shift;
             ImGui.SameLine(0, 13f);
             if (ImGui.Checkbox(" Shift", ref shift))
             {
@@ -233,8 +208,9 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Text("Castbars :");
         ImGui.Spacing();
         ImGui.Spacing();
-        
+
         // Ally target
+        bool alliesCastBarsTarget = config.AlliesCastBarsTarget;
         ImGui.SameLine(0, 25f);
         if (ImGui.Checkbox(" Ally target", ref alliesCastBarsTarget))
         {
@@ -242,6 +218,7 @@ public class ConfigWindow : Window, IDisposable
         }
 
         // Ally focus
+        bool alliesCastBarsFocus = config.AlliesCastBarsFocus;
         ImGui.SameLine(0, 34f);
         if (ImGui.Checkbox(" Ally focus", ref alliesCastBarsFocus))
         {
@@ -249,6 +226,7 @@ public class ConfigWindow : Window, IDisposable
         }
 
         // Party list
+        bool alliesCastBarsPartyList = config.AlliesCastBarsPartyList;
         ImGui.SameLine(0, 34f);
         if (ImGui.Checkbox(" Party list", ref alliesCastBarsPartyList))
         {
@@ -258,6 +236,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
 
         // Enemy target
+        bool enemiesCastBarsTarget = config.EnemiesCastBarsTarget;
         ImGui.SameLine(0, 25f);
         if (ImGui.Checkbox(" Enemy target", ref enemiesCastBarsTarget))
         {
@@ -265,6 +244,7 @@ public class ConfigWindow : Window, IDisposable
         }
 
         // Enemy focus
+        bool enemiesCastBarsFocus = config.EnemiesCastBarsFocus;
         ImGui.SameLine(0, 15f);
         if (ImGui.Checkbox(" Enemy focus", ref enemiesCastBarsFocus))
         {
@@ -272,6 +252,7 @@ public class ConfigWindow : Window, IDisposable
         }
 
         // Enmity list
+        bool enemiesCastBarsEnmityList = config.EnemiesCastBarsEnmityList;
         ImGui.SameLine(0, 15f);
         if (ImGui.Checkbox(" Enmity list", ref enemiesCastBarsEnmityList))
         {
@@ -288,6 +269,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
 
         // Action tooltip
+        bool actionTooltip = config.ActionTooltip;
         ImGui.SameLine(0, 25f);
         if (ImGui.Checkbox(" Action", ref actionTooltip))
         {
@@ -295,6 +277,7 @@ public class ConfigWindow : Window, IDisposable
         }
 
         // Item tooltip
+        bool itemTooltip = config.ItemTooltip;
         ImGui.SameLine(0, 58f);
         if (ImGui.Checkbox(" Item", ref itemTooltip))
         {
@@ -360,6 +343,18 @@ public class ConfigWindow : Window, IDisposable
     }
 
     // ----------------------------
+    // Common setting change
+    // ----------------------------
+    private void CommonSettingChange(string settingName, bool value, Action applyChange)
+    {
+        log.Information($"{Class} - Setting {settingName} to {value}");
+        // Apply change
+        applyChange();
+        // Save config
+        config.Save();
+    }
+
+    // ----------------------------
     // Target language change
     // ----------------------------
     private void TargetLanguageChange(LanguageEnum targetLanguage, Action applyChange)
@@ -374,17 +369,6 @@ public class ConfigWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Common setting change
-    // ----------------------------
-    private void CommonSettingChange(string settingName, bool value, Action applyChange)
-    {
-        log.Information($"{Class} - Setting {settingName} to {value}");
-        // Apply change
-        applyChange();
-        // Save config
-        config.Save();
-    }
-    // ----------------------------
     // Primary key change
     // ----------------------------
     private void PrimaryKeyChange(int value, Action applyChange)
@@ -395,7 +379,6 @@ public class ConfigWindow : Window, IDisposable
         // Save config
         config.Save();
     }
-
 
     // ----------------------------
     // UI component change

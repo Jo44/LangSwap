@@ -5,6 +5,7 @@ using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.tool;
 using LangSwap.translation;
+using LangSwap.translation.@base;
 using System;
 using System.Collections.Generic;
 
@@ -44,26 +45,47 @@ public unsafe abstract class CastBarsBaseHook(
     {
         try
         {
+            // Extract visible name for scanning if addon is accessible
+            string visibleName = "";
+            if (addon != null && addon -> IsVisible)
+            {
+                AtkResNode* fieldNode = addon -> UldManager.NodeList[fieldIndex];
+                if (fieldNode != null && fieldNode -> Type == NodeType.Text)
+                {
+                    AtkTextNode* textNode = (AtkTextNode*)fieldNode;
+                    if (textNode != null && textNode -> NodeText.Length > 0)
+                    {
+                        visibleName = textNode -> NodeText.ToString();
+                    }
+                }
+            }
+
+            // Always scan for obfuscated actions, regardless of language swap state
+            if (actionId > 0)
+            {
+                ScanForObfuscatedAction(actionId, visibleName);
+            }
+
             // Only update if language is swapped, we have a valid action ID and the addon is visible
             if (!isLanguageSwapped || actionId == 0 || addon == null || !addon -> IsVisible) return;
 
             // Get the text node
-            AtkResNode* fieldNode = addon -> UldManager.NodeList[fieldIndex];
-            if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
+            AtkResNode* fieldNode2 = addon -> UldManager.NodeList[fieldIndex];
+            if (fieldNode2 == null || fieldNode2 -> Type != NodeType.Text) return;
 
             // Update text
-            AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-            if (textNode == null || textNode -> NodeText.Length == 0) return;
+            AtkTextNode* textNode2 = (AtkTextNode*)fieldNode2;
+            if (textNode2 == null || textNode2 -> NodeText.Length == 0) return;
 
             // Get action visible name
-            string visibleName = textNode -> NodeText.ToString();
+            string updateVisibleName = textNode2 -> NodeText.ToString();
 
             // Get action display name
-            string? displayName = GetDisplayActionName(actionId, visibleName);
+            string? displayName = GetDisplayActionName(actionId, updateVisibleName);
             if (displayName.IsNullOrWhitespace()) return;
 
             // Update the text node with the display name
-            textNode -> SetText(displayName);
+            textNode2 -> SetText(displayName);
         }
         catch (Exception ex)
         {
@@ -78,8 +100,17 @@ public unsafe abstract class CastBarsBaseHook(
     {
         try
         {
+            // Scan all active casts for obfuscated actions, regardless of language swap state
+            foreach (KeyValuePair<ulong, uint> cast in listCasts)
+            {
+                if (cast.Value > 0)
+                {
+                    ScanForObfuscatedAction(cast.Value);
+                }
+            }
+
             // Only update if language is swapped, we have casts to translate and the addon is visible
-            if (!isLanguageSwapped || (listCasts.Count < 1 && listCasts.Count < 1) || addon == null || !addon -> IsVisible) return;
+            if (!isLanguageSwapped || (listCasts.Count < 1) || addon == null || !addon -> IsVisible) return;
 
             // Process each slot in the list
             for (int slotIndex = listStartField; slotIndex <= listEndField; slotIndex++)
@@ -118,6 +149,16 @@ public unsafe abstract class CastBarsBaseHook(
         AtkTextNode* textNode = (AtkTextNode*)fieldNode;
         if (textNode == null || textNode -> NodeText.Length == 0) return;
 
+        // Always scan the visible text for obfuscated actions from list
+        string visibleText = textNode -> NodeText.ToString();
+        foreach (KeyValuePair<ulong, uint> cast in listCasts)
+        {
+            if (cast.Value > 0 && !visibleText.IsNullOrWhitespace())
+            {
+                ScanForObfuscatedAction(cast.Value, visibleText);
+            }
+        }
+
         // Translate the cast text
         TranslateCastText(textNode);
     }
@@ -137,6 +178,37 @@ public unsafe abstract class CastBarsBaseHook(
             inList = false;
         }
         return inList;
+    }
+
+    // ----------------------------
+    // Scan for obfuscated action
+    // ----------------------------
+    protected void ScanForObfuscatedAction(uint actionId, string visibleName = "")
+    {
+        try
+        {
+            if (actionId == 0) return;
+
+            // Get the client action name
+            string? clientActionName = translationCache.GetActionName(actionId, config.ClientLanguage);
+            if (clientActionName.IsNullOrWhitespace()) return;
+
+            // Check for obfuscated name
+            if (clientActionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
+            {
+                log.Information($"{Class} - Obfuscated action detected (always-on scan): ID={actionId}, ObfuscatedName={clientActionName}");
+
+                // If we have the visible name from UI, save the association
+                if (!visibleName.IsNullOrWhitespace())
+                {
+                    SaveScannedObfuscatedTranslation((int)actionId, clientActionName, visibleName);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Error scanning obfuscated action {actionId}");
+        }
     }
 
     // ----------------------------

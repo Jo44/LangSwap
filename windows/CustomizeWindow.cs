@@ -2,7 +2,7 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using LangSwap.tool;
-using LangSwap.translation;
+using LangSwap.translation.@base;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -33,11 +33,6 @@ public class CustomizeWindow : Window, IDisposable
     private string information = string.Empty;
     private DateTime informationTimestamp = DateTime.MinValue;
     private const int InformationDurationSeconds = 5;
-
-    // Cell colors
-    private static readonly Vector4 CellColor = new(0.35f, 0.08f, 0.08f, 1.00f);
-    private static readonly Vector4 CellHoverColor = new(0.37f, 0.15f, 0.14f, 1.00f);
-    private static readonly Vector4 CellActiveColor = new(0.42f, 0.23f, 0.23f, 1.00f);
 
     // Focus management
     private bool focusedNewRow;
@@ -314,7 +309,7 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     // Draw action cell
     // ----------------------------
-    private static bool DrawActionCell(string id, string label, float rowHeight)
+    private bool DrawActionCell(string id, string label, float rowHeight)
     {
         // Calculate cell position and size
         Vector2 pos = ImGui.GetCursorScreenPos();
@@ -324,9 +319,9 @@ public class CustomizeWindow : Window, IDisposable
         bool clicked = ImGui.InvisibleButton(id, size);
 
         // Determine background color
-        Vector4 bg = CellColor;
-        if (ImGui.IsItemActive()) bg = CellActiveColor;
-        else if (ImGui.IsItemHovered()) bg = CellHoverColor;
+        Vector4 bg = config.RedDalamud;
+        if (ImGui.IsItemActive()) bg = config.LighterRedDalamud;
+        else if (ImGui.IsItemHovered()) bg = config.LightRedDalamud;
 
         // Calculate background rectangle with padding
         float padX = ImGui.GetStyle().CellPadding.X;

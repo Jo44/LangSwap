@@ -1,5 +1,6 @@
 using Dalamud.Plugin.Services;
 using LangSwap.tool;
+using LangSwap.translation.@base;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
 using System;

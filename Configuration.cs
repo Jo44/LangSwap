@@ -1,6 +1,6 @@
 using Dalamud.Configuration;
 using Dalamud.Game.ClientState.Keys;
-using LangSwap.translation;
+using LangSwap.translation.@base;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -8,7 +8,7 @@ using System.Numerics;
 namespace LangSwap;
 
 // ----------------------------
-// Plugin Configuration
+// Configuration
 // ----------------------------
 [Serializable]
 public class Configuration : IPluginConfiguration
@@ -24,6 +24,8 @@ public class Configuration : IPluginConfiguration
     public Vector4 DarkGreen { get; } = new Vector4(0.00f, 0.80f, 0.13f, 1.00f); // Dark Green
     public Vector4 LightRed { get; } = new Vector4(0.57f, 0.13f, 0.13f, 1.00f); // Light Red
     public Vector4 RedDalamud { get; } = new Vector4(0.35f, 0.08f, 0.08f, 1.00f); // Red Dalamud
+    public Vector4 LightRedDalamud { get; } = new Vector4(0.37f, 0.15f, 0.14f, 1.00f); // Light Red Dalamud
+    public Vector4 LighterRedDalamud { get; } = new Vector4(0.42f, 0.23f, 0.23f, 1.00f); // Lighter Red Dalamud
 
     // Obfuscated translations
     public string ObfuscatedPrefix { get; } = "_rsv_";

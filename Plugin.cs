@@ -104,8 +104,17 @@ public sealed class Plugin : IDalamudPlugin
             // Get remote obfuscated translations
             utilities.GetRemoteObfuscatedTranslations();
 
-            // Log persisted translations
-            LogPersistedTranslations();
+            // Log remote obfuscated translations
+            utilities.LogObfuscatedTranslations("Remote Obfuscated Translations", config.RemoteObfuscatedTranslations);
+
+            // Log scanned obfuscated translations
+            utilities.LogObfuscatedTranslations("Scanned Obfuscated Translations", config.ScannedObfuscatedTranslations);
+
+            // Log local obfuscated translations
+            utilities.LogObfuscatedTranslations("Local Obfuscated Translations", config.LocalObfuscatedTranslations);
+
+            // Log alternative translations
+            utilities.LogAlternativeTranslations("Alternative Translations", config.AlternativeTranslations);
 
             // Enable hooks
             Log.Information($"{Class} === LangSwap plugin hooks ===");
@@ -247,24 +256,6 @@ public sealed class Plugin : IDalamudPlugin
         string info = $"Restored to {Enum.GetName(config.ClientLanguage)}";
         ChatLog(info);
         Log.Information($"{Class} - {info}");
-    }
-
-    // ----------------------------
-    // Log persisted translations
-    // ----------------------------
-    private void LogPersistedTranslations()
-    {
-        // Remote obfuscated translations
-        utilities.LogObfuscatedTranslations("Remote Obfuscated Translations", config.RemoteObfuscatedTranslations);
-
-        // Scanned obfuscated translations
-        utilities.LogObfuscatedTranslations("Scanned Obfuscated Translations", config.ScannedObfuscatedTranslations);
-
-        // Local obfuscated translations
-        utilities.LogObfuscatedTranslations("Local Obfuscated Translations", config.LocalObfuscatedTranslations);
-
-        // Alternative translations
-        utilities.LogAlternativeTranslations("Alternative Translations", config.AlternativeTranslations);
     }
 
     // ----------------------------

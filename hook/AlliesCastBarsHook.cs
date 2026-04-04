@@ -103,7 +103,7 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     // On framework update
     // ----------------------------
-    private void OnFrameworkUpdate(IFramework framework)
+    protected override void OnFrameworkUpdate(IFramework framework)
     {
         try
         {
@@ -139,14 +139,14 @@ public unsafe class AlliesCastBarsHook(
             // Get player's focus ID
             ulong focusId = targetManager.FocusTarget?.GameObjectId ?? 0;
 
-            // Clean expired allies list casts
-            CleanExpiredAlliesListCasts();
+            // Clean expired list casts
+            CleanExpiredListCasts();
 
             // Iterate through all players
             foreach (IGameObject obj in objectTable)
             {
                 // Filter for players
-                if (obj == null || obj.ObjectKind != ObjectKind.Player || obj is not IBattleChara battleChara || obj is not IPlayerCharacter) continue;
+                if (obj == null || obj.ObjectKind != ObjectKind.Player || obj is not IPlayerCharacter || obj is not IBattleChara battleChara) continue;
 
                 // Check if this character is the current player
                 bool isCharacter = battleChara.GameObjectId == playerId;
@@ -251,9 +251,93 @@ public unsafe class AlliesCastBarsHook(
     }
 
     // ----------------------------
-    // Translate the cast text in the party list slot
+    // Update cast bar
     // ----------------------------
-    protected override void TranslateCastText(AtkTextNode* textNode)
+    protected override void UpdateCastBar(AtkUnitBase* addon, uint actionId, int fieldIndex, string addonName)
+    {
+        try
+        {
+            // Only update if language is swapped, we have a valid action ID and the addon is visible
+            if (!isLanguageSwapped || actionId == 0 || addon == null || !addon -> IsVisible) return;
+
+            // Get action name
+            string? actionName = translationCache.GetActionName(actionId, config.TargetLanguage);
+            if (actionName.IsNullOrWhitespace()) return;
+
+            // Check for alternative translation
+            string? alternativeName = Utilities.GetAlternativeTranslation(actionName, config.AlternativeTranslations);
+            if (!alternativeName.IsNullOrWhitespace()) actionName = alternativeName;
+
+            // Get the text node
+            AtkResNode* fieldNode = addon -> UldManager.NodeList[fieldIndex];
+            if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
+            AtkTextNode* textNode = (AtkTextNode*)fieldNode;
+            if (textNode == null || textNode -> NodeText.Length == 0) return;
+
+            // Update the text node
+            textNode -> SetText(actionName);
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Error updating {addonName} addon");
+        }
+    }
+
+    // ----------------------------
+    // Update list
+    // ----------------------------
+    protected override void UpdateList(AtkUnitBase* addon, int listStartField, int listEndField, int castField)
+    {
+        try
+        {
+            // Only update if language is swapped, we have casts to translate and the addon is visible
+            if (!isLanguageSwapped || (listCasts.Count < 1) || addon == null || !addon -> IsVisible) return;
+
+            // Process each slot in the list
+            for (int slotIndex = listStartField; slotIndex <= listEndField; slotIndex++)
+            {
+                ProcessList(addon, slotIndex, castField);
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Error updating list addon");
+        }
+    }
+
+    // ----------------------------
+    // Process list
+    // ----------------------------
+    protected override void ProcessList(AtkUnitBase* addon, int slotIndex, int castField)
+    {
+        // Get the slot node
+        AtkResNode* slotNode = addon -> UldManager.NodeList[slotIndex];
+        if (slotNode == null || !slotNode -> IsVisible() || (ushort)slotNode -> Type < 1000) return;
+
+        // Get the component node
+        AtkComponentNode* componentNode = (AtkComponentNode*)slotNode;
+        if (componentNode -> Component == null) return;
+
+        // Get the uld manager
+        AtkUldManager* uldManager = &componentNode -> Component -> UldManager;
+        if (uldManager == null || uldManager -> NodeListCount == 0) return;
+
+        // Get the field node
+        AtkResNode* fieldNode = uldManager -> NodeList[castField];
+        if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
+
+        // Get the text node
+        AtkTextNode* textNode = (AtkTextNode*)fieldNode;
+        if (textNode == null || textNode -> NodeText.Length == 0) return;
+
+        // Translate the slot
+        TranslateSlot(textNode);
+    }
+
+    // ----------------------------
+    // Translate the slot
+    // ----------------------------
+    protected override void TranslateSlot(AtkTextNode* textNode)
     {
         // Get the current text
         string currentText = textNode -> NodeText.ToString();
@@ -272,47 +356,34 @@ public unsafe class AlliesCastBarsHook(
 
             // Get the client language action name
             string? clientActionName = translationCache.GetActionName(actionId, config.ClientLanguage);
-            if (clientActionName == null) continue;
+            if (clientActionName.IsNullOrWhitespace()) continue;
 
             // If the client language action name contains the current text, translate it
             if (clientActionName.StartsWith(textWithoutIndicator))
             {
-                // Get the display action name
-                string? displayName = GetDisplayActionName(actionId);
-                if (!displayName.IsNullOrWhitespace())
+                // Get the target language action name
+                string? actionName = translationCache.GetActionName(actionId, config.TargetLanguage);
+                if (!actionName.IsNullOrWhitespace())
                 {
+                    // Check for alternative translation
+                    string? alternativeName = Utilities.GetAlternativeTranslation(actionName, config.AlternativeTranslations);
+                    if (!alternativeName.IsNullOrWhitespace()) actionName = alternativeName;
+
+                    // If the original text had a target indicator, preserve it in the translation
                     if (!targetIndicator.IsNullOrWhitespace())
                     {
-                        // Update the text node with the display name and target indicator
-                        textNode -> SetText(displayName + " " + targetIndicator);
+                        // Update the text node with the action name and target indicator
+                        textNode -> SetText(actionName + " " + targetIndicator);
                         break;
                     }
                     else
                     {
-                        // Update the text node with the display name
-                        textNode -> SetText(displayName);
+                        // Update the text node with the action name
+                        textNode -> SetText(actionName);
                         break;
                     }
                 }
             }
-        }
-    }
-
-    // ----------------------------
-    // Clean expired allies list casts
-    // ----------------------------
-    private void CleanExpiredAlliesListCasts()
-    {
-        long now = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
-        List<ulong> toRemove = [];
-        foreach (ulong id in listCastsExpiry.Keys)
-        {
-            if (now - listCastsExpiry[id] > ListCastExpiryTicks) toRemove.Add(id);
-        }
-        foreach (ulong id in toRemove)
-        {
-            listCasts.Remove(id);
-            listCastsExpiry.Remove(id);
         }
     }
 

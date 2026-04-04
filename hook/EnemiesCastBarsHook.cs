@@ -66,7 +66,7 @@ public unsafe class EnemiesCastBarsHook(
             addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnemyListUpdate);
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnmityListUpdate);
 
             // Set enabled flag
             isEnabled = true;
@@ -218,20 +218,148 @@ public unsafe class EnemiesCastBarsHook(
     }
 
     // ----------------------------
-    // On enemy list update
+    // On enmity list update
     // ----------------------------
-    private void OnEnemyListUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
+    private void OnEnmityListUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
         if (castBarsEnmityList)
         {
-            UpdateList(utilities.GetAddon(config.EnemyListAddon), enemyListStartField, enemyListEndField, enemyListCastField);
+            UpdateList(utilities.GetAddon(config.EnemyListAddon), enemyListCastField);
         }
     }
 
     // ----------------------------
-    // Process slot
+    // Update cast bar
     // ----------------------------
-    protected override void ProcessSlot(AtkTextNode* textNode)
+    protected override void UpdateCastBar(AtkUnitBase* addon, uint actionId, int fieldIndex, string addonName)
+    {
+        try
+        {
+            // TODO: Refactor to separate scanning and updating into different methods for better clarity and maintainability
+
+            // Extract visible name for scanning if addon is accessible
+            string visibleName = "";
+            if (addon != null && addon->IsVisible)
+            {
+                AtkResNode* fieldNode = addon->UldManager.NodeList[fieldIndex];
+                if (fieldNode != null && fieldNode->Type == NodeType.Text)
+                {
+                    AtkTextNode* textNode = (AtkTextNode*)fieldNode;
+                    if (textNode != null && textNode->NodeText.Length > 0)
+                    {
+                        visibleName = textNode->NodeText.ToString();
+                    }
+                }
+            }
+
+            // Always scan for obfuscated actions, regardless of language swap state
+            if (actionId > 0)
+            {
+                ScanForObfuscatedAction(actionId, visibleName);
+            }
+
+            // TODO : end
+
+            // Only update if language is swapped, we have a valid action ID and the addon is visible
+            if (!isLanguageSwapped || actionId == 0 || addon == null || !addon -> IsVisible) return;
+
+            // Get action name
+            string? actionName = translationCache.GetActionName(actionId, config.TargetLanguage);
+            if (actionName.IsNullOrWhitespace()) return;
+
+            // Check for alternative translation
+            string? alternativeName = Utilities.GetAlternativeTranslation(actionName, config.AlternativeTranslations);
+            if (!alternativeName.IsNullOrWhitespace()) actionName = alternativeName;
+
+            // Get the text node
+            AtkResNode* fieldNode = addon -> UldManager.NodeList[fieldIndex];
+            if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
+            AtkTextNode* textNode = (AtkTextNode*)fieldNode;
+            if (textNode == null || textNode -> NodeText.Length == 0) return;
+
+            // Update the text node
+            textNode -> SetText(actionName);
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Error updating {addonName} addon");
+        }
+    }
+
+    // ----------------------------
+    // Update list
+    // ----------------------------
+    protected override void UpdateList(AtkUnitBase* addon, int fieldIndex)
+    {
+        try
+        {
+            // TODO: Refactor to separate scanning and updating into different methods for better clarity and maintainability
+
+            // Scan all active casts for obfuscated actions, regardless of language swap state
+            foreach (KeyValuePair<ulong, uint> cast in listCasts)
+            {
+                if (cast.Value > 0)
+                {
+                    ScanForObfuscatedAction(cast.Value);
+                }
+            }
+
+            // TODO : end
+
+            // Only update if language is swapped, we have casts to translate and the addon is visible
+            if (!isLanguageSwapped || (listCasts.Count < 1) || addon == null || !addon -> IsVisible) return;
+
+            // Process each slot in the list
+            for (int slotIndex = enemyListStartField; slotIndex <= enemyListEndField; slotIndex++)
+            {
+                // Get the slot node
+                AtkResNode* slotNode = addon -> UldManager.NodeList[slotIndex];
+                if (slotNode == null || !slotNode -> IsVisible() || (ushort)slotNode -> Type < 1000) return;
+
+                // Get the component node
+                AtkComponentNode* componentNode = (AtkComponentNode*)slotNode;
+                if (componentNode -> Component == null) return;
+
+                // Get the uld manager
+                AtkUldManager* uldManager = &componentNode -> Component -> UldManager;
+                if (uldManager == null || uldManager -> NodeListCount == 0) return;
+
+                // Get the field node
+                AtkResNode* fieldNode = uldManager -> NodeList[fieldIndex];
+                if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
+
+                // Get the text node
+                AtkTextNode* textNode = (AtkTextNode*)fieldNode;
+                if (textNode == null || textNode -> NodeText.Length == 0) return;
+
+                // TODO : We should ideally separate the scanning and updating logic for better clarity and maintainability, but for now we will keep it together to ensure we can leverage the visible text for detection before translation
+
+                // Always scan the visible text for obfuscated actions from list
+                string visibleText = textNode -> NodeText.ToString();
+                foreach (KeyValuePair<ulong, uint> cast in listCasts)
+                {
+                    if (cast.Value > 0 && !visibleText.IsNullOrWhitespace())
+                    {
+                        ScanForObfuscatedAction(cast.Value, visibleText);
+                    }
+                }
+
+                // TODO : end
+
+                // Translate the slot
+                TranslateSlot(textNode);
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"{Class} - Error updating list addon");
+        }
+    }
+
+    // ----------------------------
+    // Translate the slot
+    // ----------------------------
+    protected override void TranslateSlot(AtkTextNode* textNode)
     {
         // Get the current text
         string currentText = textNode -> NodeText.ToString();
@@ -301,131 +429,6 @@ public unsafe class EnemiesCastBarsHook(
                 textNode -> SetText(displayName);
             }
         }
-    }
-
-    // ----------------------------
-    // Update cast bar
-    // ----------------------------
-    protected override void UpdateCastBar(AtkUnitBase* addon, uint actionId, int fieldIndex, string addonName)
-    {
-        try
-        {
-            // Extract visible name for scanning if addon is accessible
-            string visibleName = "";
-            if (addon != null && addon->IsVisible)
-            {
-                AtkResNode* fieldNode = addon->UldManager.NodeList[fieldIndex];
-                if (fieldNode != null && fieldNode->Type == NodeType.Text)
-                {
-                    AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-                    if (textNode != null && textNode->NodeText.Length > 0)
-                    {
-                        visibleName = textNode->NodeText.ToString();
-                    }
-                }
-            }
-
-            // Always scan for obfuscated actions, regardless of language swap state
-            if (actionId > 0)
-            {
-                ScanForObfuscatedAction(actionId, visibleName);
-            }
-
-            // Only update if language is swapped, we have a valid action ID and the addon is visible
-            if (!isLanguageSwapped || actionId == 0 || addon == null || !addon->IsVisible) return;
-
-            // Get the text node
-            AtkResNode* fieldNode2 = addon->UldManager.NodeList[fieldIndex];
-            if (fieldNode2 == null || fieldNode2->Type != NodeType.Text) return;
-
-            // Update text
-            AtkTextNode* textNode2 = (AtkTextNode*)fieldNode2;
-            if (textNode2 == null || textNode2->NodeText.Length == 0) return;
-
-            // Get action visible name
-            string updateVisibleName = textNode2->NodeText.ToString();
-
-            // Get action display name
-            string? displayName = GetDisplayActionName(actionId, updateVisibleName);
-            if (displayName.IsNullOrWhitespace()) return;
-
-            // Update the text node with the display name
-            textNode2->SetText(displayName);
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error updating {addonName} addon");
-        }
-    }
-
-    // ----------------------------
-    // Update list
-    // ----------------------------
-    protected override void UpdateList(AtkUnitBase* addon, int listStartField, int listEndField, int castField)
-    {
-        try
-        {
-            // Scan all active casts for obfuscated actions, regardless of language swap state
-            foreach (KeyValuePair<ulong, uint> cast in listCasts)
-            {
-                if (cast.Value > 0)
-                {
-                    ScanForObfuscatedAction(cast.Value);
-                }
-            }
-
-            // Only update if language is swapped, we have casts to translate and the addon is visible
-            if (!isLanguageSwapped || (listCasts.Count < 1) || addon == null || !addon->IsVisible) return;
-
-            // Process each slot in the list
-            for (int slotIndex = listStartField; slotIndex <= listEndField; slotIndex++)
-            {
-                ProcessList(addon, slotIndex, castField);
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error updating list addon");
-        }
-    }
-
-    // ----------------------------
-    // Process list
-    // ----------------------------
-    protected override void ProcessList(AtkUnitBase* addon, int slotIndex, int castField)
-    {
-        // Get the slot node
-        AtkResNode* slotNode = addon->UldManager.NodeList[slotIndex];
-        if (slotNode == null || !slotNode->IsVisible() || (ushort)slotNode->Type < 1000) return;
-
-        // Get the component node
-        AtkComponentNode* componentNode = (AtkComponentNode*)slotNode;
-        if (componentNode->Component == null) return;
-
-        // Get the uld manager
-        AtkUldManager* uldManager = &componentNode->Component->UldManager;
-        if (uldManager == null || uldManager->NodeListCount == 0) return;
-
-        // Get the field node
-        AtkResNode* fieldNode = uldManager->NodeList[castField];
-        if (fieldNode == null || fieldNode->Type != NodeType.Text) return;
-
-        // Cast to text node
-        AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-        if (textNode == null || textNode->NodeText.Length == 0) return;
-
-        // Always scan the visible text for obfuscated actions from list
-        string visibleText = textNode->NodeText.ToString();
-        foreach (KeyValuePair<ulong, uint> cast in listCasts)
-        {
-            if (cast.Value > 0 && !visibleText.IsNullOrWhitespace())
-            {
-                ScanForObfuscatedAction(cast.Value, visibleText);
-            }
-        }
-
-        // Translate the cast text
-        ProcessSlot(textNode);
     }
 
     // ----------------------------
@@ -656,7 +659,7 @@ public unsafe class EnemiesCastBarsHook(
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnemyListUpdate);
+            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnmityListUpdate);
 
             // Set disabled flag
             isEnabled = false;
@@ -682,7 +685,7 @@ public unsafe class EnemiesCastBarsHook(
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnemyListUpdate);
+            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnmityListUpdate);
 
             // Set disabled flag
             isEnabled = false;

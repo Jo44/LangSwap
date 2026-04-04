@@ -246,7 +246,7 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsPartyList)
         {
-            UpdateList(utilities.GetAddon(config.PartyListAddon), partyListStartField, partyListEndField, partyListCastField);
+            UpdateList(utilities.GetAddon(config.PartyListAddon), partyListCastField);
         }
     }
 
@@ -286,7 +286,7 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     // Update list
     // ----------------------------
-    protected override void UpdateList(AtkUnitBase* addon, int listStartField, int listEndField, int castField)
+    protected override void UpdateList(AtkUnitBase* addon, int fieldIndex)
     {
         try
         {
@@ -294,44 +294,36 @@ public unsafe class AlliesCastBarsHook(
             if (!isLanguageSwapped || (listCasts.Count < 1) || addon == null || !addon -> IsVisible) return;
 
             // Process each slot in the list
-            for (int slotIndex = listStartField; slotIndex <= listEndField; slotIndex++)
+            for (int slotIndex = partyListStartField; slotIndex <= partyListEndField; slotIndex++)
             {
-                ProcessList(addon, slotIndex, castField);
+                // Get the slot node
+                AtkResNode* slotNode = addon -> UldManager.NodeList[slotIndex];
+                if (slotNode == null || !slotNode -> IsVisible() || (ushort)slotNode -> Type < 1000) return;
+
+                // Get the component node
+                AtkComponentNode* componentNode = (AtkComponentNode*)slotNode;
+                if (componentNode -> Component == null) return;
+
+                // Get the uld manager
+                AtkUldManager* uldManager = &componentNode -> Component -> UldManager;
+                if (uldManager == null || uldManager -> NodeListCount == 0) return;
+
+                // Get the field node
+                AtkResNode* fieldNode = uldManager -> NodeList[fieldIndex];
+                if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
+
+                // Get the text node
+                AtkTextNode* textNode = (AtkTextNode*)fieldNode;
+                if (textNode == null || textNode -> NodeText.Length == 0) return;
+
+                // Translate the slot
+                TranslateSlot(textNode);
             }
         }
         catch (Exception ex)
         {
             log.Error(ex, $"{Class} - Error updating list addon");
         }
-    }
-
-    // ----------------------------
-    // Process list
-    // ----------------------------
-    protected override void ProcessList(AtkUnitBase* addon, int slotIndex, int castField)
-    {
-        // Get the slot node
-        AtkResNode* slotNode = addon -> UldManager.NodeList[slotIndex];
-        if (slotNode == null || !slotNode -> IsVisible() || (ushort)slotNode -> Type < 1000) return;
-
-        // Get the component node
-        AtkComponentNode* componentNode = (AtkComponentNode*)slotNode;
-        if (componentNode -> Component == null) return;
-
-        // Get the uld manager
-        AtkUldManager* uldManager = &componentNode -> Component -> UldManager;
-        if (uldManager == null || uldManager -> NodeListCount == 0) return;
-
-        // Get the field node
-        AtkResNode* fieldNode = uldManager -> NodeList[castField];
-        if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
-
-        // Get the text node
-        AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-        if (textNode == null || textNode -> NodeText.Length == 0) return;
-
-        // Translate the slot
-        TranslateSlot(textNode);
     }
 
     // ----------------------------

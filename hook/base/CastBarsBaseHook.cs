@@ -49,12 +49,7 @@ public unsafe abstract class CastBarsBaseHook(
     // ----------------------------
     // Update list
     // ----------------------------
-    protected abstract void UpdateList(AtkUnitBase* addon, int listStartField, int listEndField, int castField);
-
-    // ----------------------------
-    // Process list
-    // ----------------------------
-    protected abstract void ProcessList(AtkUnitBase* addon, int slotIndex, int castField);
+    protected abstract void UpdateList(AtkUnitBase* addon, int fieldIndex);
 
     // ----------------------------
     // Translate slot

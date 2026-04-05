@@ -2,7 +2,7 @@ using Dalamud.Bindings.ImGui;
 using System;
 using System.Numerics;
 
-namespace LangSwap.Windows;
+namespace LangSwap.windows.@base;
 
 // ----------------------------
 // Popup Helper

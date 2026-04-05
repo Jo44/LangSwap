@@ -4,11 +4,12 @@ using Dalamud.Plugin.Services;
 using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.translation.@base;
+using LangSwap.windows.@base;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
 
-namespace LangSwap.Windows;
+namespace LangSwap.windows;
 
 // ----------------------------
 // Debug Window

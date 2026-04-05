@@ -5,6 +5,7 @@ using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.hook.@base;
 using LangSwap.tool;
@@ -235,37 +236,26 @@ public unsafe class EnemiesCastBarsHook(
     {
         try
         {
-            // TODO: Refactor to separate scanning and updating into different methods for better clarity and maintainability
+            // Only update if we have a valid action ID and the addon is visible
+            if (actionId == 0 || addon == null || !addon -> IsVisible) return;
 
-            // Extract visible name for scanning if addon is accessible
-            string visibleName = "";
-            if (addon != null && addon->IsVisible)
-            {
-                AtkResNode* fieldNode = addon->UldManager.NodeList[fieldIndex];
-                if (fieldNode != null && fieldNode->Type == NodeType.Text)
-                {
-                    AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-                    if (textNode != null && textNode->NodeText.Length > 0)
-                    {
-                        visibleName = textNode->NodeText.ToString();
-                    }
-                }
-            }
-
-            // Always scan for obfuscated actions, regardless of language swap state
-            if (actionId > 0)
-            {
-                ScanForObfuscatedAction(actionId, visibleName);
-            }
-
-            // TODO : end
-
-            // Only update if language is swapped, we have a valid action ID and the addon is visible
-            if (!isLanguageSwapped || actionId == 0 || addon == null || !addon -> IsVisible) return;
+            // Get display name
+            string? displayName = GetDisplayActionName(addon, fieldIndex);
+            if (displayName.IsNullOrWhitespace()) return;
 
             // Get action name
             string? actionName = translationCache.GetActionName(actionId, config.TargetLanguage);
             if (actionName.IsNullOrWhitespace()) return;
+
+            // Detect obfuscated translation
+            DetectObfuscatedTranslation(actionId, actionName, displayName);
+
+            // Only continue if language is swapped
+            if (!isLanguageSwapped) return;
+
+            // Check for obfuscated translation
+            string? obfuscatedName = utilities.GetObfuscatedTranslation(actionId, config.TargetLanguage);
+            if (!obfuscatedName.IsNullOrWhitespace()) actionName = obfuscatedName;
 
             // Check for alternative translation
             string? alternativeName = Utilities.GetAlternativeTranslation(actionName, config.AlternativeTranslations);
@@ -293,21 +283,8 @@ public unsafe class EnemiesCastBarsHook(
     {
         try
         {
-            // TODO: Refactor to separate scanning and updating into different methods for better clarity and maintainability
-
-            // Scan all active casts for obfuscated actions, regardless of language swap state
-            foreach (KeyValuePair<ulong, uint> cast in listCasts)
-            {
-                if (cast.Value > 0)
-                {
-                    ScanForObfuscatedAction(cast.Value);
-                }
-            }
-
-            // TODO : end
-
-            // Only update if language is swapped, we have casts to translate and the addon is visible
-            if (!isLanguageSwapped || (listCasts.Count < 1) || addon == null || !addon -> IsVisible) return;
+            // Only update if we have casts to translate and the addon is visible
+            if ((listCasts.Count < 1) || addon == null || !addon -> IsVisible) return;
 
             // Process each slot in the list
             for (int slotIndex = enemyListStartField; slotIndex <= enemyListEndField; slotIndex++)
@@ -332,27 +309,13 @@ public unsafe class EnemiesCastBarsHook(
                 AtkTextNode* textNode = (AtkTextNode*)fieldNode;
                 if (textNode == null || textNode -> NodeText.Length == 0) return;
 
-                // TODO : We should ideally separate the scanning and updating logic for better clarity and maintainability, but for now we will keep it together to ensure we can leverage the visible text for detection before translation
-
-                // Always scan the visible text for obfuscated actions from list
-                string visibleText = textNode -> NodeText.ToString();
-                foreach (KeyValuePair<ulong, uint> cast in listCasts)
-                {
-                    if (cast.Value > 0 && !visibleText.IsNullOrWhitespace())
-                    {
-                        ScanForObfuscatedAction(cast.Value, visibleText);
-                    }
-                }
-
-                // TODO : end
-
                 // Translate the slot
                 TranslateSlot(textNode);
             }
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Error updating list addon");
+            log.Error(ex, $"{Class} - Error updating enmity list addon");
         }
     }
 
@@ -361,12 +324,16 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     protected override void TranslateSlot(AtkTextNode* textNode)
     {
-        // Get the current text
-        string currentText = textNode -> NodeText.ToString();
-        if (string.IsNullOrWhiteSpace(currentText)) return;
+        // TODO :
+        // Only update if language is swapped
+        if (!isLanguageSwapped) return;
+
+        // Get display name
+        string displayName = textNode -> NodeText.ToString();
+        if (string.IsNullOrWhiteSpace(displayName)) return;
 
         // Remove ellipsis for comparison
-        currentText = Utilities.RemoveEllipsis(currentText);
+        displayName = Utilities.RemoveEllipsis(displayName);
 
         // Track a single unresolved obfuscated action for UI-based detection
         uint unresolvedObfuscatedActionId = 0;
@@ -390,23 +357,18 @@ public unsafe class EnemiesCastBarsHook(
                 if (!knownClientActionName.IsNullOrWhitespace()) clientActionName = knownClientActionName;
             }
 
-            // If the client language action name contains the current text, translate it
-            if (clientActionName.StartsWith(currentText))
+            // If the client language action name contains the display name, translate it
+            if (clientActionName.StartsWith(displayName))
             {
-                // Get the display action name
-                string? displayName = GetDisplayActionName(actionId, currentText);
-                if (!displayName.IsNullOrWhitespace())
-                {
-                    // Update the text node with the display name
-                    textNode -> SetText(displayName);
-                    break;
-                }
+                // Update the text node with the display name
+                textNode -> SetText(displayName);
+                break;
             }
 
             // If the action is still unresolved and the UI shows a visible name, keep a single safe fallback candidate
             if (isObfuscatedClientActionName &&
                 clientActionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal) &&
-                !currentText.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
+                !displayName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
             {
                 if (unresolvedObfuscatedActionId == 0 || unresolvedObfuscatedActionId == actionId)
                 {
@@ -422,7 +384,7 @@ public unsafe class EnemiesCastBarsHook(
         // If exactly one unresolved obfuscated action remains, use the visible UI text to trigger detection and optional translation
         if (unresolvedObfuscatedActionId > 0 && !hasMultipleUnresolvedObfuscatedActions)
         {
-            string? displayName = GetDisplayActionName(unresolvedObfuscatedActionId, currentText);
+            string? displayName2 = GetDisplayActionName(unresolvedObfuscatedActionId, displayName);
             if (!displayName.IsNullOrWhitespace())
             {
                 // Update the text node with the display name
@@ -432,214 +394,18 @@ public unsafe class EnemiesCastBarsHook(
     }
 
     // ----------------------------
-    // Scan for obfuscated action
-    // ----------------------------
-    protected void ScanForObfuscatedAction(uint actionId, string visibleName = "")
-    {
-        try
-        {
-            if (actionId == 0) return;
-
-            // Get the client action name
-            string? clientActionName = translationCache.GetActionName(actionId, config.ClientLanguage);
-            if (clientActionName.IsNullOrWhitespace()) return;
-
-            // Check for obfuscated name
-            if (clientActionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
-            {
-                log.Information($"{Class} - Obfuscated action detected (always-on scan): ID={actionId}, ObfuscatedName={clientActionName}");
-
-                // If we have the visible name from UI, save the association
-                if (!visibleName.IsNullOrWhitespace())
-                {
-                    SaveScannedObfuscatedTranslation((int)actionId, clientActionName, visibleName);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error scanning obfuscated action {actionId}");
-        }
-    }
-
-    // ----------------------------
     // Get display action name
     // ----------------------------
-    private string? GetDisplayActionName(uint actionId, string visibleAddonName = "")
+    private string? GetDisplayActionName(AtkUnitBase* addon, int fieldIndex)
     {
-        try
-        {
-            // Check for valid action ID
-            if (actionId == 0) return null;
+        // Get the text node
+        AtkResNode* fieldNode = addon -> UldManager.NodeList[fieldIndex];
+        if (fieldNode == null || fieldNode -> Type != NodeType.Text) return null;
+        AtkTextNode* textNode = (AtkTextNode*)fieldNode;
+        if (textNode == null || textNode -> NodeText.Length == 0) return null;
 
-            // Get the client action name
-            string? clientActionName = translationCache.GetActionName(actionId, config.ClientLanguage);
-            if (clientActionName.IsNullOrWhitespace()) return null;
-
-            string originalClientActionName = clientActionName;
-
-            // Check for obfuscated name
-            if (clientActionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
-            {
-                log.Information($"{Class} - Obfuscated cast detected for action {actionId}: {clientActionName} | Visible: {visibleAddonName}");
-                SaveScannedObfuscatedTranslation((int)actionId, clientActionName, visibleAddonName);
-
-                string? resolvedClientActionName = GetObfuscatedTranslationName(clientActionName, config.ClientLanguage);
-                if (!resolvedClientActionName.IsNullOrWhitespace()) clientActionName = resolvedClientActionName;
-            }
-
-            // If target language is same as client language
-            if (config.TargetLanguage == config.ClientLanguage)
-            {
-                // Check for alternative translation
-                string? alternativeName = Utilities.GetAlternativeTranslation(clientActionName, config.AlternativeTranslations);
-                if (!alternativeName.IsNullOrWhitespace() && !string.Equals(alternativeName, clientActionName, StringComparison.Ordinal))
-                {
-                    return alternativeName;
-                }
-
-                return string.Equals(clientActionName, originalClientActionName, StringComparison.Ordinal) ? null : clientActionName;
-            }
-
-            // Get the translated action name
-            string? translatedName = translationCache.GetActionName(actionId, config.TargetLanguage);
-            if (translatedName.IsNullOrWhitespace()) return null;
-
-            // Resolve obfuscated translated name using known mappings
-            if (translatedName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
-            {
-                translatedName = GetObfuscatedTranslationName(translatedName, config.TargetLanguage);
-                if (translatedName.IsNullOrWhitespace()) return null;
-            }
-
-            // Check for alternative translation
-            string? alternativeTranslatedName = Utilities.GetAlternativeTranslation(translatedName, config.AlternativeTranslations);
-            if (!alternativeTranslatedName.IsNullOrWhitespace() && !string.Equals(alternativeTranslatedName, translatedName, StringComparison.Ordinal))
-            {
-                return alternativeTranslatedName;
-            }
-
-            // Fallback to translated action name
-            return translatedName;
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error resolving cast display name");
-            return null;
-        }
-    }
-
-    // ----------------------------
-    // Save scanned obfuscated translation
-    // ----------------------------
-    private void SaveScannedObfuscatedTranslation(int actionId, string obfuscatedName, string visibleAddonName)
-    {
-        try
-        {
-            if (actionId <= 0 || obfuscatedName.IsNullOrWhitespace() || !obfuscatedName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal)) return;
-
-            string[] textParts = utilities.RemoveTargetIndicator(visibleAddonName ?? string.Empty);
-            string scannedName = Utilities.RemoveEllipsis(textParts[0]).Trim();
-            if (scannedName.IsNullOrWhitespace() || scannedName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal)) return;
-
-            ObfuscatedTranslation? scannedTranslation = config.ScannedObfuscatedTranslations.FindLast(translation =>
-                translation.Id == actionId &&
-                string.Equals(translation.ObfuscatedName, obfuscatedName, StringComparison.Ordinal));
-
-            bool created = false;
-            if (scannedTranslation == null)
-            {
-                scannedTranslation = new ObfuscatedTranslation
-                {
-                    Id = actionId,
-                    ObfuscatedName = obfuscatedName
-                };
-                config.ScannedObfuscatedTranslations.Add(scannedTranslation);
-                created = true;
-            }
-
-            bool changed = false;
-            switch (config.ClientLanguage)
-            {
-                case LanguageEnum.English:
-                    if (!string.Equals(scannedTranslation.EnglishName, scannedName, StringComparison.Ordinal))
-                    {
-                        scannedTranslation.EnglishName = scannedName;
-                        changed = true;
-                    }
-                    break;
-
-                case LanguageEnum.French:
-                    if (!string.Equals(scannedTranslation.FrenchName, scannedName, StringComparison.Ordinal))
-                    {
-                        scannedTranslation.FrenchName = scannedName;
-                        changed = true;
-                    }
-                    break;
-
-                case LanguageEnum.German:
-                    if (!string.Equals(scannedTranslation.GermanName, scannedName, StringComparison.Ordinal))
-                    {
-                        scannedTranslation.GermanName = scannedName;
-                        changed = true;
-                    }
-                    break;
-
-                case LanguageEnum.Japanese:
-                    if (!string.Equals(scannedTranslation.JapaneseName, scannedName, StringComparison.Ordinal))
-                    {
-                        scannedTranslation.JapaneseName = scannedName;
-                        changed = true;
-                    }
-                    break;
-            }
-
-            if (created || changed)
-            {
-                config.Save();
-                log.Information($"{Class} - Scanned obfuscated cast saved: ID={actionId}, ObfuscatedName={obfuscatedName}, ClientLanguage={config.ClientLanguage}, ClientName={scannedName}");
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Failed to save scanned obfuscated cast");
-        }
-    }
-
-    // ----------------------------
-    // Get obfuscated translation name for a language
-    // ----------------------------
-    protected string? GetObfuscatedTranslationName(string obfuscatedName, LanguageEnum language)
-    {
-        string? translation = FindObfuscatedTranslation(config.RemoteObfuscatedTranslations, obfuscatedName, language);
-        if (!translation.IsNullOrWhitespace()) return translation;
-
-        translation = FindObfuscatedTranslation(config.ScannedObfuscatedTranslations, obfuscatedName, language);
-        if (!translation.IsNullOrWhitespace()) return translation;
-
-        return FindObfuscatedTranslation(config.LocalObfuscatedTranslations, obfuscatedName, language);
-    }
-
-    // ----------------------------
-    // Find obfuscated translation in a list
-    // ----------------------------
-    private static string? FindObfuscatedTranslation(List<ObfuscatedTranslation> translations, string obfuscatedName, LanguageEnum language)
-    {
-        if (translations == null || translations.Count == 0 || obfuscatedName.IsNullOrWhitespace()) return null;
-
-        ObfuscatedTranslation? translation = translations.FindLast(entry =>
-            !entry.ObfuscatedName.IsNullOrWhitespace() &&
-            string.Equals(entry.ObfuscatedName, obfuscatedName, StringComparison.Ordinal));
-        if (translation == null) return null;
-
-        return language switch
-        {
-            LanguageEnum.English => translation.EnglishName,
-            LanguageEnum.French => translation.FrenchName,
-            LanguageEnum.German => translation.GermanName,
-            LanguageEnum.Japanese => translation.JapaneseName,
-            _ => null
-        };
+        // Return the current text
+        return textNode -> NodeText.ToString();
     }
 
     // ----------------------------

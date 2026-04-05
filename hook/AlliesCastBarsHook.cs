@@ -322,7 +322,7 @@ public unsafe class AlliesCastBarsHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Error updating list addon");
+            log.Error(ex, $"{Class} - Error updating partylist addon");
         }
     }
 
@@ -331,6 +331,7 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     protected override void TranslateSlot(AtkTextNode* textNode)
     {
+        // TODO : change name
         // Get the current text
         string currentText = textNode -> NodeText.ToString();
         if (string.IsNullOrWhiteSpace(currentText)) return;

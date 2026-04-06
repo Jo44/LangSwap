@@ -78,10 +78,10 @@ public class Configuration : IPluginConfiguration
     public int PartyListCastField { get; } = 30;
 
     // Enemies CastBar Addons
-    public string EnemyListAddon { get; } = "_EnemyList";
-    public int EnemyListStartField { get; } = 4;
-    public int EnemyListEndField { get; } = 11;
-    public int EnemyListCastField { get; } = 16;
+    public string EnmityListAddon { get; } = "_EnemyList";
+    public int EnmityListStartField { get; } = 4;
+    public int EnmityListEndField { get; } = 11;
+    public int EnmityListCastField { get; } = 16;
 
     // Action Detail Addon
     public string ActionTooltipSignature { get; } = "E8 ?? ?? ?? ?? 48 8B 43 28 48 8B AF";

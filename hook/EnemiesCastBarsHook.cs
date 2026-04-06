@@ -40,9 +40,9 @@ public unsafe class EnemiesCastBarsHook(
     private readonly int targetInfoField = config.TargetInfoField;
     private readonly int targetCastBarField = config.TargetCastBarField;
     private readonly int focusCastBarField = config.FocusCastBarField;
-    private readonly int enemyListStartField = config.EnemyListStartField;
-    private readonly int enemyListEndField = config.EnemyListEndField;
-    private readonly int enemyListCastField = config.EnemyListCastField;
+    private readonly int enmityListStartField = config.EnmityListStartField;
+    private readonly int enmityListEndField = config.EnmityListEndField;
+    private readonly int enmityListCastField = config.EnmityListCastField;
 
     // Action IDs
     private uint currentEnemyTargetActionId = 0;
@@ -65,7 +65,7 @@ public unsafe class EnemiesCastBarsHook(
             addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnmityListUpdate);
+            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
 
             // Set enabled flag
             isEnabled = true;
@@ -93,7 +93,7 @@ public unsafe class EnemiesCastBarsHook(
         utilities.RefreshAddon(utilities.GetAddon(config.TargetInfoAddon), "target info");
         utilities.RefreshAddon(utilities.GetAddon(config.TargetCastBarAddon), "target castbar");
         utilities.RefreshAddon(utilities.GetAddon(config.FocusCastBarAddon), "focus castbar");
-        utilities.RefreshAddon(utilities.GetAddon(config.EnemyListAddon), "enemy list");
+        utilities.RefreshAddon(utilities.GetAddon(config.EnmityListAddon), "enmity list");
     }
 
     // ----------------------------
@@ -103,26 +103,9 @@ public unsafe class EnemiesCastBarsHook(
     {
         try
         {
-            // Check if language is swapped
-            if (!isLanguageSwapped)
-            {
-                currentEnemyTargetActionId = 0;
-                currentEnemyFocusActionId = 0;
-                listCasts.Clear();
-                listCastsExpiry.Clear();
-                return;
-            }
-
             // Get local player
             IPlayerCharacter? player = objectTable.LocalPlayer;
-            if (player == null)
-            {
-                currentEnemyTargetActionId = 0;
-                currentEnemyFocusActionId = 0;
-                listCasts.Clear();
-                listCastsExpiry.Clear();
-                return;
-            }
+            if (player == null) return;
 
             // Get player's ID
             ulong playerId = player.GameObjectId;
@@ -167,7 +150,7 @@ public unsafe class EnemiesCastBarsHook(
                         // Update focus
                         if (isFocus) currentEnemyFocusActionId = actionId;
 
-                        // Update enemy list
+                        // Update enmity list
                         if (inEnmityList)
                         {
                             listCasts[battleChara.GameObjectId] = actionId;
@@ -223,7 +206,7 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (castBarsEnmityList)
         {
-            UpdateList(utilities.GetAddon(config.EnemyListAddon), enemyListCastField);
+            UpdateList(utilities.GetAddon(config.EnmityListAddon), enmityListCastField);
         }
     }
 
@@ -285,7 +268,7 @@ public unsafe class EnemiesCastBarsHook(
             if ((listCasts.Count < 1) || addon == null || !addon -> IsVisible) return;
 
             // Process each slot in the list
-            for (int slotIndex = enemyListStartField; slotIndex <= enemyListEndField; slotIndex++)
+            for (int slotIndex = enmityListStartField; slotIndex <= enmityListEndField; slotIndex++)
             {
                 // Get the slot node
                 AtkResNode* slotNode = addon -> UldManager.NodeList[slotIndex];
@@ -423,7 +406,7 @@ public unsafe class EnemiesCastBarsHook(
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnmityListUpdate);
+            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
 
             // Set disabled flag
             isEnabled = false;
@@ -449,7 +432,7 @@ public unsafe class EnemiesCastBarsHook(
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnemyListAddon, OnEnmityListUpdate);
+            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
 
             // Set disabled flag
             isEnabled = false;

@@ -108,27 +108,11 @@ public unsafe class AlliesCastBarsHook(
         try
         {
             // Check if language is swapped
-            if (!isLanguageSwapped)
-            {
-                currentActionId = 0;
-                currentAllyTargetActionId = 0;
-                currentAllyFocusActionId = 0;
-                listCasts.Clear();
-                listCastsExpiry.Clear();
-                return;
-            }
+            if (!isLanguageSwapped) return;
 
             // Get local player
             IPlayerCharacter? player = objectTable.LocalPlayer;
-            if (player == null)
-            {
-                currentActionId = 0;
-                currentAllyTargetActionId = 0;
-                currentAllyFocusActionId = 0;
-                listCasts.Clear();
-                listCastsExpiry.Clear();
-                return;
-            }
+            if (player == null) return;
 
             // Get player's ID
             ulong playerId = player.GameObjectId;
@@ -180,7 +164,7 @@ public unsafe class AlliesCastBarsHook(
                         if (isFocus) currentAllyFocusActionId = actionId;
 
                         // Update party list
-                        if (isCharacter || inPartyList)
+                        if (inPartyList)
                         {
                             listCasts[battleChara.GameObjectId] = actionId;
                             listCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;

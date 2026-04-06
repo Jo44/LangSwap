@@ -20,20 +20,20 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 - UI Components : `Ally target` / `Ally focus` / `Party list` / `Enemy target` / `Enemy focus` / `Enmity list` / `Action tooltip` / `Item tooltip`
 
 ## Usage
-01. Open the plugin manager in FFXIV
-02. Click the `Settings` button to open the configuration window
-03. Select the `Target Language` : `Japanese` / `English` / `German` / `French`
-04. Select the UI components that will be translated : `Ally target` / `Ally focus` / `Party list` / `Enemy target` / `Enemy focus` / `Enmity list` / `Action tooltip` / `Item tooltip`
-05. Click the `Enable` button to activate translation
+- Open the plugin manager in FFXIV
+- Click the `Settings` button to open the configuration window
+- Select the `Target Language` : `Japanese` / `English` / `German` / `French`
+- Select the UI components that will be translated : `Ally target` / `Ally focus` / `Party list` / `Enemy target` / `Enemy focus` / `Enmity list` / `Action tooltip` / `Item tooltip`
+- Click the `Enable` button to activate translation
 
 You can also :  
-06. Open the settings window via the slash command : `/langswap`
-07. Enable the toggle shortcut then select the keyboard shortcut : `Primary Key` and modifier keys (`Ctrl`, `Alt`, `Shift`)
-08. Press the toogle shortcut to swap language; press again to restore the original language
-09. Click the `Customize` button to set alternative translations that will be used when translation is activated
-10. New alternative translations can be imported from CSV
-11. Current alternative translations can be exported to CSV
-12. Click the `Clear cache` button to clear all translation cache
+- Open the settings window via the slash command : `/langswap`
+- Enable the toggle shortcut then select the keyboard shortcut : `Primary Key` and modifier keys (`Ctrl`, `Alt`, `Shift`)
+- Press the toogle shortcut to swap language; press again to restore the original language
+- Click the `Customize` button to set alternative translations that will be used when translation is activated
+- New alternative translations can be imported from CSV
+- Current alternative translations can be exported to CSV
+- Click the `Clear cache` button to clear all translation cache
 
 ## Development / build
 - Target: .NET 10

@@ -4,8 +4,9 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 
 ## Features
 - Swap castbars and tooltips language on the fly
-- Customize alternative translations
-- Some spell names are obfuscated by Square Enix to prevent early data-mining -> the plugin can learn on its own or be updated remotely to resolve this issue
+- Customize spell alternative translations
+- Some spell names are obfuscated by Square Enix to prevent early data-mining 
+	-> the plugin can learn on its own or be updated remotely to resolve this issue
 
 ## Limitations
 - Spell names can only be translated in some UI components, and not in chat or floating actions on enemies

@@ -5,7 +5,7 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 ## Features
 - Swap castbars and tooltips language on the fly
 - Customize spell alternative translations
-- Some spell names are obfuscated by Square Enix to prevent early data-mining 
+- Some spell names are obfuscated by Square Enix to prevent early data-mining  
 	-> the plugin can learn on its own or be updated remotely to resolve this issue
 
 ## Limitations
@@ -26,7 +26,7 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 04. Select the UI components that will be translated : `Ally target` / `Ally focus` / `Party list` / `Enemy target` / `Enemy focus` / `Enmity list` / `Action tooltip` / `Item tooltip`
 05. Click the `Enable` button to activate translation
 
-You can also : 
+You can also :  
 06. Open the settings window via the slash command : `/langswap`
 07. Enable the toggle shortcut then select the keyboard shortcut : `Primary Key` and modifier keys (`Ctrl`, `Alt`, `Shift`)
 08. Press the toogle shortcut to swap language; press again to restore the original language
@@ -42,6 +42,6 @@ You can also :
 
 ## Logs & debugging
 - Logs use Dalamud's `IPluginLog`; filter by plugin to view messages
-- Hidden debug menu allows to : 
+- Hidden debug menu allows to :  
 	-> export obfuscation resolutions to CSV 
 	-> import obfuscation resolutions from CSV 

@@ -22,9 +22,6 @@ public unsafe abstract class CastBarsBaseHook(
     Utilities utilities,
     IPluginLog log) : BaseHook(config, translationCache, utilities, log)
 {
-    // Log
-    private const string Class = "[CastBarsBaseHook.cs]";
-
     // Core components
     protected IAddonLifecycle addonLifecycle = addonLifecycle;
     protected IFramework framework = framework;
@@ -61,16 +58,9 @@ public unsafe abstract class CastBarsBaseHook(
     // ----------------------------
     protected static bool IsInList(IBattleChara character, StatusFlags flag)
     {
-        bool inList = false;
-        try
-        {
-            if (character != null && character.StatusFlags.HasFlag(flag)) inList = true;
-        }
-        catch
-        {
-            inList = false;
-        }
-        return inList;
+        // Check if character has the specified status flag
+        if (character != null && character.StatusFlags.HasFlag(flag)) return true;
+        else return false;
     }
 
     // ----------------------------
@@ -78,12 +68,17 @@ public unsafe abstract class CastBarsBaseHook(
     // ----------------------------
     protected void CleanExpiredListCasts()
     {
+        // Get current time in ticks
         long now = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
+
+        // Loop through list casts expiry
         List<ulong> toRemove = [];
         foreach (ulong id in listCastsExpiry.Keys)
         {
+            // If expired, add to remove list
             if (now - listCastsExpiry[id] > ListCastExpiryTicks) toRemove.Add(id);
         }
+        // Remove expired casts from both lists
         foreach (ulong id in toRemove)
         {
             listCasts.Remove(id);

@@ -53,7 +53,7 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    public override void Enable(string hookName)
+    protected override void Enable(string hookName)
     {
         // Prevent multiple enables
         if (isEnabled) return;
@@ -411,7 +411,7 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    public override void Disable(string hookName)
+    protected override void Disable(string hookName)
     {
         // Prevent multiple disables
         if (!isEnabled) return;
@@ -440,7 +440,7 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     // Dispose the hook
     // ----------------------------
-    public override void Dispose(string hookName)
+    protected override void Dispose(string hookName)
     {
         try
         {

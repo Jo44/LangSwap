@@ -448,6 +448,7 @@ public class DebugWindow : Window, IDisposable
     // ----------------------------
     public void Dispose()
     {
+        // Finalize
         GC.SuppressFinalize(this);
     }
 

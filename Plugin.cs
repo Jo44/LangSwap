@@ -50,7 +50,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly DebugWindow debugWindow = null!;
     private readonly WindowSystem windowSystem = new("LangSwap");
 
-    // Toggle state
+    // Toggle states
     private int deferredFrameCount = 0;
     private bool disposed = false;
     private bool isSwapping = false;

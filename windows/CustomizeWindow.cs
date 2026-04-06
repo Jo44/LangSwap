@@ -609,6 +609,7 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     public void Dispose()
     {
+        // Finalize
         GC.SuppressFinalize(this);
     }
 

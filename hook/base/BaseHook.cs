@@ -23,19 +23,19 @@ public abstract class BaseHook(
     protected readonly Utilities utilities = utilities;
     protected readonly IPluginLog log = log;
 
-    // Toggle state
+    // Toggle states
     protected bool isEnabled = false;
     protected bool isLanguageSwapped = false;
 
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    public abstract void Enable(string hookName);
+    protected abstract void Enable(string hookName);
 
     // ----------------------------
     // Swap to target language
     // ----------------------------
-    public virtual void SwapLanguage()
+    protected virtual void SwapLanguage()
     {
         // Prevent redundant swaps
         if (isLanguageSwapped) return;
@@ -53,7 +53,7 @@ public abstract class BaseHook(
     // ----------------------------
     // Restore to original language
     // ----------------------------
-    public virtual void RestoreLanguage()
+    protected virtual void RestoreLanguage()
     {
         // Prevent redundant restores
         if (!isLanguageSwapped) return;
@@ -76,12 +76,12 @@ public abstract class BaseHook(
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    public abstract void Disable(string hookName);
+    protected abstract void Disable(string hookName);
 
     // ----------------------------
     // Dispose the hook
     // ----------------------------
-    public abstract void Dispose(string hookName);
+    protected abstract void Dispose(string hookName);
 
     // ----------------------------
     // Dispose

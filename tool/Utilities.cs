@@ -505,21 +505,22 @@ public unsafe class Utilities(
     // ----------------------------
     public AtkUnitBase* GetAddon(string addonName)
     {
-        // Initialize
-        AtkUnitBase* addon = null;
         try
         {
             // Get pointer from name
             AtkUnitBasePtr addonPtr = gameGui.GetAddonByName(addonName);
 
-            // Get addon from pointer
-            if (!addonPtr.IsNull) addon = (AtkUnitBase*)addonPtr.Address;
+            // Check for null pointer
+            if (addonPtr.IsNull) return null;
+
+            // Return addon from pointer
+            return (AtkUnitBase*)addonPtr.Address;
         }
         catch (Exception ex)
         {
             log.Error(ex, $"{Class} - Failed to get {addonName} addon");
         }
-        return addon;
+        return null;
     }
 
     // ----------------------------
@@ -670,8 +671,8 @@ public unsafe class Utilities(
     // ----------------------------
     public static string RemoveEllipsis(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) text = text.Replace("...", "").Trim();
-        return text;
+        if (!string.IsNullOrWhiteSpace(text)) return text.Replace("...", "").Trim();
+        else return text;
     }
 
     // ----------------------------
@@ -704,9 +705,8 @@ public unsafe class Utilities(
     // ----------------------------
     public bool IsHighQuality(string text)
     {
-        bool isHighQuality = false;
-        if (!string.IsNullOrWhiteSpace(text)) isHighQuality = text.Contains(highQualitySymbol);
-        return isHighQuality;
+        if (!string.IsNullOrWhiteSpace(text)) return text.Contains(highQualitySymbol);
+        else return false;
     }
 
     // ----------------------------
@@ -714,8 +714,8 @@ public unsafe class Utilities(
     // ----------------------------
     public string SetHighQuality(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) text = text + " " + highQualitySymbol;
-        return text;
+        if (!string.IsNullOrWhiteSpace(text)) return text + " " + highQualitySymbol;
+        else return text;
     }
 
     // ----------------------------
@@ -723,8 +723,8 @@ public unsafe class Utilities(
     // ----------------------------
     public string UnsetHighQuality(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) text = text.Replace(highQualitySymbol.ToString(), "").Trim();
-        return text;
+        if (!string.IsNullOrWhiteSpace(text)) return text.Replace(highQualitySymbol.ToString(), "").Trim();
+        else return text;
     }
 
     // ----------------------------
@@ -732,8 +732,8 @@ public unsafe class Utilities(
     // ----------------------------
     public string SetGlamour(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) text = glamouredSymbol + " " + text;
-        return text;
+        if (!string.IsNullOrWhiteSpace(text)) return glamouredSymbol + " " + text;
+        else return text;
     }
 
     // ----------------------------
@@ -741,8 +741,8 @@ public unsafe class Utilities(
     // ----------------------------
     public string UnsetGlamour(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) text = text.Replace(glamouredSymbol.ToString(), "").Trim();
-        return text;
+        if (!string.IsNullOrWhiteSpace(text)) return text.Replace(glamouredSymbol.ToString(), "").Trim();
+        else return text;
     }
 
 }

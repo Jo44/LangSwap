@@ -21,7 +21,7 @@ public unsafe abstract class TooltipBaseHook(
     // Log
     private const string Class = "[TooltipBaseHook.cs]";
 
-    // Core component
+    // Core components
     private readonly IGameInteropProvider gameInterop = gameInterop;
     private readonly ISigScanner sigScanner = sigScanner;
 
@@ -37,7 +37,7 @@ public unsafe abstract class TooltipBaseHook(
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    protected override void Enable(string hookName)
+    public override void Enable(string hookName)
     {
         // Prevent multiple enables
         if (isEnabled) return;
@@ -79,7 +79,7 @@ public unsafe abstract class TooltipBaseHook(
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    protected override void Disable(string hookName)
+    public override void Disable(string hookName)
     {
         // Prevent multiple disables
         if (!isEnabled) return;
@@ -106,7 +106,7 @@ public unsafe abstract class TooltipBaseHook(
     {
         try
         {
-            // Dispose action tooltip hook
+            // Dispose tooltip hook
             tooltipHook?.Disable();
             tooltipHook?.Dispose();
             tooltipHook = null;

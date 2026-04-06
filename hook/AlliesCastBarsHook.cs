@@ -53,7 +53,7 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    protected override void Enable(string hookName)
+    public override void Enable(string hookName)
     {
         // Prevent multiple enables
         if (isEnabled) return;
@@ -383,7 +383,7 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    protected override void Disable(string hookName)
+    public override void Disable(string hookName)
     {
         // Prevent multiple disables
         if (!isEnabled) return;
@@ -429,6 +429,9 @@ public unsafe class AlliesCastBarsHook(
 
             // Set disabled flag
             isEnabled = false;
+
+            // Dispose base resources
+            Dispose();
         }
         catch (Exception ex)
         {

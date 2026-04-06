@@ -5,12 +5,10 @@ using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.hook.@base;
 using LangSwap.tool;
 using LangSwap.translation;
-using LangSwap.translation.@base;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -53,7 +51,7 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    protected override void Enable(string hookName)
+    public override void Enable(string hookName)
     {
         // Prevent multiple enables
         if (isEnabled) return;
@@ -411,7 +409,7 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    protected override void Disable(string hookName)
+    public override void Disable(string hookName)
     {
         // Prevent multiple disables
         if (!isEnabled) return;
@@ -455,6 +453,9 @@ public unsafe class EnemiesCastBarsHook(
 
             // Set disabled flag
             isEnabled = false;
+
+            // Dispose base resources
+            Dispose();
         }
         catch (Exception ex)
         {

@@ -54,7 +54,7 @@ public unsafe abstract class CastBarsBaseHook(
     protected abstract void TranslateSlot(AtkTextNode* textNode);
 
     // ----------------------------
-    // Check if member is in list
+    // Check if character is in list
     // ----------------------------
     protected static bool IsInList(IBattleChara character, StatusFlags flag)
     {

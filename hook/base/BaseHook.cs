@@ -30,12 +30,12 @@ public abstract class BaseHook(
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    protected abstract void Enable(string hookName);
+    public abstract void Enable(string hookName);
 
     // ----------------------------
     // Swap to target language
     // ----------------------------
-    protected virtual void SwapLanguage()
+    public virtual void SwapLanguage()
     {
         // Prevent redundant swaps
         if (isLanguageSwapped) return;
@@ -53,7 +53,7 @@ public abstract class BaseHook(
     // ----------------------------
     // Restore to original language
     // ----------------------------
-    protected virtual void RestoreLanguage()
+    public virtual void RestoreLanguage()
     {
         // Prevent redundant restores
         if (!isLanguageSwapped) return;
@@ -76,7 +76,7 @@ public abstract class BaseHook(
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    protected abstract void Disable(string hookName);
+    public abstract void Disable(string hookName);
 
     // ----------------------------
     // Dispose the hook

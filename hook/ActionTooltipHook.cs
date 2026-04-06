@@ -115,10 +115,7 @@ public unsafe class ActionTooltipHook(
     private string TranslateActionName(uint actionId, LanguageEnum targetLang)
     {
         // Get translated action name from action ID
-        string translatedActionName = translationCache.GetActionName(actionId, targetLang) ?? string.Empty;
-
-        // Return translated action name
-        return translatedActionName;
+        return translationCache.GetActionName(actionId, targetLang) ?? string.Empty;
     }
 
     // ----------------------------
@@ -127,10 +124,7 @@ public unsafe class ActionTooltipHook(
     private string TranslateDescription(uint actionId, LanguageEnum targetLang)
     {
         // Get translated description from action ID
-        string translatedDescription = translationCache.GetActionDescription(actionId, targetLang) ?? string.Empty;
-
-        // Return translated description
-        return translatedDescription;
+        return translationCache.GetActionDescription(actionId, targetLang) ?? string.Empty;
     }
 
 }

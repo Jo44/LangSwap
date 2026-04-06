@@ -286,10 +286,7 @@ public unsafe partial class ItemTooltipHook(
     private string TranslateDescription(uint itemId, LanguageEnum targetLang)
     {
         // Get translated description from item ID
-        string translatedDescription = translationCache.GetItemDescription(itemId, targetLang) ?? string.Empty;
-
-        // Return translated description
-        return translatedDescription;
+        return translationCache.GetItemDescription(itemId, targetLang) ?? string.Empty;
     }
 
     // ----------------------------
@@ -351,10 +348,7 @@ public unsafe partial class ItemTooltipHook(
     private string TranslateMateriaName(uint materiaId, LanguageEnum targetLang)
     {
         // Get translated materia name from materia ID
-        string translatedMateriaName = translationCache.GetItemName(materiaId, targetLang) ?? string.Empty;
-
-        // Return translated materia name
-        return translatedMateriaName;
+        return translationCache.GetItemName(materiaId, targetLang) ?? string.Empty;
     }
 
     // ----------------------------

@@ -26,10 +26,10 @@ public class HookManager(
     private const string Class = "[HookManager.cs]";
 
     // Individual hooks
-    private readonly ActionTooltipHook actionTooltipHook = new(config, gameInterop, sigScanner, translationCache, utilities, log);
-    private readonly ItemTooltipHook itemTooltipHook = new(config, gameInterop, sigScanner, translationCache, utilities, log);
     private readonly AlliesCastBarsHook alliesCastBarsHook = new(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log);
     private readonly EnemiesCastBarsHook enemiesCastBarsHook = new(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log);
+    private readonly ActionTooltipHook actionTooltipHook = new(config, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly ItemTooltipHook itemTooltipHook = new(config, gameInterop, sigScanner, translationCache, utilities, log);
 
     // Active hooks
     private readonly HashSet<BaseHook> hooks = [];
@@ -39,21 +39,33 @@ public class HookManager(
     // ----------------------------
     public void EnableAll()
     {
-        // Add hook if component is enabled
-        if (config.ActionTooltip) hooks.Add(actionTooltipHook);
-        if (config.ItemTooltip) hooks.Add(itemTooltipHook);
+        // Add hook if UI component is enabled
         if (config.AlliesCastBarsTarget || config.AlliesCastBarsFocus || config.AlliesCastBarsPartyList) hooks.Add(alliesCastBarsHook);
         if (config.EnemiesCastBarsTarget || config.EnemiesCastBarsFocus || config.EnemiesCastBarsEnmityList) hooks.Add(enemiesCastBarsHook);
+        if (config.ActionTooltip) hooks.Add(actionTooltipHook);
+        if (config.ItemTooltip) hooks.Add(itemTooltipHook);
 
         // Enable all active hooks
         foreach (BaseHook hook in hooks)
         {
             try
             {
-                if (hook is ActionTooltipHook) hook.Enable("Action Tooltip");
-                else if (hook is ItemTooltipHook) hook.Enable("Item Tooltip");
-                else if (hook is AlliesCastBarsHook) hook.Enable("Allies CastBars");
-                else if (hook is EnemiesCastBarsHook) hook.Enable("Enemies CastBars");
+                // For each hook type
+                switch (hook)
+                {
+                    case AlliesCastBarsHook:
+                        hook.Enable("Allies CastBars");
+                        break;
+                    case EnemiesCastBarsHook:
+                        hook.Enable("Enemies CastBars");
+                        break;
+                    case ActionTooltipHook:
+                        hook.Enable("Action Tooltip");
+                        break;
+                    case ItemTooltipHook:
+                        hook.Enable("Item Tooltip");
+                        break;
+                }
             }
             catch (Exception ex)
             {
@@ -67,30 +79,6 @@ public class HookManager(
     // ----------------------------
     public void UpdateHooks()
     {
-        // Action Tooltip
-        if (config.ActionTooltip && !hooks.Contains(actionTooltipHook))
-        {
-            try { actionTooltipHook.Enable("Action Tooltip"); hooks.Add(actionTooltipHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Action Tooltip"); }
-        }
-        else if (!config.ActionTooltip && hooks.Contains(actionTooltipHook))
-        {
-            try { actionTooltipHook.Disable("Action Tooltip"); hooks.Remove(actionTooltipHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Action Tooltip"); }
-        }
-
-        // Item Tooltip
-        if (config.ItemTooltip && !hooks.Contains(itemTooltipHook))
-        {
-            try { itemTooltipHook.Enable("Item Tooltip"); hooks.Add(itemTooltipHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Item Tooltip"); }
-        }
-        else if (!config.ItemTooltip && hooks.Contains(itemTooltipHook))
-        {
-            try { itemTooltipHook.Disable("Item Tooltip"); hooks.Remove(itemTooltipHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Item Tooltip"); }
-        }
-
         // Allies CastBars
         bool alliesEnabled = config.AlliesCastBarsTarget || config.AlliesCastBarsFocus || config.AlliesCastBarsPartyList;
         if (alliesEnabled && !hooks.Contains(alliesCastBarsHook))
@@ -115,6 +103,30 @@ public class HookManager(
         {
             try { enemiesCastBarsHook.Disable("Enemies CastBars"); hooks.Remove(enemiesCastBarsHook); }
             catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Enemies CastBars"); }
+        }
+
+        // Action Tooltip
+        if (config.ActionTooltip && !hooks.Contains(actionTooltipHook))
+        {
+            try { actionTooltipHook.Enable("Action Tooltip"); hooks.Add(actionTooltipHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Action Tooltip"); }
+        }
+        else if (!config.ActionTooltip && hooks.Contains(actionTooltipHook))
+        {
+            try { actionTooltipHook.Disable("Action Tooltip"); hooks.Remove(actionTooltipHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Action Tooltip"); }
+        }
+
+        // Item Tooltip
+        if (config.ItemTooltip && !hooks.Contains(itemTooltipHook))
+        {
+            try { itemTooltipHook.Enable("Item Tooltip"); hooks.Add(itemTooltipHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Item Tooltip"); }
+        }
+        else if (!config.ItemTooltip && hooks.Contains(itemTooltipHook))
+        {
+            try { itemTooltipHook.Disable("Item Tooltip"); hooks.Remove(itemTooltipHook); }
+            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Item Tooltip"); }
         }
     }
 
@@ -166,10 +178,22 @@ public class HookManager(
         {
             try
             {
-                if (hook is ActionTooltipHook) hook.Disable("Action Tooltip");
-                else if (hook is ItemTooltipHook) hook.Disable("Item Tooltip");
-                else if (hook is AlliesCastBarsHook) hook.Disable("Allies CastBars");
-                else if (hook is EnemiesCastBarsHook) hook.Disable("Enemies CastBars");
+                // For each hook type
+                switch (hook)
+                {
+                    case AlliesCastBarsHook:
+                        hook.Disable("Allies CastBars");
+                        break;
+                    case EnemiesCastBarsHook:
+                        hook.Disable("Enemies CastBars");
+                        break;
+                    case ActionTooltipHook:
+                        hook.Disable("Action Tooltip");
+                        break;
+                    case ItemTooltipHook:
+                        hook.Disable("Item Tooltip");
+                        break;
+                }
             }
             catch (Exception ex)
             {

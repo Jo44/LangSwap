@@ -22,7 +22,7 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 ## Usage
 - Open the plugin manager in FFXIV
 - Click the `Settings` button to open the configuration window
-- Select the `Target Language` : `Japanese` / `English` / `German` / `French`
+- Select the target language : `Japanese` / `English` / `German` / `French`
 - Select the UI components that will be translated : `Ally target` / `Ally focus` / `Party list` / `Enemy target` / `Enemy focus` / `Enmity list` / `Action tooltip` / `Item tooltip`
 - Click the `Enable` button to activate translation
 
@@ -43,5 +43,5 @@ You can also :
 ## Logs & debugging
 - Logs use Dalamud's `IPluginLog`; filter by plugin to view messages
 - Hidden debug menu allows to :  
-	-> export obfuscation resolutions to CSV  
 	-> import obfuscation resolutions from CSV  
+	-> export obfuscation resolutions to CSV  

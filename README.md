@@ -43,5 +43,5 @@ You can also :
 ## Logs & debugging
 - Logs use Dalamud's `IPluginLog`; filter by plugin to view messages
 - Hidden debug menu allows to :  
-	-> export obfuscation resolutions to CSV 
-	-> import obfuscation resolutions from CSV 
+	-> export obfuscation resolutions to CSV  
+	-> import obfuscation resolutions from CSV  

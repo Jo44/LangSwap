@@ -28,7 +28,7 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 
 You can also :  
 - Open the settings window via the slash command : `/langswap`
-- Enable the toggle shortcut then select the keyboard shortcut : `Primary Key` and modifier keys (`Ctrl`, `Alt`, `Shift`)
+- Enable the toggle shortcut then select the keyboard shortcut : Primary key and modifier keys (`Ctrl`, `Alt`, `Shift`)
 - Press the toogle shortcut to swap language; press again to restore the original language
 - Click the `Customize` button to set alternative translations that will be used when translation is activated
 - New alternative translations can be imported from CSV

@@ -136,7 +136,7 @@ public unsafe class Utilities(
     }
 
     // ----------------------------
-    // Check if a virtual key is currently downq
+    // Check if a virtual key is currently down
     // ----------------------------
     private bool IsKeyDown(int vkCode)
     {
@@ -622,8 +622,6 @@ public unsafe class Utilities(
 
             // Write the new bytes into StringArrayData at the specified index
             stringArrayData -> SetValue(index, bytes, false, true, false);
-
-            // Return true
             return true;
         }
         catch (Exception ex)

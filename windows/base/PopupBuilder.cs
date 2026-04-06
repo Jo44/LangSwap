@@ -5,9 +5,9 @@ using System.Numerics;
 namespace LangSwap.windows.@base;
 
 // ----------------------------
-// Popup Helper
+// Popup Builder
 // ----------------------------
-public static class PopupHelper
+public static class PopupBuilder
 {
     // ----------------------------
     // Draw export CSV popup
@@ -36,7 +36,11 @@ public static class PopupHelper
         {
             // Copy to clipboard
             ImGui.SetClipboardText(csv);
+
+            // Invoke callback
             onCopy();
+
+            // Close popup
             if (closeOnCopy) ImGui.CloseCurrentPopup();
         }
 
@@ -44,6 +48,7 @@ public static class PopupHelper
         ImGui.SameLine(0, 15f);
         if (ImGui.Button("Close", new Vector2((windowSize.X - 45f) / 2, 0f)))
         {
+            // Close popup
             ImGui.CloseCurrentPopup();
         }
 
@@ -148,7 +153,10 @@ public static class PopupHelper
         ImGui.SameLine(0, 15f);
         if (ImGui.Button(confirmLabel, new Vector2((windowSize.X - 60f) / 2f, 0f)))
         {
+            // Invoke callback
             onConfirm();
+
+            // Close popup
             ImGui.CloseCurrentPopup();
         }
 
@@ -156,6 +164,7 @@ public static class PopupHelper
         ImGui.SameLine(0, 15f);
         if (ImGui.Button(cancelLabel, new Vector2((windowSize.X - 60f) / 2f, 0f)))
         {
+            // Close popup
             ImGui.CloseCurrentPopup();
         }
 

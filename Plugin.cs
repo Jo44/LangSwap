@@ -43,6 +43,8 @@ public sealed class Plugin : IDalamudPlugin
     private readonly HookManager hookManager = null!;
     private readonly TranslationCache translationCache = null!;
     private readonly Utilities utilities = null!;
+
+    // UI windows
     private readonly ConfigWindow configWindow = null!;
     private readonly CustomizeWindow customizeWindow = null!;
     private readonly DebugWindow debugWindow = null!;
@@ -69,8 +71,11 @@ public sealed class Plugin : IDalamudPlugin
             // Load configuration
             config = DalamudPluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-            // Initialize utilities
+            // Initialize core components
             utilities = new(ClientState, config, GameGui, KeyState, Log);
+            excelProvider = new(config, DataManager, Log);
+            translationCache = new(excelProvider);
+            hookManager = new(AddonLifecycle, config, Framework, GameInterop, ObjectTable, SigScanner, TargetManager, translationCache, utilities, Log);
 
             // Detect client language
             utilities.DetectClientLanguage();
@@ -100,23 +105,17 @@ public sealed class Plugin : IDalamudPlugin
             // Get remote
             utilities.GetRemoteObfuscatedTranslations();
 
-            // Log remote
+            // Log remote / scanned / local
             utilities.LogObfuscatedTranslations("Remote", config.RemoteObfuscatedTranslations);
-
-            // Log scanned
             utilities.LogObfuscatedTranslations("Scanned", config.ScannedObfuscatedTranslations);
-
-            // Log local
             utilities.LogObfuscatedTranslations("Local", config.LocalObfuscatedTranslations);
 
             // Log alternative translations
             Log.Information($"{Class} === LangSwap : Alternative Translations ===");
             utilities.LogAlternativeTranslations("Alternative", config.AlternativeTranslations);
 
-            // Initialize core components
-            excelProvider = new(config, DataManager, Log);
-            translationCache = new(excelProvider);
-            hookManager = new(AddonLifecycle, config, Framework, GameInterop, ObjectTable, SigScanner, TargetManager, translationCache, utilities, Log);
+            // Initialize windows
+            Log.Information($"{Class} === LangSwap : Windows ===");
             configWindow = new(config, this, translationCache, Log);
             customizeWindow = new(config, Log);
             debugWindow = new(config, excelProvider, Log);
@@ -188,7 +187,7 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
-    // Deferred swap handler
+    // Deferred swap
     // ----------------------------
     private void DeferredSwap(IFramework framework)
     {
@@ -235,10 +234,12 @@ public sealed class Plugin : IDalamudPlugin
         hookManager.SwapLanguage();
         isSwapEnabled = true;
 
-        // Log swap informations
+        // Log swap information
         string info = $"Swapped to {Enum.GetName(config.TargetLanguage)}";
-        ChatLog(info);
         Log.Information($"{Class} - {info}");
+
+        // Notify swap
+        ChatLog(info);
     }
 
     // ----------------------------
@@ -253,10 +254,12 @@ public sealed class Plugin : IDalamudPlugin
         hookManager.RestoreLanguage();
         isSwapEnabled = false;
 
-        // Log restore informations
+        // Log restore information
         string info = $"Restored to {Enum.GetName(config.ClientLanguage)}";
-        ChatLog(info);
         Log.Information($"{Class} - {info}");
+
+        // Notify restore
+        ChatLog(info);
     }
 
     // ----------------------------
@@ -373,6 +376,9 @@ public sealed class Plugin : IDalamudPlugin
     // ----------------------------
     public void Dispose()
     {
+        // Log unloading
+        Log.Information($"{Class} === LangSwap : Unloading ===");
+
         // Set disposed flag
         disposed = true;
 

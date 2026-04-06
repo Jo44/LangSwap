@@ -3,7 +3,7 @@ using System;
 namespace LangSwap.translation.@base;
 
 // ----------------------------
-// Alternative translation
+// Alternative Translation
 // ----------------------------
 [Serializable]
 public class AlternativeTranslation

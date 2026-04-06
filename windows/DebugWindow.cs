@@ -32,10 +32,10 @@ public class DebugWindow : Window, IDisposable
     private string importLocalCSV = string.Empty;
     private string importLocalStatus = string.Empty;
 
-    // Information message
-    private string information = string.Empty;
-    private DateTime informationTimestamp = DateTime.MinValue;
-    private const int InformationDurationSeconds = 5;
+    // Message
+    private string message = string.Empty;
+    private DateTime messageTimestamp = DateTime.MinValue;
+    private const int MessageDurationSeconds = 5;
 
     // ----------------------------
     // Constructor
@@ -57,8 +57,8 @@ public class DebugWindow : Window, IDisposable
             MaximumSize = new Vector2(1200, 478)
         };
 
-        // Search obfuscated translations
-        SearchObfuscatedTranslations();
+        // Load obfuscated translations
+        LoadObfuscatedTranslations();
     }
     
     // ----------------------------
@@ -66,8 +66,8 @@ public class DebugWindow : Window, IDisposable
     // ----------------------------
     public override void OnClose()
     {
-        // Search obfuscated translations to discard unsaved changes
-        SearchObfuscatedTranslations();
+        // Reload obfuscated translations to discard unsaved changes
+        LoadObfuscatedTranslations();
     }
 
     // ----------------------------
@@ -76,71 +76,62 @@ public class DebugWindow : Window, IDisposable
     public override void Draw()
     {
         // Information
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.SameLine(0, 15f);
-        ImGui.TextWrapped("Some spell names are obfuscated by Square Enix to prevent early data-mining");
+        DrawInformation();
 
-        // Draw information message
-        DrawInformationMessage();
+        // Message
+        DrawMessage();
 
-        // Draw obfuscated translations table
+        // Obfuscated translations table
         DrawObfuscatedTranslationsTable();
 
-        // Export scanned button
-        ImGui.Spacing();
-        ImGui.SameLine(0, 690f);
-        if (ImGui.Button("Export scanned", new Vector2(150f, 0f)))
-        {
-            exportScannedCSV = Utilities.ExportObfuscatedTranslationsCSV(config.ScannedObfuscatedTranslations);
-            ImGui.OpenPopup("Export scanned");
-        }
-
-        // Import local button
-        ImGui.SameLine(0, 15f);
-        if (ImGui.Button("Import local", new Vector2(150f, 0f)))
-        {
-            importLocalCSV = string.Empty;
-            importLocalStatus = string.Empty;
-            ImGui.OpenPopup("Import local");
-        }
-
-        // Reset local button
-        ImGui.SameLine(0, 15f);
-        if (ImGui.Button("Reset local", new Vector2(150f, 0f)))
-        {
-            ImGui.OpenPopup("Reset local");
-        }
-
-        // Draw popups
+        // Export scanned
+        DrawExportScannedButton();
         DrawExportScannedPopup();
+
+        // Import local
+        DrawImportLocalButton();
         DrawImportLocalPopup();
+
+        // Reset local
+        DrawResetLocalButton();
         DrawResetLocalPopup();
     }
 
     // ----------------------------
-    // Draw information message
+    // Draw information
     // ----------------------------
-    private void DrawInformationMessage()
+    private static void DrawInformation()
     {
-        // Check if there is an information message to display
-        if (string.IsNullOrWhiteSpace(information)) return;
+        // Draw information
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 15f);
+        ImGui.TextWrapped("Some spell names are obfuscated by Square Enix to prevent early data-mining");
+    }
 
-        // Check if the information message has expired
-        if ((DateTime.Now - informationTimestamp).TotalSeconds >= InformationDurationSeconds)
+    // ----------------------------
+    // Draw message
+    // ----------------------------
+    private void DrawMessage()
+    {
+        // Check if there is a message to display
+        if (string.IsNullOrWhiteSpace(message)) return;
+
+        // Check if the message has expired
+        if ((DateTime.Now - messageTimestamp).TotalSeconds >= MessageDurationSeconds)
         {
-            information = string.Empty;
+            message = string.Empty;
             return;
         }
 
         // Calculate text position
-        Vector2 textSize = ImGui.CalcTextSize(information);
+        Vector2 textSize = ImGui.CalcTextSize(message);
         float x = ImGui.GetWindowContentRegionMax().X - textSize.X - 15f;
 
-        // Draw information message
+        // Draw message
         ImGui.SameLine();
         ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), x));
-        ImGui.TextUnformatted(information);
+        ImGui.TextUnformatted(message);
     }
 
     // ----------------------------
@@ -153,7 +144,7 @@ public class DebugWindow : Window, IDisposable
         const float tableWidth = 1155f;
         const float rowHeight = 30f;
 
-        // Obfuscated translations table
+        // Draw obfuscated translations table
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
@@ -259,21 +250,59 @@ public class DebugWindow : Window, IDisposable
     }
 
     // ----------------------------
+    // Draw export scanned button
+    // ----------------------------
+    private void DrawExportScannedButton()
+    {
+        // Draw export scanned button
+        ImGui.Spacing();
+        ImGui.SameLine(0, 690f);
+        if (ImGui.Button("Export scanned", new Vector2(150f, 0f)))
+        {
+            // Export scanned obfuscated translations to CSV
+            exportScannedCSV = Utilities.ExportObfuscatedTranslationsCSV(config.ScannedObfuscatedTranslations);
+
+            // Open popup
+            ImGui.OpenPopup("Export scanned");
+        }
+    }
+
+    // ----------------------------
     // Draw export scanned popup
     // ----------------------------
     private void DrawExportScannedPopup()
     {
         // Draw export CSV popup
-        PopupHelper.DrawExportCSVPopup("Export scanned", "##ExportScannedCsv", ref exportScannedCSV, new Vector2(900f, 400f), false, () =>
+        PopupBuilder.DrawExportCSVPopup("Export scanned", "##ExportScannedCsv", ref exportScannedCSV, new Vector2(900f, 400f), false, () =>
         {
             // Count exported translations
             int count = config.ScannedObfuscatedTranslations.Count;
 
             // Log
             string message = $"{count} scanned obfuscated translations exported";
-            SetInformation(message);
             log.Information($"{Class} - {message}");
+
+            // Set message
+            SetMessage(message);
         });
+    }
+
+    // ----------------------------
+    // Draw import local button
+    // ----------------------------
+    private void DrawImportLocalButton()
+    {
+        // Draw import local button
+        ImGui.SameLine(0, 15f);
+        if (ImGui.Button("Import local", new Vector2(150f, 0f)))
+        {
+            // Reset import local CSV and status
+            importLocalCSV = string.Empty;
+            importLocalStatus = string.Empty;
+
+            // Open popup
+            ImGui.OpenPopup("Import local");
+        }
     }
 
     // ----------------------------
@@ -282,7 +311,7 @@ public class DebugWindow : Window, IDisposable
     private void DrawImportLocalPopup()
     {
         // Draw import CSV popup
-        PopupHelper.DrawImportCSVPopup("Import local", "##ImportLocalCsv", ref importLocalCSV, ref importLocalStatus, new Vector2(900f, 400f), csv =>
+        PopupBuilder.DrawImportCSVPopup("Import local", "##ImportLocalCsv", ref importLocalCSV, ref importLocalStatus, new Vector2(900f, 400f), csv =>
         {
             // Try to import obfuscated translations from CSV
             if (Utilities.ImportObfuscatedTranslationsCSV(csv, config.LocalObfuscatedTranslations, out string status))
@@ -295,8 +324,10 @@ public class DebugWindow : Window, IDisposable
 
                 // Log
                 string message = $"{count} local obfuscated translations imported";
-                SetInformation(message);
                 log.Information($"{Class} - {message}");
+
+                // Set message
+                SetMessage(message);
 
                 // Reset status
                 return string.Empty;
@@ -307,12 +338,26 @@ public class DebugWindow : Window, IDisposable
     }
 
     // ----------------------------
+    // Draw reset local button
+    // ----------------------------
+    private static void DrawResetLocalButton()
+    {
+        // Draw reset local button
+        ImGui.SameLine(0, 15f);
+        if (ImGui.Button("Reset local", new Vector2(150f, 0f)))
+        {
+            // Open popup
+            ImGui.OpenPopup("Reset local");
+        }
+    }
+
+    // ----------------------------
     // Draw reset local popup
     // ----------------------------
     private void DrawResetLocalPopup()
     {
         // Draw confirmation popup
-        PopupHelper.DrawConfirmationPopup("Reset local", "This will clear all local obfuscated translations.    Are you sure ?", "Yes, reset all", "Cancel", new Vector2(470f, 0f), () =>
+        PopupBuilder.DrawConfirmationPopup("Reset local", "This will clear all local obfuscated translations.    Are you sure ?", "Yes, reset all", "Cancel", new Vector2(470f, 0f), () =>
         {
             // Count removed translations
             int count = config.LocalObfuscatedTranslations.Count;
@@ -325,18 +370,20 @@ public class DebugWindow : Window, IDisposable
 
             // Log
             string message = $"{count} local obfuscated translations cleared";
-            SetInformation(message);
             log.Information($"{Class} - {message}");
 
-            // Search obfuscated translations
-            SearchObfuscatedTranslations();
+            // Set message
+            SetMessage(message);
+
+            // Reload obfuscated translations
+            LoadObfuscatedTranslations();
         });
     }
 
     // ----------------------------
-    // Search obfuscated translations
+    // Load obfuscated translations
     // ----------------------------
-    private void SearchObfuscatedTranslations()
+    private void LoadObfuscatedTranslations()
     {
         // Clear translations list
         obfuscatedTranslations.Clear();
@@ -352,6 +399,7 @@ public class DebugWindow : Window, IDisposable
         }
 
         // Merge obfuscated translations lists
+        MergeObfuscatedTranslations(config.RemoteObfuscatedTranslations);
         MergeObfuscatedTranslations(config.ScannedObfuscatedTranslations);
         MergeObfuscatedTranslations(config.LocalObfuscatedTranslations);
 
@@ -367,7 +415,7 @@ public class DebugWindow : Window, IDisposable
         // Check if there are obfuscated translations to merge
         if (sourceTranslations == null || sourceTranslations.Count == 0) return;
 
-        // Merge obfuscated translations
+        // For each source translation
         foreach (ObfuscatedTranslation sourceTranslation in sourceTranslations)
         {
             // Find matching translation in the list
@@ -384,12 +432,12 @@ public class DebugWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Set information message
+    // Set message
     // ----------------------------
-    private void SetInformation(string message)
+    private void SetMessage(string message)
     {
-        information = message;
-        informationTimestamp = DateTime.Now;
+        this.message = message;
+        messageTimestamp = DateTime.Now;
     }
 
     // ----------------------------

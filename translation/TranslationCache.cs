@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace LangSwap.translation;
 
 // ----------------------------
-// Cache for translated data
+// Translation Cache
 // ----------------------------
 public class TranslationCache(ExcelProvider excelProvider)
 {
@@ -81,11 +81,14 @@ public class TranslationCache(ExcelProvider excelProvider)
     //
 
     // ----------------------------
-    // Get or cache value helper
+    // Get or cache value
     // ----------------------------
     private static TValue? GetOrCache<TKey, TValue>(Dictionary<TKey, TValue?> cache, TKey key, Func<TValue?> fetch) where TKey : notnull
     {
+        // Try to get from cache
         if (cache.TryGetValue(key, out TValue? val)) return val;
+
+        // Fetch, cache, then return
         val = fetch();
         cache[key] = val;
         return val;

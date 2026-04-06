@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace LangSwap.translation;
 
 // ----------------------------
-// Excel data provider (accessing game data via Lumina)
+// Excel Provider
 // ----------------------------
 public class ExcelProvider(Configuration config, IDataManager dataManager, IPluginLog log)
 {
@@ -27,7 +27,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     {
         try
         {
-            // Access the BaseParam sheet for the client language
+            // Get the BaseParam sheet for the client language
             ExcelSheet<BaseParam> clientSheet = dataManager.GetExcelSheet<BaseParam>(Utilities.EnumToClientLang(clientLang));
             if (clientSheet == null)
             {
@@ -49,8 +49,10 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             // Check if row ID is found
             if (rowId == null) return null;
 
-            // Get the translated name using the row ID in target language
+            // Get the BaseParam sheet for the target language
             ExcelSheet<BaseParam> targetSheet = dataManager.GetExcelSheet<BaseParam>(Utilities.EnumToClientLang(targetLang));
+
+            // Try to get the translated name using the row ID
             if (targetSheet != null && targetSheet.TryGetRow(rowId.Value, out BaseParam translatedParam)) return translatedParam.Name.ToString();
 
             // No match found
@@ -81,7 +83,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
                 return null;
             }
 
-            // Access the action sheet for the specified language
+            // Get the Action sheet for the target language
             ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(Utilities.EnumToClientLang(targetLang));
             if (actionSheet == null)
             {
@@ -113,14 +115,14 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     {
         try
         {
-            // Validate action transient ID range
+            // Validate action ID range
             if (actionId < 1 || actionId > config.MaxValidActionId)
             {
                 log.Warning($"{Class} - Action transient ID {actionId} is out of valid range (1-{config.MaxValidActionId})");
                 return null;
             }
 
-            // Access the action transient sheet for the specified language
+            // Get the ActionTransient sheet for the target language
             ExcelSheet<ActionTransient> actionTransientSheet = dataManager.GetExcelSheet<ActionTransient>(Utilities.EnumToClientLang(targetLang));
             if (actionTransientSheet == null)
             {
@@ -128,15 +130,15 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
                 return null;
             }
 
-            // Try to get the action transient row
-            if (!actionTransientSheet.TryGetRow(actionId, out Lumina.Excel.Sheets.ActionTransient actionTransient))
+            // Try to get the action row
+            if (!actionTransientSheet.TryGetRow(actionId, out Lumina.Excel.Sheets.ActionTransient action))
             {
                 log.Warning($"{Class} - Action transient {actionId} not found in sheet for language {targetLang}");
                 return null;
             }
 
-            // Return the found action transient
-            return actionTransient;
+            // Return the found action
+            return action;
         }
         catch (Exception ex)
         {
@@ -144,6 +146,38 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             return null;
         }
     }
+
+    // ----------------------------
+    // Get action name
+    // ----------------------------
+    public string? GetActionName(uint actionId, LanguageEnum targetLang)
+    {
+        // Get the action
+        Lumina.Excel.Sheets.Action? action = GetAction(actionId, targetLang);
+        if (action == null) return null;
+
+        // Return the action name
+        return action.Value.Name.ToString();
+    }
+
+    // ----------------------------
+    // Get action description
+    // ----------------------------
+    public string? GetActionDescription(uint actionId, LanguageEnum targetLang)
+    {
+        // Get the action transient
+        ActionTransient? actionTransient = GetActionTransient(actionId, targetLang);
+        if (actionTransient == null) return null;
+
+        // Return the action description
+        return actionTransient.Value.Description.ToString();
+    }
+
+    // ----------------------------
+    // Get action ID by name (reverse lookup)
+    // ----------------------------
+    public uint? GetActionIdByName(string actionName, LanguageEnum clientLang)
+        => GetIdByName<Lumina.Excel.Sheets.Action>(actionName, clientLang, action => action.Name.ToString());
 
     // ----------------------------
     // Get all obfuscated actions
@@ -178,11 +212,11 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             }
 
             // Convert to list and sort by ID
-            List<ObfuscatedTranslation> result = [.. obfuscatedTranslations];
-            result.Sort((a, b) => a.Id.CompareTo(b.Id));
+            List<ObfuscatedTranslation> list = [.. obfuscatedTranslations];
+            list.Sort((a, b) => a.Id.CompareTo(b.Id));
 
             // Return obfuscated translations
-            return result;
+            return list;
         }
         catch (Exception ex)
         {
@@ -190,38 +224,6 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             return [];
         }
     }
-
-    // ----------------------------
-    // Get action name
-    // ----------------------------
-    public string? GetActionName(uint actionId, LanguageEnum targetLang)
-    {
-        // Get the action
-        Lumina.Excel.Sheets.Action? action = GetAction(actionId, targetLang);
-        if (action == null) return default;
-
-        // Return the action name
-        return action.Value.Name.ToString();
-    }
-
-    // ----------------------------
-    // Get action description
-    // ----------------------------
-    public string? GetActionDescription(uint actionId, LanguageEnum targetLang)
-    {
-        // Get the action transient
-        ActionTransient? actionTransient = GetActionTransient(actionId, targetLang);
-        if (actionTransient == null) return default;
-
-        // Return the action description
-        return actionTransient.Value.Description.ToString();
-    }
-
-    // ----------------------------
-    // Get action ID by name (reverse lookup)
-    // ----------------------------
-    public uint? GetActionIdByName(string actionName, LanguageEnum clientLang)
-        => GetIdByName<Lumina.Excel.Sheets.Action>(actionName, clientLang, action => action.Name.ToString());
 
     //
     // ========== ITEMS ==========
@@ -241,7 +243,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
                 return null;
             }
 
-            // Access the item sheet for the specified language
+            // // Get the Item sheet for the target language
             ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(Utilities.EnumToClientLang(targetLang));
             if (itemSheet == null)
             {
@@ -313,9 +315,6 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             // Validate input
             if (string.IsNullOrWhiteSpace(name)) return null;
 
-            // Normalize the search name for comparison
-            string normalizedName = name.Trim();
-
             // Get the sheet for the specified language
             ExcelSheet<TSheet> sheet = dataManager.GetExcelSheet<TSheet>(Utilities.EnumToClientLang(clientLang));
             if (sheet == null)
@@ -331,7 +330,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
                 if (row.RowId == 0) continue;
 
                 // Compare names (case-insensitive)
-                if (string.Equals(normalizedName, getName(row).Trim(), StringComparison.OrdinalIgnoreCase)) return row.RowId;
+                if (string.Equals(name.Trim(), getName(row).Trim(), StringComparison.OrdinalIgnoreCase)) return row.RowId;
             }
 
             // No match found

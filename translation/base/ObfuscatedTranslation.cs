@@ -3,7 +3,7 @@ using System;
 namespace LangSwap.translation.@base;
 
 // ----------------------------
-// Obfuscated translation
+// Obfuscated Translation
 // ----------------------------
 [Serializable]
 public class ObfuscatedTranslation

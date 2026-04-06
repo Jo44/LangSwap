@@ -18,7 +18,7 @@ namespace LangSwap.tool;
 // Utilities
 // ----------------------------
 public unsafe class Utilities(
-    IClientState ClientState,
+    IClientState clientState,
     Configuration config,
     IGameGui gameGui,
     IKeyState keyState,
@@ -33,15 +33,12 @@ public unsafe class Utilities(
     private readonly char[] targetIndicatorSymbols = config.TargetIndicatorSymbols;
 
     // ----------------------------
-    // Detect client language
+    // Convert ClientLanguage to LanguageEnum
     // ----------------------------
-    public void DetectClientLanguage()
+    private static LanguageEnum ClientLangToEnum(ClientLanguage lang)
     {
-        // Get client language
-        ClientLanguage lang = ClientState.ClientLanguage;
-
-        // Map client language to configuration
-        config.ClientLanguage = lang switch
+        // Map ClientLanguage to LanguageEnum
+        return lang switch
         {
             ClientLanguage.Japanese => LanguageEnum.Japanese,
             ClientLanguage.English => LanguageEnum.English,
@@ -49,12 +46,6 @@ public unsafe class Utilities(
             ClientLanguage.French => LanguageEnum.French,
             _ => LanguageEnum.English
         };
-
-        // Log unrecognized language
-        if ((int)lang > 3) log.Warning($"{Class} - Unrecognized client language: {lang}, defaulting to English");
-
-        // Save configuration
-        config.Save();
     }
 
     // ----------------------------
@@ -74,17 +65,35 @@ public unsafe class Utilities(
     }
 
     // ----------------------------
-    // Initialize primary key names and values
+    // Detect client language
     // ----------------------------
-    public static void InitKeys(List<String> keyNames, List<int> keyValues)
+    public void DetectClientLanguage()
+    {
+        // Get client language
+        ClientLanguage lang = clientState.ClientLanguage;
+
+        // Store detected language in configuration
+        config.ClientLanguage = ClientLangToEnum(lang);
+
+        // Save configuration
+        config.Save();
+
+        // Log unrecognized language
+        if ((int)lang < 0 || (int)lang > 3) log.Warning($"{Class} - Unrecognized client language: {lang}, defaulting to English");
+    }
+
+    // ----------------------------
+    // Initialize primary keys
+    // ----------------------------
+    public static void InitPrimaryKeys(List<KeyValuePair<string, int>> keys)
     {
         // Letters A-Z
         int startA = (int)VirtualKey.A;
         int endZ = (int)VirtualKey.Z;
-        for (int v = startA; v <= endZ; v++)
+        for (int i = startA; i <= endZ; i++)
         {
-            keyNames.Add(((VirtualKey)v).ToString());
-            keyValues.Add(v);
+            // Add key name and value to list
+            keys.Add(new KeyValuePair<string, int>(((VirtualKey)i).ToString(), i));
         }
 
         // Function keys F1-F12
@@ -92,29 +101,29 @@ public unsafe class Utilities(
         {
             int startF1 = (int)VirtualKey.F1;
             int endF12 = (int)VirtualKey.F12;
-            for (int v = startF1; v <= endF12; v++)
+            for (int j = startF1; j <= endF12; j++)
             {
-                keyNames.Add(((VirtualKey)v).ToString());
-                keyValues.Add(v);
+                // Add key name and value to list
+                keys.Add(new KeyValuePair<string, int>(((VirtualKey)j).ToString(), j));
             }
         }
     }
 
     // ----------------------------
-    // Check if the configured shortcut is currently pressed
+    // Check if the shortcut is currently pressed
     // ----------------------------
     public bool IsShortcutPressed()
     {
-        // Validate key state
+        // Check for null key state
         if (keyState is null) return false;
 
-        // Shortcut disabled
+        // Check if shortcut is enabled
         if (!config.ShortcutEnabled) return false;
 
-        // Primary key
+        // Get primary key state
         bool primary = config.PrimaryKey < 0 || IsKeyDown(config.PrimaryKey);
 
-        // Modifier keys
+        // Get modifier keys states
         bool ctrl = !config.Ctrl || IsKeyDown((int)VirtualKey.LCONTROL) || IsKeyDown((int)VirtualKey.RCONTROL) || IsKeyDown((int)VirtualKey.CONTROL);
         bool alt = !config.Alt || IsKeyDown((int)VirtualKey.LMENU) || IsKeyDown((int)VirtualKey.RMENU) || IsKeyDown((int)VirtualKey.MENU);
         bool shift = !config.Shift || IsKeyDown((int)VirtualKey.LSHIFT) || IsKeyDown((int)VirtualKey.RSHIFT) || IsKeyDown((int)VirtualKey.SHIFT);
@@ -127,7 +136,7 @@ public unsafe class Utilities(
     }
 
     // ----------------------------
-    // Check if a specific virtual key is currently down
+    // Check if a virtual key is currently downq
     // ----------------------------
     private bool IsKeyDown(int vkCode)
     {
@@ -163,7 +172,6 @@ public unsafe class Utilities(
         }
         catch (Exception ex)
         {
-            // Log exception and return false
             log.Warning($"{Class} - ShortcutDetector.IsKeyDown exception for vk = {vkCode} : {ex.Message}");
             return false;
         }
@@ -181,16 +189,19 @@ public unsafe class Utilities(
         List<string> lines = [];
         foreach (ObfuscatedTranslation translation in translations)
         {
+            // Get fields
             string id = translation.Id.ToString();
             string obfuscatedName = SanitizeCSVField(translation.ObfuscatedName);
             string englishName = SanitizeCSVField(translation.EnglishName);
             string frenchName = SanitizeCSVField(translation.FrenchName);
             string germanName = SanitizeCSVField(translation.GermanName);
             string japaneseName = SanitizeCSVField(translation.JapaneseName);
+
+            // Add line to CSV
             lines.Add($"{id};{obfuscatedName};{englishName};{frenchName};{germanName};{japaneseName}");
         }
 
-        // Join lines with newline character
+        // Join lines
         return string.Join(Environment.NewLine, lines);
     }
 
@@ -210,11 +221,11 @@ public unsafe class Utilities(
             return false;
         }
 
-        // Clear list if CSV is empty
+        // Check for empty CSV
         if (string.IsNullOrWhiteSpace(csv))
         {
-            translations.Clear();
-            return true;
+            status = "CSV is empty - paste CSV data here";
+            return false;
         }
 
         // Split CSV into lines and process each line
@@ -233,23 +244,18 @@ public unsafe class Utilities(
                 return false;
             }
 
-            if (!int.TryParse(parts[0].Trim(), out int id) || id < 0)
-            {
-                status = $"Invalid values at line {i + 1}";
-                return false;
-            }
-
             // Extract fields
+            string idStr = parts[0].Trim();
             string obfuscatedName = parts[1].Trim();
             string englishName = parts[2].Trim();
             string frenchName = parts[3].Trim();
             string germanName = parts[4].Trim();
             string japaneseName = parts[5].Trim();
 
-            // Validate required field
-            if (string.IsNullOrWhiteSpace(obfuscatedName))
+            // Validate required fields
+            if (!int.TryParse(idStr, out int id) || id < 0 || string.IsNullOrWhiteSpace(obfuscatedName))
             {
-                status = $"Invalid values at line {i + 1}";
+                status = $"Invalid value at line {i + 1}";
                 return false;
             }
 
@@ -265,23 +271,9 @@ public unsafe class Utilities(
             });
         }
 
-        // Merge imported translations into existing list
-        foreach (ObfuscatedTranslation importedTranslation in imported)
-        {
-            ObfuscatedTranslation clone = CloneObfuscatedTranslation(importedTranslation);
-            ObfuscatedTranslation? existingTranslation = translations.FindLast(translation => translation.Id == clone.Id && string.Equals(translation.ObfuscatedName, clone.ObfuscatedName, StringComparison.Ordinal));
-            if (existingTranslation != null)
-            {
-                existingTranslation.EnglishName = clone.EnglishName;
-                existingTranslation.FrenchName = clone.FrenchName;
-                existingTranslation.GermanName = clone.GermanName;
-                existingTranslation.JapaneseName = clone.JapaneseName;
-            }
-            else
-            {
-                translations.Add(clone);
-            }
-        }
+        // Replace original list with imported translations
+        translations.Clear();
+        translations.AddRange(imported);
         return true;
     }
 
@@ -297,7 +289,7 @@ public unsafe class Utilities(
         List<string> lines = [];
         foreach (AlternativeTranslation translation in translations)
         {
-            // Sanitize fields
+            // Get fields
             string spell = SanitizeCSVField(translation.SpellName);
             string replacement = SanitizeCSVField(translation.AlternativeName);
 
@@ -305,7 +297,7 @@ public unsafe class Utilities(
             lines.Add($"{spell};{replacement}");
         }
 
-        // Join lines with newline character
+        // Join lines
         return string.Join(Environment.NewLine, lines);
     }
 
@@ -325,11 +317,11 @@ public unsafe class Utilities(
             return false;
         }
 
-        // Clear list if CSV is empty
+        // Check for empty CSV
         if (string.IsNullOrWhiteSpace(csv))
         {
-            translations.Clear();
-            return true;
+            status = "CSV is empty - paste CSV data here";
+            return false;
         }
 
         // Split CSV into lines and process each line
@@ -341,22 +333,21 @@ public unsafe class Utilities(
             if (string.IsNullOrWhiteSpace(line)) continue;
 
             // Validate line format (must contain exactly one ';' separator)
-            int separatorIndex = line.IndexOf(';');
-            if (separatorIndex <= 0 || separatorIndex >= line.Length - 1)
+            string[] parts = line.Split(';');
+            if (parts.Length != 2)
             {
-                // Invalid format
                 status = $"Invalid CSV at line {i + 1}";
                 return false;
             }
 
-            // Extract spell name and alternative name
-            string spellName = line[..separatorIndex].Trim();
-            string alternativeName = line[(separatorIndex + 1)..].Trim();
+            // Extract fields
+            string spellName = parts[0].Trim();
+            string alternativeName = parts[1].Trim();
 
-            // Validate extracted values (non-empty and no semicolons)
-            if (string.IsNullOrWhiteSpace(spellName) || spellName.Contains(';') || string.IsNullOrWhiteSpace(alternativeName) || alternativeName.Contains(';'))
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(spellName) || string.IsNullOrWhiteSpace(alternativeName))
             {
-                status = $"Invalid values at line {i + 1}";
+                status = $"Invalid value at line {i + 1}";
                 return false;
             }
 
@@ -427,7 +418,7 @@ public unsafe class Utilities(
     public string? GetObfuscatedTranslation(uint actionId, LanguageEnum targetLanguage)
     {
         // Check for valid action ID
-        if (actionId > 0) return null;
+        if (actionId <= 0) return null;
         
         // Priority order : remote -> scanned -> local
         List<ObfuscatedTranslation>[] obfuscatedTranslationsSources = 
@@ -462,9 +453,10 @@ public unsafe class Utilities(
     // ----------------------------
     public static string? GetAlternativeTranslation(string spellName, List<AlternativeTranslation> alternativeTranslations)
     {
-        // Check for null or empty spell name or translations list
+        // Check for null, empty spell name or empty translations list
         if (!spellName.IsNullOrWhitespace() && alternativeTranslations != null && alternativeTranslations.Count > 0)
         {
+            // Find alternative translation by spell name
             return alternativeTranslations.FindLast(translation => translation.SpellName == spellName)?.AlternativeName ?? string.Empty;
         }
         return null;
@@ -555,45 +547,26 @@ public unsafe class Utilities(
     // ----------------------------
     public string ReadStringFromArrayData(StringArrayData* stringArrayData, int index)
     {
-        // Itinialize result
-        string result = string.Empty;
-
         try
         {
-            // Check for null pointer and valid index
-            if (stringArrayData != null && index < stringArrayData -> AtkArrayData.Size)
-            {
-                // Get memory address of the string
-                nint address = new(stringArrayData -> StringArray[index]);
-                if (address != IntPtr.Zero)
-                {
-                    // Get SeString from memory address
-                    SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
-                    if (seString != null)
-                    {
-                        // Get string value from SeString
-                        result = seString.ToString().Trim();
-                    }
-                    else
-                    {
-                        // SeString is null
-                        throw new Exception("Invalid SeString");
-                    }
-                }
-            }
-            else
-            {
-                // Null pointer or invalid index
-                throw new Exception("Null pointer or invalid index");
-            }
+            // Check for null pointer or invalid index
+            if (stringArrayData == null || index >= stringArrayData -> AtkArrayData.Size) return string.Empty;
+            
+            // Get memory address of the string
+            nint address = new(stringArrayData -> StringArray[index]);
+            if (address == IntPtr.Zero) return string.Empty;
+
+            // Get SeString from memory address
+            SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
+
+            // Return string value from SeString
+            if (seString != null) return seString.ToString().Trim();
         }
         catch (Exception ex)
         {
             log.Error(ex, $"{Class} - Failed to read string at index {index}");
         }
-
-        // Return result
-        return result;
+        return string.Empty;
     }
 
     // ----------------------------
@@ -601,101 +574,77 @@ public unsafe class Utilities(
     // ----------------------------
     public bool WriteStringToArrayData(StringArrayData* stringArrayData, int index, string translatedText)
     {
-        // Itinialize result
-        bool result = false;
-
         try
         {
-            // Check if translated text is not null or empty
-            if (!string.IsNullOrWhiteSpace(translatedText))
+            // Check if translated text is null or empty
+            if (string.IsNullOrWhiteSpace(translatedText)) return false;
+                
+            // Check for null pointer or invalid index
+            if (stringArrayData == null || index >= stringArrayData -> AtkArrayData.Size) return false;
+            
+            // Get memory address of the string
+            nint address = new(stringArrayData -> StringArray[index]);
+            if (address == IntPtr.Zero) return false;
+            
+            // Get SeString from memory address
+            SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
+            if (seString == null) return false;
+            
+            // Prepare a new SeString builder
+            SeStringBuilder builder = new();
+            bool textReplaced = false;
+
+            // Iterate through the payloads of the original SeString
+            foreach (Payload payload in seString.Payloads)
             {
-                // Check for null pointer and valid index
-                if (stringArrayData != null && index < stringArrayData -> AtkArrayData.Size)
+                if (!textReplaced && payload is TextPayload textPayload)
                 {
-                    // Get memory address of the string
-                    nint address = new(stringArrayData -> StringArray[index]);
-                    if (address != IntPtr.Zero)
-                    {
-                        // Get SeString from memory address
-                        SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
-                        if (seString != null)
-                        {
-                            // Prepare a new SeString builder
-                            SeStringBuilder builder = new();
-                            bool textReplaced = false;
+                    // Replace first TextPayload with translated text
+                    builder.AddText(translatedText);
 
-                            // Iterate through the payloads of the original SeString
-                            foreach (Payload payload in seString.Payloads)
-                            {
-                                if (!textReplaced && payload is TextPayload textPayload)
-                                {
-                                    // Replace first TextPayload with translated text
-                                    builder.AddText(translatedText);
-
-                                    // Flag to indicate text has been replaced
-                                    textReplaced = true;
-                                }
-                                else
-                                {
-                                    // Clean other payloads of any text
-                                    if (payload is TextPayload otherTextPayload)
-                                    {
-                                        otherTextPayload.Text = "";
-                                    }
-                                    // Keep them in same order
-                                    builder.Add(payload);
-                                }
-                            }
-
-                            // Encode the modified SeString
-                            byte[] bytes = builder.Build().Encode();
-
-                            // Write the new bytes into StringArrayData at the specified index
-                            stringArrayData -> SetValue(index, bytes, false, true, false);
-
-                            // Set result to true
-                            result = true;
-                        }
-                        else
-                        {
-                            // SeString is null
-                            throw new Exception("Invalid SeString");
-                        }
-                    }
-                    else
-                    {
-                        // Memory address is null
-                        throw new Exception("Invalid memory address");
-                    }
+                    // Flag to indicate text has been replaced
+                    textReplaced = true;
                 }
                 else
                 {
-                    // Null pointer or invalid index
-                    throw new Exception("Null pointer or invalid index");
+                    // Clean other payloads of any text
+                    if (payload is TextPayload otherTextPayload)
+                    {
+                        otherTextPayload.Text = "";
+                    }
+                    // Keep them in same order
+                    builder.Add(payload);
                 }
             }
+
+            // Encode the modified SeString
+            byte[] bytes = builder.Build().Encode();
+
+            // Write the new bytes into StringArrayData at the specified index
+            stringArrayData -> SetValue(index, bytes, false, true, false);
+
+            // Return true
+            return true;
         }
         catch (Exception ex)
         {
             log.Error(ex, $"{Class} - Failed to write string at index {index}");
         }
-
-        // Return result
-        return result;
+        return false;
     }
 
     // ----------------------------
-    // Log the structure of StringArrayData (for debugging)
+    // Log the structure of StringArrayData (debugging)
     // ----------------------------
     public void LogSADStructure(StringArrayData* stringArrayData)
     {
         if (stringArrayData != null)
         {
             log.Debug($"{Class} === StringArrayData Structure ===");
-            log.Debug($"{Class} - Total Size: {stringArrayData->AtkArrayData.Size}");
+            log.Debug($"{Class} - Total Size: {stringArrayData -> AtkArrayData.Size}");
 
             // Log each field with its content
-            for (int i = 0; i < stringArrayData->AtkArrayData.Size; i++)
+            for (int i = 0; i < stringArrayData -> AtkArrayData.Size; i++)
             {
                 // Read the string at this index
                 string text = ReadStringFromArrayData(stringArrayData, i);
@@ -732,22 +681,21 @@ public unsafe class Utilities(
     // ----------------------------
     public string[] RemoveTargetIndicator(string text)
     {
-        string[] result = [string.Empty, string.Empty];
-        if (!string.IsNullOrWhiteSpace(text))
-        {
-            // Initialize result with original text
-            result[0] = text;
+        // Check for null or empty text
+        if (string.IsNullOrWhiteSpace(text)) return [string.Empty, string.Empty];
+        
+        // Initialize result with original text
+        string[] result = [text, string.Empty];
 
-            // Check if text contains target indicator
-            for (int i = 0; i < targetIndicatorSymbols.Length; i++)
+        // Check if text contains any target indicator
+        for (int i = 0; i < targetIndicatorSymbols.Length; i++)
+        {
+            if (text.Contains(targetIndicatorSymbols[i]))
             {
-                if (text.Contains(targetIndicatorSymbols[i]))
-                {
-                    // Remove target indicator symbol from text and store it in result
-                    result[0] = text.Replace(targetIndicatorSymbols[i].ToString(), "").Trim();
-                    result[1] = targetIndicatorSymbols[i].ToString();
-                    break;
-                }
+                // Remove target indicator symbol from text and store it
+                result[0] = text.Replace(targetIndicatorSymbols[i].ToString(), "").Trim();
+                result[1] = targetIndicatorSymbols[i].ToString();
+                break;
             }
         }
         return result;

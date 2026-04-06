@@ -314,13 +314,16 @@ public class DebugWindow : Window, IDisposable
         PopupBuilder.DrawImportCSVPopup("Import local", "##ImportLocalCsv", ref importLocalCSV, ref importLocalStatus, new Vector2(900f, 400f), csv =>
         {
             // Try to import obfuscated translations from CSV
-            if (Utilities.ImportObfuscatedTranslationsCSV(csv, config.LocalObfuscatedTranslations, out string status))
+            List<ObfuscatedTranslation> importedTranslations = [];
+            if (Utilities.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
             {
+                // Replace current local translations and persist
+                config.LocalObfuscatedTranslations.Clear();
+                config.LocalObfuscatedTranslations.AddRange(importedTranslations);
+                config.Save();
+
                 // Count imported translations
                 int count = config.LocalObfuscatedTranslations.Count;
-
-                // Save configuration
-                config.Save();
 
                 // Log
                 string message = $"{count} local obfuscated translations imported";

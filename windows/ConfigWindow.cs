@@ -26,8 +26,7 @@ public class ConfigWindow : Window, IDisposable
     private readonly IPluginLog log;
 
     // Primary key options
-    private readonly List<string> keyNames = ["None"];
-    private readonly List<int> keyValues = [-1];
+    private readonly List<KeyValuePair<string, int>> keys = [new("None", -1)];
 
     // ----------------------------
     // Constructor
@@ -51,8 +50,8 @@ public class ConfigWindow : Window, IDisposable
             MaximumSize = new Vector2(420, float.MaxValue)
         };
 
-        // Initialize key names and values
-        Utilities.InitKeys(keyNames, keyValues);
+        // Initialize primary keys
+        Utilities.InitPrimaryKeys(keys);
     }
 
     // ----------------------------
@@ -311,7 +310,7 @@ public class ConfigWindow : Window, IDisposable
     private void DrawPrimaryKey()
     {
         // Get selected index
-        int selIndex = keyValues.IndexOf(config.PrimaryKey);
+        int selIndex = keys.FindIndex(key => key.Value == config.PrimaryKey);
         if (selIndex < 0) selIndex = 0;
 
         // Draw primary key
@@ -323,10 +322,13 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Text("Key :");
         ImGui.SameLine();
         ImGui.SetNextItemWidth(65f);
-        if (ImGui.Combo("##PrimaryKey", ref selIndex, keyNames.ToArray(), keyNames.Count))
+
+        // Get key names
+        string[] keyNames = [.. keys.ConvertAll(k => k.Key)];
+        if (ImGui.Combo("##PrimaryKey", ref selIndex, keyNames, keyNames.Length))
         {
             // Change primary key
-            PrimaryKeyChange(keyValues[selIndex], () => config.PrimaryKey = keyValues[selIndex]);
+            PrimaryKeyChange(keys[selIndex].Value, () => config.PrimaryKey = keys[selIndex].Value);
         }
     }
 

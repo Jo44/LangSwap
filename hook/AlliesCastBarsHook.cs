@@ -315,13 +315,12 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     protected override void TranslateSlot(AtkTextNode* textNode)
     {
-        // TODO : change name
-        // Get the current text
-        string currentText = textNode -> NodeText.ToString();
-        if (string.IsNullOrWhiteSpace(currentText)) return;
+        // Get display name
+        string displayName = textNode -> NodeText.ToString();
+        if (string.IsNullOrWhiteSpace(displayName)) return;
 
-        // Remove target indicator for comparison
-        string[] textParts = utilities.RemoveTargetIndicator(currentText);
+        // Remove target indicator and ellipsis for comparison
+        string[] textParts = utilities.RemoveTargetIndicator(displayName);
         string textWithoutIndicator = Utilities.RemoveEllipsis(textParts[0]);
         string targetIndicator = textParts[1];
 
@@ -335,7 +334,7 @@ public unsafe class AlliesCastBarsHook(
             string? clientActionName = translationCache.GetActionName(actionId, config.ClientLanguage);
             if (clientActionName.IsNullOrWhitespace()) continue;
 
-            // If the client language action name contains the current text, translate it
+            // If the client language action name contains the display name, translate it
             if (clientActionName.StartsWith(textWithoutIndicator))
             {
                 // Get the target language action name

@@ -328,7 +328,7 @@ public unsafe class EnemiesCastBarsHook(
 
             // Get the client language action name
             string? clientActionName = translationCache.GetActionName(actionId, config.ClientLanguage);
-            if (clientActionName == null) continue;
+            if (clientActionName.IsNullOrWhitespace()) continue;
 
             // Resolve obfuscated client action name from known mappings
             bool isObfuscatedClientActionName = clientActionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal);

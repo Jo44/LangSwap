@@ -89,6 +89,10 @@ public static class PopupBuilder
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(15f);
+
+        // Set focus on input
+        if (ImGui.IsWindowAppearing()) ImGui.SetKeyboardFocusHere();
+
         ImGui.InputTextMultiline(inputId, ref csv, 32768, new Vector2(windowSize.X - 30f, windowSize.Y - 110f));
         ImGui.Spacing();
         ImGui.Spacing();

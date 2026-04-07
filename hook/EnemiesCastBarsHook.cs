@@ -305,8 +305,8 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     protected override void TranslateSlot(AtkTextNode* textNode)
     {
-        // TODO :
-        // Only update if language is swapped
+        // TODO : à déplacer à la fin
+        // Only continue if language is swapped
         if (!isLanguageSwapped) return;
 
         // Get display name
@@ -387,6 +387,14 @@ public unsafe class EnemiesCastBarsHook(
 
         // Return the current text
         return textNode -> NodeText.ToString();
+    }
+
+    // ----------------------------
+    // Detect obfuscated translation
+    // ----------------------------
+    private void DetectObfuscatedTranslation(uint actionId, string actionName, string displayName)
+    {
+        // TODO
     }
 
     // ----------------------------

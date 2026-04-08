@@ -8,7 +8,6 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using LangSwap.hook.manager;
-using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.translation.@base;
 using LangSwap.translation.model;
@@ -103,13 +102,13 @@ public sealed class Plugin : IDalamudPlugin
             GetRemoteObfuscatedTranslations();
 
             // Log remote / scanned / local
-            Utilities.LogObfuscatedTranslations("Remote", config.RemoteObfuscatedTranslations);
-            Utilities.LogObfuscatedTranslations("Scanned", config.ScannedObfuscatedTranslations);
-            Utilities.LogObfuscatedTranslations("Local", config.LocalObfuscatedTranslations);
+            LogObfuscatedTranslations("Remote", config.RemoteObfuscatedTranslations);
+            LogObfuscatedTranslations("Scanned", config.ScannedObfuscatedTranslations);
+            LogObfuscatedTranslations("Local", config.LocalObfuscatedTranslations);
 
             // Log alternative translations
             Log.Information($"{Class} === LangSwap : Alternative Translations ===");
-            Utilities.LogAlternativeTranslations("Alternative", config.AlternativeTranslations);
+            LogAlternativeTranslations("Alternative", config.AlternativeTranslations);
 
             // Initialize windows
             Log.Information($"{Class} === LangSwap : Windows ===");
@@ -316,7 +315,7 @@ public sealed class Plugin : IDalamudPlugin
 
             // Import CSV content into a temporary list
             List<ObfuscatedTranslation> importedTranslations = [];
-            if (!Utilities.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
+            if (!DebugWindow.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
             {
                 Log.Warning($"{Class} - Failed to import remote obfuscated translations CSV: {status}");
                 return;
@@ -398,6 +397,44 @@ public sealed class Plugin : IDalamudPlugin
         {
             Log.Warning($"{Class} - ShortcutDetector.IsKeyDown exception for vk = {vkCode} : {ex.Message}");
             return false;
+        }
+    }
+
+    // ----------------------------
+    // Log obfuscated translations
+    // ----------------------------
+    private static void LogObfuscatedTranslations(string listName, List<ObfuscatedTranslation> translations)
+    {
+        // Count translations
+        int count = translations?.Count ?? 0;
+        Log.Information($"{Class} - {listName} ({count})");
+
+        // Check for empty list
+        if (translations == null || translations.Count == 0) return;
+
+        // Log each translation
+        foreach (ObfuscatedTranslation translation in translations)
+        {
+            Log.Debug($"{Class} - ID = {translation.Id}, Obfuscated = {translation.ObfuscatedName}, English = {translation.EnglishName}, French = {translation.FrenchName}, German = {translation.GermanName}, Japanese = {translation.JapaneseName}");
+        }
+    }
+
+    // ----------------------------
+    // Log alternative translations
+    // ----------------------------
+    private static void LogAlternativeTranslations(string listName, List<AlternativeTranslation> alternativeTranslations)
+    {
+        // Count translations
+        int count = alternativeTranslations?.Count ?? 0;
+        Log.Information($"{Class} - {listName} ({count})");
+
+        // Check for empty list
+        if (alternativeTranslations == null || alternativeTranslations.Count == 0) return;
+
+        // Log each translation
+        foreach (AlternativeTranslation translation in alternativeTranslations)
+        {
+            Log.Debug($"{Class} - Spell = {translation.SpellName}, Alternative = {translation.AlternativeName}");
         }
     }
 

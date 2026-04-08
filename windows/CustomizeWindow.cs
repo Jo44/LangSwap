@@ -1,7 +1,6 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
-using LangSwap.tool;
 using LangSwap.translation.model;
 using System;
 using System.Collections.Generic;
@@ -338,7 +337,7 @@ public class CustomizeWindow : Window, IDisposable
         if (ImGui.Button("Export CSV", new Vector2(150f, 0f)))
         {
             // Export alternative translations to CSV
-            exportCSV = Utilities.ExportAlternativeTranslationsCSV(alternativeTranslations);
+            exportCSV = ExportAlternativeTranslationsCSV(alternativeTranslations);
 
             // Open popup
             ImGui.OpenPopup("Export CSV");
@@ -392,7 +391,7 @@ public class CustomizeWindow : Window, IDisposable
         PopupBuilder.DrawImportCSVPopup("Import CSV", "##ImportCSVText", ref importCSV, ref importStatus, new Vector2(400f, 400f), csv =>
         {
             // Try to import alternative translations from CSV
-            if (Utilities.ImportAlternativeTranslationsCSV(csv, alternativeTranslations, out string status))
+            if (ImportAlternativeTranslationsCSV(csv, alternativeTranslations, out string status))
             {
                 // Count imported translations
                 int count = alternativeTranslations.Count;
@@ -492,6 +491,103 @@ public class CustomizeWindow : Window, IDisposable
 
         // Log
         log.Information($"{Class} - Loaded {alternativeTranslations.Count} alternative translations");
+    }
+
+    // ----------------------------
+    // Export alternative translations CSV
+    // ----------------------------
+    private static string ExportAlternativeTranslationsCSV(List<AlternativeTranslation> translations)
+    {
+        // Check for null or empty list
+        if (translations == null || translations.Count == 0) return string.Empty;
+
+        // Build CSV lines
+        List<string> lines = [];
+        foreach (AlternativeTranslation translation in translations)
+        {
+            // Get fields
+            string spell = SanitizeCSVField(translation.SpellName);
+            string replacement = SanitizeCSVField(translation.AlternativeName);
+
+            // Add line to CSV
+            lines.Add($"{spell};{replacement}");
+        }
+
+        // Join lines
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    // ----------------------------
+    // Import alternative translations CSV
+    // ----------------------------
+    private static bool ImportAlternativeTranslationsCSV(string csv, List<AlternativeTranslation> translations, out string status)
+    {
+        // Initialize
+        status = string.Empty;
+        List<AlternativeTranslation> imported = [];
+
+        // Check for null target list
+        if (translations == null)
+        {
+            status = "Target list is null";
+            return false;
+        }
+
+        // Check for empty CSV
+        if (string.IsNullOrWhiteSpace(csv))
+        {
+            status = "CSV is empty - paste CSV data here";
+            return false;
+        }
+
+        // Split CSV into lines and process each line
+        string[] lines = csv.Replace("\r", string.Empty).Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            // Trim line and skip if empty
+            string line = lines[i].Trim();
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            // Validate line format (must contain exactly one ';' separator)
+            string[] parts = line.Split(';');
+            if (parts.Length != 2)
+            {
+                status = $"Invalid CSV at line {i + 1}";
+                return false;
+            }
+
+            // Extract fields
+            string spellName = parts[0].Trim();
+            string alternativeName = parts[1].Trim();
+
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(spellName) || string.IsNullOrWhiteSpace(alternativeName))
+            {
+                status = $"Invalid value at line {i + 1}";
+                return false;
+            }
+
+            // Add to imported list
+            imported.Add(new AlternativeTranslation
+            {
+                SpellName = spellName,
+                AlternativeName = alternativeName
+            });
+        }
+
+        // Replace original list with imported translations
+        translations.Clear();
+        translations.AddRange(imported);
+        return true;
+    }
+
+    // ----------------------------
+    // Sanitize CSV field
+    // ----------------------------
+    private static string SanitizeCSVField(string field)
+    {
+        // Remove line breaks and trim whitespace to prevent CSV formatting issues
+        return (field ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
     }
 
     // ----------------------------

@@ -2,11 +2,9 @@ using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using LangSwap.hook.@base;
 using LangSwap.hook.template;
-using LangSwap.tool;
 using LangSwap.translation;
 using System;
 

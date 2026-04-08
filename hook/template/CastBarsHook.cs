@@ -25,6 +25,10 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     protected static IObjectTable ObjectTable => Plugin.ObjectTable;
     protected static ITargetManager TargetManager => Plugin.TargetManager;
 
+    // Caches
+    private readonly Dictionary<uint, uint> _recentCasts = [];
+    private readonly Dictionary<string, uint> _seenActionNames = [];
+
     // ----------------------------
     // Update cast bar
     // ----------------------------
@@ -89,21 +93,29 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
 
                 // Add to current casts if we have a valid action ID
                 uint actionID = (uint)battleCharacter.CastActionId;
-                if (IsValidActionID(actionID)) currentCasts[battleCharacter.EntityId] = actionID;
+                if (IsValidActionID(actionID))
+                {
+                    currentCasts[battleCharacter.EntityId] = actionID;
+                    _recentCasts[battleCharacter.EntityId] = actionID;
+
+                    string? clientName = translationCache.GetActionName(actionID, config.ClientLanguage);
+                    if (!string.IsNullOrWhiteSpace(clientName))
+                    {
+                        _seenActionNames[clientName] = actionID;
+                    }
+                }
             }
 
-            // Skip if no current casts
-            if (currentCasts.Count < 1) return;
+            // Cleanup caches
+            if (_recentCasts.Count > 200) _recentCasts.Clear();
 
-            // Initialize loop parameters based on cast bars type
-            bool ascending = castBarsType == CastBarsType.Allies;
-            int step = ascending ? 1 : -1;
+            // Initialize fields based on cast bars type
             int startField = castBarsType == CastBarsType.Allies ? config.PartyListStartField : config.EnmityListStartField;
             int endField = castBarsType   == CastBarsType.Allies ? config.PartyListEndField   : config.EnmityListEndField;
             int fieldIndex = castBarsType == CastBarsType.Allies ? config.PartyListCastField  : config.EnmityListCastField;
 
             // Loop through the list slots
-            for (int slotIndex = ascending ? startField : endField; ascending ? slotIndex <= endField : slotIndex >= startField; slotIndex += step)
+            for (int slotIndex = endField; slotIndex >= startField; slotIndex--)
             {
                 // Get the slot node
                 AtkResNode* slotNode = addon -> UldManager.NodeList[slotIndex];
@@ -126,33 +138,50 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
                 if (textNode == null || textNode -> NodeText.Length == 0) continue;
 
                 // Calculate the relative index of the slot within the list
-                int slotRelativeIndex = ascending ? slotIndex - startField : endField - slotIndex;
+                int slotRelativeIndex = endField - slotIndex;
 
                 // Get the entity ID for this slot
                 uint entityID = slotRelativeIndex < entityIDs.Length ? entityIDs[slotRelativeIndex] : 0;
 
-                // Check if we have a current cast for this entity ID
-                if (entityID > 0 && currentCasts.TryGetValue(entityID, out uint directActionID))
+                // Get the current display name
+                string currentDisplayName = textNode -> NodeText.ToString();
+                if (string.IsNullOrWhiteSpace(currentDisplayName)) continue;
+
+                // Remove any target indicator and store it
+                string[] textParts = RemoveTargetIndicator(currentDisplayName);
+                string targetIndicator = textParts[1];
+
+                // Remove any ellipsis
+                string cleanText = RemoveEllipsis(textParts[0]);
+
+                // Initialize matching action ID
+                uint matchingActionID = 0;
+
+                // Try exact match via entity ID
+                if (entityID > 0 && currentCasts.TryGetValue(entityID, out uint matchedActionID))
                 {
-                    // Get the current display name
-                    string currentDisplayName = textNode -> NodeText.ToString();
+                    matchingActionID = matchedActionID;
+                }
+                // Or try to match in cache of recent casts
+                else if (entityID > 0 && _recentCasts.TryGetValue(entityID, out matchedActionID))
+                {
+                    matchingActionID = matchedActionID;
+                }
 
-                    // Remove any target indicator and store it
-                    string[] textParts = RemoveTargetIndicator(currentDisplayName);
-                    string targetIndicator = textParts[1];
-
-                    // Remove any ellipsis
-                    textParts[0] = RemoveEllipsis(textParts[0]);
-
+                // Try to resolve action name if match found
+                if (matchingActionID > 0)
+                {
                     // Resolve action name
-                    string? actionName = ResolveActionName(directActionID, textParts[0]);
+                    string? actionName = ResolveActionName(matchingActionID, cleanText);
                     if (actionName.IsNullOrWhitespace()) continue;
-                    
+
                     // Only update if language is swapped
                     if (!isLanguageSwapped) return;
 
+                    string newText = targetIndicator.IsNullOrWhitespace() ? actionName : actionName + " " + targetIndicator;
+
                     // Update the text node
-                    textNode -> SetText(targetIndicator.IsNullOrWhitespace() ? actionName : actionName + " " + targetIndicator);
+                    textNode -> SetText(newText);
                 }
             }
         }
@@ -188,7 +217,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             else
             {
                 // If we don't have a resolved name, scan it for future reference
-                ScanObfuscatedTranslation(actionID, actionName, currentDisplayName, config.ClientLanguage);
+                AddObfuscatedTranslation(actionID, actionName, currentDisplayName, config.ClientLanguage);
                 return null;
             }
         }
@@ -238,9 +267,9 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     }
 
     // ----------------------------
-    // Scan an obfuscated translation discovered
+    // Add an obfuscated translation
     // ----------------------------
-    private void ScanObfuscatedTranslation(uint actionID, string obfuscatedName, string displayName, Language clientLanguage)
+    private void AddObfuscatedTranslation(uint actionID, string obfuscatedName, string displayName, Language clientLanguage)
     {
         // Check for valid action ID
         if (!IsValidActionID(actionID)) return;

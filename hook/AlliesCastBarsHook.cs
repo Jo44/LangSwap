@@ -131,12 +131,19 @@ public unsafe class AlliesCastBarsHook(Configuration config, TranslationCache tr
             GroupManager* groupManager = GroupManager.Instance();
             if (groupManager == null) return;
 
-
             // Get the entity IDs from the party list
             uint[] entityIDs = new uint[8];
-            for (int i = 0; i < 8 && i < groupManager -> MainGroup.MemberCount; i++)
+            int count = Math.Min(8, (int)groupManager -> MainGroup.MemberCount);
+            for (int i = 0; i < count; i++)
             {
-                entityIDs[i] = groupManager -> MainGroup.PartyMembers[i].EntityId;
+                // Get the entity ID
+                uint entityID = groupManager -> MainGroup.PartyMembers[i].EntityId;
+
+                // Fallback solo
+                if (entityID == 0 && ObjectTable.LocalPlayer != null) entityID = ObjectTable.LocalPlayer.EntityId;
+
+                // Store the entity ID
+                entityIDs[i] = entityID;
             }
 
             // Update the party list

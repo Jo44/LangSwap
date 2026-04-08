@@ -1,0 +1,9 @@
+D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\bin\Debug\LangSwap.deps.json
+D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\bin\Debug\LangSwap.dll
+D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\Debug\LangSwap.csproj.AssemblyReference.cache
+D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\Debug\LangSwap.GeneratedMSBuildEditorConfig.editorconfig
+D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\Debug\LangSwap.AssemblyInfoInputs.cache
+D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\Debug\LangSwap.AssemblyInfo.cs
+D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\Debug\LangSwap.csproj.CoreCompileInputs.cache
+D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\Debug\LangSwap.sourcelink.json
+D:\Documents\Dev\C#\ffxiv-lang-swap\LangSwap\obj\Debug\LangSwap.dll

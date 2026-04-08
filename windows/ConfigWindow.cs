@@ -566,7 +566,7 @@ public class ConfigWindow : Window, IDisposable
     private void TargetLanguageChange(Language targetLanguage, Action applyChange)
     {
         // Log
-        Log.Information($"{Class} - Setting target language to {Enum.GetName(targetLanguage)} ({targetLanguage})");
+        Log.Information($"{Class} - Setting target language to {targetLanguage} ({(int)targetLanguage})");
 
         // Apply change
         applyChange();

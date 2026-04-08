@@ -41,7 +41,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
     [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
-
+    
     // Core components
     private readonly Configuration config = null!;
     private readonly ExcelProvider excelProvider = null!;

@@ -1,5 +1,4 @@
 using Dalamud.Game.NativeWrapper;
-using Dalamud.IoC;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.translation;
@@ -16,8 +15,8 @@ public unsafe abstract class BaseHook(Configuration config, TranslationCache tra
     private const string Class = "[BaseHook.cs]";
 
     // Services
-    [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
-    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+    private static IGameGui GameGui => Plugin.GameGui;
+    protected static IPluginLog Log => Plugin.Log;
 
     // Core components
     protected readonly Configuration config = config;
@@ -44,7 +43,7 @@ public unsafe abstract class BaseHook(Configuration config, TranslationCache tra
         isLanguageSwapped = true;
 
         // Log
-        Log.Debug($"{Class} - {GetType().Name} : Swap enabled");
+        Log.Debug($"{Class} - Swap enabled");
 
         // Call hook-specific behavior
         OnLanguageSwap();
@@ -62,7 +61,7 @@ public unsafe abstract class BaseHook(Configuration config, TranslationCache tra
         isLanguageSwapped = false;
 
         // Log
-        Log.Debug($"{Class} - {GetType().Name} : Swap disabled");
+        Log.Debug($"{Class} - Swap disabled");
 
         // Call hook-specific behavior
         OnLanguageSwap();
@@ -104,10 +103,10 @@ public unsafe abstract class BaseHook(Configuration config, TranslationCache tra
         try
         {
             // Only refresh if the addon is currently visible
-            if (addon != null && addon->IsVisible)
+            if (addon != null && addon -> IsVisible)
             {
-                addon->Hide(true, false, 0);
-                addon->Show(true, 0);
+                addon -> Hide(true, false, 0);
+                addon -> Show(true, 0);
             }
         }
         catch (Exception ex)

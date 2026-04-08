@@ -52,14 +52,14 @@ public unsafe class ActionTooltipHook(Configuration config, TranslationCache tra
                     string actionName = ReadStringFromArrayData(stringArrayData, config.ActionNameField);
                     if (!string.IsNullOrWhiteSpace(actionName))
                     {
-                        // Get action ID 
-                        uint actionId = translationCache.GetActionIdByName(actionName, clientLang) ?? 0;
-                        if (actionId > 0 && actionId <= config.MaxValidActionId)
+                        // Get action ID
+                        uint actionID = translationCache.GetActionIDByName(actionName, clientLang) ?? 0;
+                        if (actionID > 0 && actionID <= config.MaxValidActionID)
                         {
                             /* Action name */
 
                             // Translate action name
-                            string translatedActionName = TranslateActionName(actionId, targetLang);
+                            string translatedActionName = TranslateActionName(actionID, targetLang);
 
                             // Apply translated action name
                             if (!string.IsNullOrWhiteSpace(translatedActionName))
@@ -73,7 +73,7 @@ public unsafe class ActionTooltipHook(Configuration config, TranslationCache tra
                             /* Description */
 
                             // Translate description
-                            string translatedDescription = TranslateDescription(actionId, targetLang);
+                            string translatedDescription = TranslateDescription(actionID, targetLang);
 
                             // Apply translated description
                             if (!string.IsNullOrWhiteSpace(translatedDescription))
@@ -100,19 +100,19 @@ public unsafe class ActionTooltipHook(Configuration config, TranslationCache tra
     // ----------------------------
     // Translate action name
     // ----------------------------
-    private string TranslateActionName(uint actionId, Language targetLang)
+    private string TranslateActionName(uint actionID, Language targetLang)
     {
         // Get translated action name from action ID
-        return translationCache.GetActionName(actionId, targetLang) ?? string.Empty;
+        return translationCache.GetActionName(actionID, targetLang) ?? string.Empty;
     }
 
     // ----------------------------
     // Translate description
     // ----------------------------
-    private string TranslateDescription(uint actionId, Language targetLang)
+    private string TranslateDescription(uint actionID, Language targetLang)
     {
         // Get translated description from action ID
-        return translationCache.GetActionDescription(actionId, targetLang) ?? string.Empty;
+        return translationCache.GetActionDescription(actionID, targetLang) ?? string.Empty;
     }
 
 }

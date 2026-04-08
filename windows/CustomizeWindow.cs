@@ -16,12 +16,14 @@ public class CustomizeWindow : Window, IDisposable
     // Log
     private const string Class = "[CustomizeWindow.cs]";
 
-    // Core components
+    // Service
+    private static IPluginLog Log => Plugin.Log;
+
+    // Core component
     private readonly Configuration config;
-    private readonly IPluginLog log;
 
     // Alternative translations
-    private readonly List<AlternativeTranslation> alternativeTranslations = [];
+    private readonly List<AlternativeTranslation> translations = [];
 
     // CSV export/import
     private string exportCSV = string.Empty;
@@ -30,28 +32,31 @@ public class CustomizeWindow : Window, IDisposable
 
     // Message
     private string message = string.Empty;
-    private DateTime messageTimestamp = DateTime.MinValue;
-    private const int MessageDurationSeconds = 5;
+    private DateTime messageUpdated = DateTime.MinValue;
+    private const int MessageDuration = 5;
 
     // Focus management
     private bool focusedNewRow;
     private int focusNewRowIndex = -1;
 
+    // Window size
+    private const int WindowHeight = 478;
+    private const int WindowWidth = 690;
+
     // ----------------------------
     // Constructor
     // ----------------------------
-    public CustomizeWindow(Configuration config, IPluginLog log) : base("LangSwap - Customize###LangSwapCustomize")
+    public CustomizeWindow(Configuration config) : base("LangSwap - Customize###LangSwapCustomize")
     {
-        // Initialize core components
+        // Initialize core component
         this.config = config;
-        this.log = log;
 
         // Window settings
         Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize;
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(690, 478),
-            MaximumSize = new Vector2(690, 478)
+            MinimumSize = new Vector2(WindowWidth, WindowHeight),
+            MaximumSize = new Vector2(WindowWidth, WindowHeight)
         };
 
         // Load alternative translations
@@ -118,7 +123,7 @@ public class CustomizeWindow : Window, IDisposable
         if (string.IsNullOrWhiteSpace(message)) return;
 
         // Check if the message has expired
-        if ((DateTime.Now - messageTimestamp).TotalSeconds >= MessageDurationSeconds)
+        if ((DateTime.Now - messageUpdated).TotalSeconds >= MessageDuration)
         {
             message = string.Empty;
             return;
@@ -126,11 +131,11 @@ public class CustomizeWindow : Window, IDisposable
 
         // Calculate text position
         Vector2 textSize = ImGui.CalcTextSize(message);
-        float x = ImGui.GetWindowContentRegionMax().X - textSize.X - 15f;
+        float textX = ImGui.GetWindowContentRegionMax().X - textSize.X - 15f;
 
         // Draw message
         ImGui.SameLine();
-        ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), x));
+        ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), textX));
         ImGui.TextUnformatted(message);
     }
 
@@ -139,17 +144,12 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     private void DrawAlternativeTranslationsTable()
     {
-        // Table dimensions
-        const float tableHeight = 374f;
-        const float tableWidth = 645f;
-        const float rowHeight = 30f;
-
         // Draw alternative translations table
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
         ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY;
-        if (!ImGui.BeginTable("##AlternativeTranslationsTable", 4, tableFlags, new Vector2(tableWidth, tableHeight))) return;
+        if (!ImGui.BeginTable("##AlternativeTranslationsTable", 4, tableFlags, new Vector2(WindowWidth - 45, WindowHeight - 104))) return;
 
         // Setup columns
         ImGui.TableSetupScrollFreeze(0, 1);
@@ -157,67 +157,67 @@ public class CustomizeWindow : Window, IDisposable
         ImGui.TableSetupColumn("Spell", ImGuiTableColumnFlags.WidthStretch, 1.0f);
         ImGui.TableSetupColumn("Replacement", ImGuiTableColumnFlags.WidthStretch, 1.0f);
         ImGui.TableSetupColumn("##Remove", ImGuiTableColumnFlags.WidthFixed, 60f);
-        ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
+        ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
 
         // Add
         ImGui.TableSetColumnIndex(0);
-        bool addClicked = DrawActionCell("##AddCell", "Add", rowHeight);
+        bool addClicked = DrawActionCell("##AddCell", "Add");
         if (addClicked && !HasPendingEmptyRow())
         {
-            alternativeTranslations.Add(new AlternativeTranslation());
-            focusNewRowIndex = alternativeTranslations.Count - 1;
+            translations.Add(new AlternativeTranslation());
+            focusNewRowIndex = translations.Count - 1;
             focusedNewRow = true;
         }
 
         // Spell
         ImGui.TableSetColumnIndex(1);
-        DrawCellText("Spell", rowHeight);
+        DrawCellText("Spell");
 
         // Replacement
         ImGui.TableSetColumnIndex(2);
-        DrawCellText("Replacement", rowHeight);
+        DrawCellText("Replacement");
 
         // Remove
         ImGui.TableSetColumnIndex(3);
-        DrawCellText(" ", rowHeight);
+        DrawCellText(" ");
 
         // No entries
-        if (alternativeTranslations.Count == 0)
+        if (translations.Count == 0)
         {
-            ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
+            ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
             ImGui.TableSetColumnIndex(0);
-            DrawCellText(" ", rowHeight);
+            DrawCellText(" ");
             ImGui.TableSetColumnIndex(1);
-            DrawCellText("No alternative translations", rowHeight);
+            DrawCellText("No alternative translations");
         }
         else
         {
-            // Initialize index
+            // Initialize remove index
             int removeIndex = -1;
 
             // Draw rows for each alternative translation
-            for (int i = 0; i < alternativeTranslations.Count; i++)
+            for (int i = 0; i < translations.Count; i++)
             {
                 // Get alternative translation
-                AlternativeTranslation alternativeTranslation = alternativeTranslations[i];
+                AlternativeTranslation translation = translations[i];
 
                 // Start of row
                 ImGui.PushID(i);
-                ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
+                ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
 
                 // Index
                 ImGui.TableSetColumnIndex(0);
-                DrawCellText($"#{i + 1}", rowHeight);
+                DrawCellText($"#{i + 1}");
 
                 // Spell name input
                 ImGui.TableSetColumnIndex(1);
-                string spellName = alternativeTranslation.SpellName;
-                bool setFocus = focusedNewRow && i == focusNewRowIndex;
-                DrawInputText("##Spell", ref spellName, rowHeight, setFocus);
-                alternativeTranslation.SpellName = spellName;
+                string spellName = translation.SpellName;
+                bool focused = focusedNewRow && i == focusNewRowIndex;
+                DrawInputText("##Spell", ref spellName, focused);
+                translation.SpellName = spellName;
                    
                 // Set focus
-                if (setFocus)
+                if (focused)
                 {
                     ImGui.SetScrollHereY();
                     focusedNewRow = false;
@@ -226,13 +226,13 @@ public class CustomizeWindow : Window, IDisposable
 
                 // Alternative name input
                 ImGui.TableSetColumnIndex(2);
-                string alternativeName = alternativeTranslation.AlternativeName;
-                DrawInputText("##Replacement", ref alternativeName, rowHeight);
-                alternativeTranslation.AlternativeName = alternativeName;
+                string alternativeName = translation.AlternativeName;
+                DrawInputText("##Replacement", ref alternativeName);
+                translation.AlternativeName = alternativeName;
 
                 // Remove cell
                 ImGui.TableSetColumnIndex(3);
-                if (DrawActionCell($"##RemoveCell_{i}", "Remove", rowHeight))
+                if (DrawActionCell($"##RemoveCell_{i}", "Remove"))
                 {
                     removeIndex = i;
                 }
@@ -244,7 +244,7 @@ public class CustomizeWindow : Window, IDisposable
             // Remove entry if requested
             if (removeIndex >= 0)
             {
-                alternativeTranslations.RemoveAt(removeIndex);
+                translations.RemoveAt(removeIndex);
             }
         }
         ImGui.EndTable();
@@ -255,32 +255,32 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     // Draw cell text
     // ----------------------------
-    private static void DrawCellText(string text, float rowHeight)
+    private static void DrawCellText(string text)
     {
         // Calculate text position
         Vector2 pos = ImGui.GetCursorScreenPos();
         float width = MathF.Max(1f, ImGui.GetContentRegionAvail().X);
         Vector2 textSize = ImGui.CalcTextSize(text);
-        Vector2 textPos = new(pos.X + (width - textSize.X) * 0.5f, pos.Y + (rowHeight - textSize.Y) * 0.5f);
+        Vector2 textPos = new(pos.X + (width - textSize.X) * 0.5f, pos.Y + (30f - textSize.Y) * 0.5f);
 
         // Draw text
         ImGui.GetWindowDrawList().AddText(textPos, ImGui.GetColorU32(ImGuiCol.Text), text);
-        ImGui.Dummy(new Vector2(width, rowHeight));
+        ImGui.Dummy(new Vector2(width, 30f));
     }
 
     // ----------------------------
     // Draw input text
     // ----------------------------
-    private static void DrawInputText(string id, ref string value, float rowHeight, bool setFocus = false)
+    private static void DrawInputText(string id, ref string value, bool focused = false)
     {
         // Calculate input position
         float width = MathF.Max(1f, ImGui.GetContentRegionAvail().X);
-        float y = ImGui.GetCursorPosY();
-        float offsetY = MathF.Max(0f, (rowHeight - ImGui.GetFrameHeight()) * 0.5f);
-        ImGui.SetCursorPosY(y + offsetY);
+        float inputY = ImGui.GetCursorPosY();
+        float offsetY = MathF.Max(0f, (30f - ImGui.GetFrameHeight()) * 0.5f);
+        ImGui.SetCursorPosY(inputY + offsetY);
 
         // Set focus if requested
-        if (setFocus) ImGui.SetKeyboardFocusHere();
+        if (focused) ImGui.SetKeyboardFocusHere();
 
         // Draw input text
         ImGui.SetNextItemWidth(width);
@@ -290,37 +290,36 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     // Draw action cell
     // ----------------------------
-    private bool DrawActionCell(string id, string label, float rowHeight)
+    private bool DrawActionCell(string id, string text)
     {
-        // Calculate cell position
+        // Calculate cell position and size
         Vector2 pos = ImGui.GetCursorScreenPos();
-        Vector2 size = new(MathF.Max(1f, ImGui.GetContentRegionAvail().X), rowHeight);
+        Vector2 size = new(MathF.Max(1f, ImGui.GetContentRegionAvail().X), 30f);
 
         // Draw invisible button to capture click
         bool clicked = ImGui.InvisibleButton(id, size);
 
         // Determine background color
-        Vector4 bg = config.RedDalamud;
-        if (ImGui.IsItemActive()) bg = config.LighterRedDalamud;
-        else if (ImGui.IsItemHovered()) bg = config.LightRedDalamud;
+        Vector4 background = config.RedDalamud;
+        if (ImGui.IsItemActive()) background = config.LighterRedDalamud;
+        else if (ImGui.IsItemHovered()) background = config.LightRedDalamud;
 
         // Calculate background rectangle with padding
         float padX = ImGui.GetStyle().CellPadding.X;
         float padY = ImGui.GetStyle().CellPadding.Y;
-        const float borderInset = 0.5f;
-        Vector2 drawMin = new(pos.X - padX + borderInset, pos.Y - padY + borderInset);
-        Vector2 drawMax = new(pos.X + size.X + padX, pos.Y + size.Y + padY - borderInset);
+        Vector2 drawMin = new(pos.X - padX + 0.5f, pos.Y - padY + 0.5f);
+        Vector2 drawMax = new(pos.X + size.X + padX, pos.Y + size.Y + padY - 0.5f);
 
         // Draw background
-        uint bgColor = ImGui.GetColorU32(bg);
-        ImGui.GetWindowDrawList().AddRectFilled(drawMin, drawMax, bgColor);
+        uint backgroundColor = ImGui.GetColorU32(background);
+        ImGui.GetWindowDrawList().AddRectFilled(drawMin, drawMax, backgroundColor);
 
-        // Calculate text position
-        Vector2 textSize = ImGui.CalcTextSize(label);
+        // Calculate text position and size
+        Vector2 textSize = ImGui.CalcTextSize(text);
         Vector2 textPos = new(drawMin.X + (drawMax.X - drawMin.X - textSize.X) * 0.5f, drawMin.Y + (drawMax.Y - drawMin.Y - textSize.Y) * 0.5f);
 
         // Draw text
-        ImGui.GetWindowDrawList().AddText(textPos, ImGui.GetColorU32(ImGuiCol.Text), label);
+        ImGui.GetWindowDrawList().AddText(textPos, ImGui.GetColorU32(ImGuiCol.Text), text);
 
         // Return whether the cell was clicked
         return clicked;
@@ -337,7 +336,7 @@ public class CustomizeWindow : Window, IDisposable
         if (ImGui.Button("Export CSV", new Vector2(150f, 0f)))
         {
             // Export alternative translations to CSV
-            exportCSV = ExportAlternativeTranslationsCSV(alternativeTranslations);
+            exportCSV = ExportAlternativeTranslationsCSV(translations);
 
             // Open popup
             ImGui.OpenPopup("Export CSV");
@@ -353,11 +352,11 @@ public class CustomizeWindow : Window, IDisposable
         PopupBuilder.DrawExportCSVPopup("Export CSV", "##ExportCSVText", ref exportCSV, new Vector2(400f, 400f), true, () =>
         {
             // Count exported translations
-            int count = alternativeTranslations.Count;
+            int count = translations.Count;
 
             // Log
             string message = $"{count} alternative translations exported";
-            log.Information($"{Class} - {message}");
+            Log.Information($"{Class} - {message}");
 
             // Set message
             SetMessage(message);
@@ -391,14 +390,14 @@ public class CustomizeWindow : Window, IDisposable
         PopupBuilder.DrawImportCSVPopup("Import CSV", "##ImportCSVText", ref importCSV, ref importStatus, new Vector2(400f, 400f), csv =>
         {
             // Try to import alternative translations from CSV
-            if (ImportAlternativeTranslationsCSV(csv, alternativeTranslations, out string status))
+            if (ImportAlternativeTranslationsCSV(csv, translations, out string status))
             {
                 // Count imported translations
-                int count = alternativeTranslations.Count;
+                int count = translations.Count;
 
                 // Log
                 string message = $"{count} alternative translations imported";
-                log.Information($"{Class} - {message}");
+                Log.Information($"{Class} - {message}");
 
                 // Set message
                 SetMessage(message);
@@ -434,10 +433,10 @@ public class CustomizeWindow : Window, IDisposable
         PopupBuilder.DrawConfirmationPopup("Confirm reset", "This will clear all alternative translations.    Are you sure ?", "Yes, reset all", "Cancel", new Vector2(430f, 0f), () =>
         {
             // Count removed translations
-            int count = alternativeTranslations.Count;
+            int count = translations.Count;
 
             // Clear alternative translations
-            alternativeTranslations.Clear();
+            translations.Clear();
             config.AlternativeTranslations.Clear();
 
             // Save configuration
@@ -445,7 +444,7 @@ public class CustomizeWindow : Window, IDisposable
 
             // Log
             string message = $"{count} alternative translations cleared";
-            log.Information($"{Class} - {message}");
+            Log.Information($"{Class} - {message}");
 
             // Set message
             SetMessage(message);
@@ -477,12 +476,12 @@ public class CustomizeWindow : Window, IDisposable
     private void LoadAlternativeTranslations()
     {
         // Clear translations list
-        alternativeTranslations.Clear();
+        translations.Clear();
 
         // Load persisted values into alternative translations list
         foreach (AlternativeTranslation alternativeTranslation in config.AlternativeTranslations)
         {
-            alternativeTranslations.Add(new AlternativeTranslation
+            translations.Add(new AlternativeTranslation
             {
                 SpellName = alternativeTranslation.SpellName,
                 AlternativeName = alternativeTranslation.AlternativeName
@@ -490,27 +489,27 @@ public class CustomizeWindow : Window, IDisposable
         }
 
         // Log
-        log.Information($"{Class} - Loaded {alternativeTranslations.Count} alternative translations");
+        Log.Information($"{Class} - Loaded {translations.Count} alternative translations");
     }
 
     // ----------------------------
     // Export alternative translations CSV
     // ----------------------------
-    private static string ExportAlternativeTranslationsCSV(List<AlternativeTranslation> translations)
+    private static string ExportAlternativeTranslationsCSV(List<AlternativeTranslation> exportedTranslations)
     {
         // Check for null or empty list
-        if (translations == null || translations.Count == 0) return string.Empty;
+        if (exportedTranslations == null || exportedTranslations.Count == 0) return string.Empty;
 
         // Build CSV lines
         List<string> lines = [];
-        foreach (AlternativeTranslation translation in translations)
+        foreach (AlternativeTranslation exportedTranslation in exportedTranslations)
         {
             // Get fields
-            string spell = SanitizeCSVField(translation.SpellName);
-            string replacement = SanitizeCSVField(translation.AlternativeName);
+            string spellName = SanitizeCSVField(exportedTranslation.SpellName);
+            string alternativeName = SanitizeCSVField(exportedTranslation.AlternativeName);
 
             // Add line to CSV
-            lines.Add($"{spell};{replacement}");
+            lines.Add($"{spellName};{alternativeName}");
         }
 
         // Join lines
@@ -520,14 +519,14 @@ public class CustomizeWindow : Window, IDisposable
     // ----------------------------
     // Import alternative translations CSV
     // ----------------------------
-    private static bool ImportAlternativeTranslationsCSV(string csv, List<AlternativeTranslation> translations, out string status)
+    private static bool ImportAlternativeTranslationsCSV(string csv, List<AlternativeTranslation> alternativeTranslations, out string status)
     {
         // Initialize
         status = string.Empty;
-        List<AlternativeTranslation> imported = [];
+        List<AlternativeTranslation> importedTranslations = [];
 
         // Check for null target list
-        if (translations == null)
+        if (alternativeTranslations == null)
         {
             status = "Target list is null";
             return false;
@@ -568,7 +567,7 @@ public class CustomizeWindow : Window, IDisposable
             }
 
             // Add to imported list
-            imported.Add(new AlternativeTranslation
+            importedTranslations.Add(new AlternativeTranslation
             {
                 SpellName = spellName,
                 AlternativeName = alternativeName
@@ -576,8 +575,8 @@ public class CustomizeWindow : Window, IDisposable
         }
 
         // Replace original list with imported translations
-        translations.Clear();
-        translations.AddRange(imported);
+        alternativeTranslations.Clear();
+        alternativeTranslations.AddRange(importedTranslations);
         return true;
     }
 
@@ -599,12 +598,12 @@ public class CustomizeWindow : Window, IDisposable
         config.AlternativeTranslations.Clear();
 
         // Save alternative translations into persisted list
-        foreach (AlternativeTranslation alternativeTranslation in alternativeTranslations)
+        foreach (AlternativeTranslation translation in translations)
         {
             config.AlternativeTranslations.Add(new AlternativeTranslation
             {
-                SpellName = alternativeTranslation.SpellName,
-                AlternativeName = alternativeTranslation.AlternativeName
+                SpellName = translation.SpellName,
+                AlternativeName = translation.AlternativeName
             });
         }
 
@@ -612,8 +611,8 @@ public class CustomizeWindow : Window, IDisposable
         config.Save();
 
         // Log
-        string message = $"{alternativeTranslations.Count} alternative translations saved";
-        log.Information($"{Class} - {message}");
+        string message = $"{translations.Count} alternative translations saved";
+        Log.Information($"{Class} - {message}");
 
         // Set message
         SetMessage(message);
@@ -640,12 +639,12 @@ public class CustomizeWindow : Window, IDisposable
     private bool HasChanges()
     {
         // Check for count differences
-        if (alternativeTranslations.Count != config.AlternativeTranslations.Count) return true;
+        if (translations.Count != config.AlternativeTranslations.Count) return true;
 
         // Check for differences in memory vs persisted values
-        for (int i = 0; i < alternativeTranslations.Count; i++)
+        for (int i = 0; i < translations.Count; i++)
         {
-            AlternativeTranslation inMemory = alternativeTranslations[i];
+            AlternativeTranslation inMemory = translations[i];
             AlternativeTranslation persisted = config.AlternativeTranslations[i];
             if (!string.Equals(inMemory.SpellName, persisted.SpellName, StringComparison.Ordinal)) return true;
             if (!string.Equals(inMemory.AlternativeName, persisted.AlternativeName, StringComparison.Ordinal)) return true;
@@ -659,9 +658,9 @@ public class CustomizeWindow : Window, IDisposable
     private bool HasInvalidEntries()
     {
         // Check for invalid values in alternative translations
-        foreach (AlternativeTranslation alternativeTranslation in alternativeTranslations)
+        foreach (AlternativeTranslation translation in translations)
         {
-            if (IsInvalidValue(alternativeTranslation.SpellName) || IsInvalidValue(alternativeTranslation.AlternativeName)) return true;
+            if (IsInvalidValue(translation.SpellName) || IsInvalidValue(translation.AlternativeName)) return true;
         }
         return false;
     }
@@ -681,9 +680,9 @@ public class CustomizeWindow : Window, IDisposable
     private bool HasPendingEmptyRow()
     {
         // Check if there is already an empty row in the translations list
-        foreach (AlternativeTranslation alternativeTranslation in alternativeTranslations)
+        foreach (AlternativeTranslation translation in translations)
         {
-            if (string.IsNullOrWhiteSpace(alternativeTranslation.SpellName) && string.IsNullOrWhiteSpace(alternativeTranslation.AlternativeName)) return true;
+            if (string.IsNullOrWhiteSpace(translation.SpellName) && string.IsNullOrWhiteSpace(translation.AlternativeName)) return true;
         }
         return false;
     }
@@ -694,7 +693,7 @@ public class CustomizeWindow : Window, IDisposable
     private void SetMessage(string message)
     {
         this.message = message;
-        messageTimestamp = DateTime.Now;
+        messageUpdated = DateTime.Now;
     }
 
     // ----------------------------

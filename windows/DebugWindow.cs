@@ -17,40 +17,45 @@ public class DebugWindow : Window, IDisposable
     // Log
     private const string Class = "[DebugWindow.cs]";
 
+    // Service
+    private static IPluginLog Log => Plugin.Log;
+
     // Core components
     private readonly Configuration config;
     private readonly ExcelProvider excelProvider;
-    private readonly IPluginLog log;
 
     // Obfuscated translations
-    private readonly List<ObfuscatedTranslation> obfuscatedTranslations = [];
+    private readonly List<ObfuscatedTranslation> translations = [];
 
     // CSV export/import
-    private string exportScannedCSV = string.Empty;
-    private string importLocalCSV = string.Empty;
-    private string importLocalStatus = string.Empty;
+    private string exportCSV = string.Empty;
+    private string importCSV = string.Empty;
+    private string importStatus = string.Empty;
 
     // Message
     private string message = string.Empty;
-    private DateTime messageTimestamp = DateTime.MinValue;
-    private const int MessageDurationSeconds = 5;
+    private DateTime messageUpdated = DateTime.MinValue;
+    private const int MessageDuration = 5;
+
+    // Window size
+    private const int WindowHeight = 478;
+    private const int WindowWidth = 1200;
 
     // ----------------------------
     // Constructor
     // ----------------------------
-    public DebugWindow(Configuration config, ExcelProvider excelProvider, IPluginLog log) : base("LangSwap - Debug###LangSwapDebug")
+    public DebugWindow(Configuration config, ExcelProvider excelProvider) : base("LangSwap - Debug###LangSwapDebug")
     {
         // Initialize core components
         this.config = config;
         this.excelProvider = excelProvider;
-        this.log = log;
 
         // Window settings
         Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize;
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(1200, 478),
-            MaximumSize = new Vector2(1200, 478)
+            MinimumSize = new Vector2(WindowWidth, WindowHeight),
+            MaximumSize = new Vector2(WindowWidth, WindowHeight)
         };
 
         // Load obfuscated translations
@@ -114,7 +119,7 @@ public class DebugWindow : Window, IDisposable
         if (string.IsNullOrWhiteSpace(message)) return;
 
         // Check if the message has expired
-        if ((DateTime.Now - messageTimestamp).TotalSeconds >= MessageDurationSeconds)
+        if ((DateTime.Now - messageUpdated).TotalSeconds >= MessageDuration)
         {
             message = string.Empty;
             return;
@@ -122,11 +127,11 @@ public class DebugWindow : Window, IDisposable
 
         // Calculate text position
         Vector2 textSize = ImGui.CalcTextSize(message);
-        float x = ImGui.GetWindowContentRegionMax().X - textSize.X - 15f;
+        float textX = ImGui.GetWindowContentRegionMax().X - textSize.X - 15f;
 
         // Draw message
         ImGui.SameLine();
-        ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), x));
+        ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), textX));
         ImGui.TextUnformatted(message);
     }
 
@@ -135,17 +140,12 @@ public class DebugWindow : Window, IDisposable
     // ----------------------------
     private void DrawObfuscatedTranslationsTable()
     {
-        // Table dimensions
-        const float tableHeight = 374f;
-        const float tableWidth = 1155f;
-        const float rowHeight = 30f;
-
         // Draw obfuscated translations table
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
         ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY;
-        if (!ImGui.BeginTable("##ObfuscatedTranslationsTable", 6, tableFlags, new Vector2(tableWidth, tableHeight))) return;
+        if (!ImGui.BeginTable("##ObfuscatedTranslationsTable", 6, tableFlags, new Vector2(WindowWidth - 45, WindowHeight - 104))) return;
             
         // Setup columns
         ImGui.TableSetupScrollFreeze(0, 1);
@@ -155,73 +155,73 @@ public class DebugWindow : Window, IDisposable
         ImGui.TableSetupColumn("French", ImGuiTableColumnFlags.WidthStretch, 1.0f);
         ImGui.TableSetupColumn("German", ImGuiTableColumnFlags.WidthStretch, 1.0f);
         ImGui.TableSetupColumn("Japanese", ImGuiTableColumnFlags.WidthStretch, 1.0f);
-        ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
+        ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
 
         // ID
         ImGui.TableSetColumnIndex(0);
-        DrawCellText("Spell ID", rowHeight);
+        DrawCellText("Spell ID");
 
         // Obfuscation
         ImGui.TableSetColumnIndex(1);
-        DrawCellText("Obfuscation", rowHeight);
+        DrawCellText("Obfuscation");
 
         // English
         ImGui.TableSetColumnIndex(2);
-        DrawCellText("English", rowHeight);
+        DrawCellText("English");
 
         // French
         ImGui.TableSetColumnIndex(3);
-        DrawCellText("French", rowHeight);
+        DrawCellText("French");
 
         // German
         ImGui.TableSetColumnIndex(4);
-        DrawCellText("German", rowHeight);
+        DrawCellText("German");
 
         // Japanese
         ImGui.TableSetColumnIndex(5);
-        DrawCellText("Japanese", rowHeight);
+        DrawCellText("Japanese");
 
         // No entries
-        if (obfuscatedTranslations.Count == 0)
+        if (translations.Count == 0)
         {
-            ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
+            ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
             ImGui.TableSetColumnIndex(0);
-            DrawCellText(" ", rowHeight);
+            DrawCellText(" ");
             ImGui.TableSetColumnIndex(1);
-            DrawCellText("No remaining obfuscated names found", rowHeight);
+            DrawCellText("No remaining obfuscated names found");
         }
         else
         {
             // Draw rows for each obfuscated translation
-            for (int i = 0; i < obfuscatedTranslations.Count; i++)
+            for (int i = 0; i < translations.Count; i++)
             {
                 // Get obfuscated translation
-                ObfuscatedTranslation obfuscatedTranslation = obfuscatedTranslations[i];
+                ObfuscatedTranslation translation = translations[i];
 
                 // ID
-                ImGui.TableNextRow(ImGuiTableRowFlags.None, rowHeight);
+                ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
                 ImGui.TableSetColumnIndex(0);
-                DrawCellText(obfuscatedTranslation.Id.ToString(), rowHeight);
+                DrawCellText(translation.ID.ToString());
 
                 // Obfuscation
                 ImGui.TableSetColumnIndex(1);
-                DrawCellText(obfuscatedTranslation.ObfuscatedName, rowHeight);
+                DrawCellText(translation.ObfuscatedName);
 
                 // English
                 ImGui.TableSetColumnIndex(2);
-                DrawCellText(obfuscatedTranslation.EnglishName, rowHeight);
+                DrawCellText(translation.EnglishName);
 
                 // French
                 ImGui.TableSetColumnIndex(3);
-                DrawCellText(obfuscatedTranslation.FrenchName, rowHeight);
+                DrawCellText(translation.FrenchName);
 
                 // German
                 ImGui.TableSetColumnIndex(4);
-                DrawCellText(obfuscatedTranslation.GermanName, rowHeight);
+                DrawCellText(translation.GermanName);
 
                 // Japanese
                 ImGui.TableSetColumnIndex(5);
-                DrawCellText(obfuscatedTranslation.JapaneseName, rowHeight);
+                DrawCellText(translation.JapaneseName);
             }
         }
         ImGui.EndTable();
@@ -232,17 +232,17 @@ public class DebugWindow : Window, IDisposable
     // ----------------------------
     // Draw cell text
     // ----------------------------
-    private static void DrawCellText(string text, float rowHeight)
+    private static void DrawCellText(string text)
     {
         // Calculate text position
         Vector2 pos = ImGui.GetCursorScreenPos();
         float width = MathF.Max(1f, ImGui.GetContentRegionAvail().X);
         Vector2 textSize = ImGui.CalcTextSize(text);
-        Vector2 textPos = new(pos.X + (width - textSize.X) * 0.5f, pos.Y + (rowHeight - textSize.Y) * 0.5f);
+        Vector2 textPos = new(pos.X + (width - textSize.X) * 0.5f, pos.Y + (30f - textSize.Y) * 0.5f);
 
         // Draw text
         ImGui.GetWindowDrawList().AddText(textPos, ImGui.GetColorU32(ImGuiCol.Text), text);
-        ImGui.Dummy(new Vector2(width, rowHeight));
+        ImGui.Dummy(new Vector2(width, 30f));
     }
 
     // ----------------------------
@@ -256,7 +256,7 @@ public class DebugWindow : Window, IDisposable
         if (ImGui.Button("Export scanned", new Vector2(150f, 0f)))
         {
             // Export scanned obfuscated translations to CSV
-            exportScannedCSV = ExportObfuscatedTranslationsCSV(config.ScannedObfuscatedTranslations);
+            exportCSV = ExportObfuscatedTranslationsCSV(config.ScannedObfuscatedTranslations);
 
             // Open popup
             ImGui.OpenPopup("Export scanned");
@@ -269,14 +269,14 @@ public class DebugWindow : Window, IDisposable
     private void DrawExportScannedPopup()
     {
         // Draw export CSV popup
-        PopupBuilder.DrawExportCSVPopup("Export scanned", "##ExportScannedCsv", ref exportScannedCSV, new Vector2(900f, 400f), false, () =>
+        PopupBuilder.DrawExportCSVPopup("Export scanned", "##ExportScannedCsv", ref exportCSV, new Vector2(900f, 400f), false, () =>
         {
             // Count exported translations
             int count = config.ScannedObfuscatedTranslations.Count;
 
             // Log
             string message = $"{count} scanned obfuscated translations exported";
-            log.Information($"{Class} - {message}");
+            Log.Information($"{Class} - {message}");
 
             // Set message
             SetMessage(message);
@@ -293,8 +293,8 @@ public class DebugWindow : Window, IDisposable
         if (ImGui.Button("Import local", new Vector2(150f, 0f)))
         {
             // Reset import local CSV and status
-            importLocalCSV = string.Empty;
-            importLocalStatus = string.Empty;
+            importCSV = string.Empty;
+            importStatus = string.Empty;
 
             // Open popup
             ImGui.OpenPopup("Import local");
@@ -307,7 +307,7 @@ public class DebugWindow : Window, IDisposable
     private void DrawImportLocalPopup()
     {
         // Draw import CSV popup
-        PopupBuilder.DrawImportCSVPopup("Import local", "##ImportLocalCsv", ref importLocalCSV, ref importLocalStatus, new Vector2(900f, 400f), csv =>
+        PopupBuilder.DrawImportCSVPopup("Import local", "##ImportLocalCsv", ref importCSV, ref importStatus, new Vector2(900f, 400f), csv =>
         {
             // Try to import obfuscated translations from CSV
             List<ObfuscatedTranslation> importedTranslations = [];
@@ -323,7 +323,7 @@ public class DebugWindow : Window, IDisposable
 
                 // Log
                 string message = $"{count} local obfuscated translations imported";
-                log.Information($"{Class} - {message}");
+                Log.Information($"{Class} - {message}");
 
                 // Set message
                 SetMessage(message);
@@ -369,7 +369,7 @@ public class DebugWindow : Window, IDisposable
 
             // Log
             string message = $"{count} local obfuscated translations cleared";
-            log.Information($"{Class} - {message}");
+            Log.Information($"{Class} - {message}");
 
             // Set message
             SetMessage(message);
@@ -385,14 +385,14 @@ public class DebugWindow : Window, IDisposable
     private void LoadObfuscatedTranslations()
     {
         // Clear translations list
-        obfuscatedTranslations.Clear();
+        translations.Clear();
 
         // Get all obfuscated actions from Excel provider
         foreach (ObfuscatedTranslation obfuscatedTranslation in excelProvider.GetAllObfuscatedActions())
         {
-            obfuscatedTranslations.Add(new ObfuscatedTranslation
+            translations.Add(new ObfuscatedTranslation
             {
-                Id = obfuscatedTranslation.Id,
+                ID = obfuscatedTranslation.ID,
                 ObfuscatedName = obfuscatedTranslation.ObfuscatedName
             });
         }
@@ -403,7 +403,7 @@ public class DebugWindow : Window, IDisposable
         MergeObfuscatedTranslations(config.LocalObfuscatedTranslations);
 
         // Log
-        log.Information($"{Class} - Loaded {obfuscatedTranslations.Count} obfuscated translations");
+        Log.Information($"{Class} - Loaded {translations.Count} obfuscated translations");
     }
 
     // ----------------------------
@@ -418,40 +418,43 @@ public class DebugWindow : Window, IDisposable
         foreach (ObfuscatedTranslation sourceTranslation in sourceTranslations)
         {
             // Find matching translation in the list
-            ObfuscatedTranslation? targetTranslation = obfuscatedTranslations.Find(translation => string.Equals(translation.ObfuscatedName, sourceTranslation.ObfuscatedName, StringComparison.Ordinal));
+            ObfuscatedTranslation? targetTranslation = translations.Find(translation => string.Equals(translation.ObfuscatedName, sourceTranslation.ObfuscatedName, StringComparison.Ordinal));
             if (targetTranslation == null) continue;
 
             // Merge obfuscated translation
-            targetTranslation.Id = sourceTranslation.Id;
+            targetTranslation.ID = sourceTranslation.ID;
             if (!string.IsNullOrWhiteSpace(sourceTranslation.EnglishName)) targetTranslation.EnglishName = sourceTranslation.EnglishName;
             if (!string.IsNullOrWhiteSpace(sourceTranslation.FrenchName)) targetTranslation.FrenchName = sourceTranslation.FrenchName;
             if (!string.IsNullOrWhiteSpace(sourceTranslation.GermanName)) targetTranslation.GermanName = sourceTranslation.GermanName;
             if (!string.IsNullOrWhiteSpace(sourceTranslation.JapaneseName)) targetTranslation.JapaneseName = sourceTranslation.JapaneseName;
         }
+
+        // Remove translations without missing fields
+        translations.RemoveAll(translation => string.IsNullOrWhiteSpace(translation.EnglishName) || string.IsNullOrWhiteSpace(translation.FrenchName) || string.IsNullOrWhiteSpace(translation.GermanName) || string.IsNullOrWhiteSpace(translation.JapaneseName));
     }
 
     // ----------------------------
     // Export obfuscated translations CSV
     // ----------------------------
-    private static string ExportObfuscatedTranslationsCSV(List<ObfuscatedTranslation> translations)
+    private static string ExportObfuscatedTranslationsCSV(List<ObfuscatedTranslation> exportedTranslations)
     {
         // Check for null or empty list
-        if (translations == null || translations.Count == 0) return string.Empty;
+        if (exportedTranslations == null || exportedTranslations.Count == 0) return string.Empty;
 
         // Build CSV lines
         List<string> lines = [];
-        foreach (ObfuscatedTranslation translation in translations)
+        foreach (ObfuscatedTranslation exportedTranslation in exportedTranslations)
         {
             // Get fields
-            string id = translation.Id.ToString();
-            string obfuscatedName = SanitizeCSVField(translation.ObfuscatedName);
-            string englishName = SanitizeCSVField(translation.EnglishName);
-            string frenchName = SanitizeCSVField(translation.FrenchName);
-            string germanName = SanitizeCSVField(translation.GermanName);
-            string japaneseName = SanitizeCSVField(translation.JapaneseName);
+            string ID = exportedTranslation.ID.ToString();
+            string obfuscatedName = SanitizeCSVField(exportedTranslation.ObfuscatedName);
+            string englishName = SanitizeCSVField(exportedTranslation.EnglishName);
+            string frenchName = SanitizeCSVField(exportedTranslation.FrenchName);
+            string germanName = SanitizeCSVField(exportedTranslation.GermanName);
+            string japaneseName = SanitizeCSVField(exportedTranslation.JapaneseName);
 
             // Add line to CSV
-            lines.Add($"{id};{obfuscatedName};{englishName};{frenchName};{germanName};{japaneseName}");
+            lines.Add($"{ID};{obfuscatedName};{englishName};{frenchName};{germanName};{japaneseName}");
         }
 
         // Join lines
@@ -461,14 +464,14 @@ public class DebugWindow : Window, IDisposable
     // ----------------------------
     // Import obfuscated translations CSV
     // ----------------------------
-    public static bool ImportObfuscatedTranslationsCSV(string csv, List<ObfuscatedTranslation> translations, out string status)
+    public static bool ImportObfuscatedTranslationsCSV(string csv, List<ObfuscatedTranslation> obfuscatedTranslations, out string status)
     {
         // Initialize
         status = string.Empty;
-        List<ObfuscatedTranslation> imported = [];
+        List<ObfuscatedTranslation> importedTranslations = [];
 
         // Check for null target list
-        if (translations == null)
+        if (obfuscatedTranslations == null)
         {
             status = "Target list is null";
             return false;
@@ -506,16 +509,16 @@ public class DebugWindow : Window, IDisposable
             string japaneseName = parts[5].Trim();
 
             // Validate required fields
-            if (!int.TryParse(idStr, out int id) || id < 0 || string.IsNullOrWhiteSpace(obfuscatedName))
+            if (!int.TryParse(idStr, out int ID) || ID < 0 || string.IsNullOrWhiteSpace(obfuscatedName))
             {
                 status = $"Invalid value at line {i + 1}";
                 return false;
             }
 
             // Add to imported list
-            imported.Add(new ObfuscatedTranslation
+            importedTranslations.Add(new ObfuscatedTranslation
             {
-                Id = id,
+                ID = ID,
                 ObfuscatedName = obfuscatedName,
                 EnglishName = englishName,
                 FrenchName = frenchName,
@@ -525,8 +528,8 @@ public class DebugWindow : Window, IDisposable
         }
 
         // Replace original list with imported translations
-        translations.Clear();
-        translations.AddRange(imported);
+        obfuscatedTranslations.Clear();
+        obfuscatedTranslations.AddRange(importedTranslations);
         return true;
     }
 
@@ -545,7 +548,7 @@ public class DebugWindow : Window, IDisposable
     private void SetMessage(string message)
     {
         this.message = message;
-        messageTimestamp = DateTime.Now;
+        messageUpdated = DateTime.Now;
     }
 
     // ----------------------------

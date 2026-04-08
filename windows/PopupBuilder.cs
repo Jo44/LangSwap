@@ -12,20 +12,20 @@ public static class PopupBuilder
     // ----------------------------
     // Draw export CSV popup
     // ----------------------------
-    public static void DrawExportCSVPopup(string popupName, string inputId, ref string csv, Vector2 windowSize, bool closeOnCopy, Action onCopy)
+    public static void DrawExportCSVPopup(string popup, string inputID, ref string csv, Vector2 windowSize, bool closeOnCopy, Action onCopy)
     {
         // Define window size
         ImGui.SetNextWindowSize(windowSize, ImGuiCond.Appearing);
         
         // Begin popup
-        if (!ImGui.BeginPopupModal(popupName, ImGuiWindowFlags.NoResize)) return;
+        if (!ImGui.BeginPopupModal(popup, ImGuiWindowFlags.NoResize)) return;
 
         // CSV output
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(15f);
-        ImGui.InputTextMultiline(inputId, ref csv, 32768, new Vector2(windowSize.X - 30f, windowSize.Y - 85f), ImGuiInputTextFlags.ReadOnly);
+        ImGui.InputTextMultiline(inputID, ref csv, 32768, new Vector2(windowSize.X - 30f, windowSize.Y - 85f), ImGuiInputTextFlags.ReadOnly);
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
@@ -60,13 +60,13 @@ public static class PopupBuilder
     // ----------------------------
     // Draw import CSV popup
     // ----------------------------
-    public static void DrawImportCSVPopup(string popupName, string inputId, ref string csv, ref string status, Vector2 windowSize, Func<string, string> onApply)
+    public static void DrawImportCSVPopup(string popup, string inputID, ref string csv, ref string status, Vector2 windowSize, Func<string, string> onApply)
     {
         // Define window size
         ImGui.SetNextWindowSize(windowSize, ImGuiCond.Appearing);
 
         // Begin popup
-        if (!ImGui.BeginPopupModal(popupName, ImGuiWindowFlags.NoResize)) return;
+        if (!ImGui.BeginPopupModal(popup, ImGuiWindowFlags.NoResize)) return;
 
         // Status message
         ImGui.Spacing();
@@ -93,7 +93,7 @@ public static class PopupBuilder
         // Set focus on input
         if (ImGui.IsWindowAppearing()) ImGui.SetKeyboardFocusHere();
 
-        ImGui.InputTextMultiline(inputId, ref csv, 32768, new Vector2(windowSize.X - 30f, windowSize.Y - 110f));
+        ImGui.InputTextMultiline(inputID, ref csv, 32768, new Vector2(windowSize.X - 30f, windowSize.Y - 110f));
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
@@ -134,13 +134,13 @@ public static class PopupBuilder
     // ----------------------------
     // Draw confirmation popup
     // ----------------------------
-    public static void DrawConfirmationPopup(string popupName, string message, string confirmLabel, string cancelLabel, Vector2 windowSize, Action onConfirm)
+    public static void DrawConfirmationPopup(string popup, string message, string confirmLabel, string cancelLabel, Vector2 windowSize, Action onConfirm)
     {
         // Define window size
         ImGui.SetNextWindowSize(windowSize, ImGuiCond.Appearing);
 
         // Begin popup
-        if (!ImGui.BeginPopupModal(popupName, ImGuiWindowFlags.NoResize)) return;
+        if (!ImGui.BeginPopupModal(popup, ImGuiWindowFlags.NoResize)) return;
 
         // Message
         ImGui.Spacing();

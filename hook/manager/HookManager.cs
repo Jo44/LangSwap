@@ -1,4 +1,3 @@
-using Dalamud.IoC;
 using Dalamud.Plugin.Services;
 using LangSwap.hook.template;
 using LangSwap.translation;
@@ -16,7 +15,7 @@ public class HookManager(Configuration config, TranslationCache translationCache
     private const string Class = "[HookManager.cs]";
 
     // Service
-    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+    private static IPluginLog Log => Plugin.Log;
 
     // Individual hooks
     private readonly AlliesCastBarsHook alliesCastBarsHook = new(config, translationCache);
@@ -32,7 +31,7 @@ public class HookManager(Configuration config, TranslationCache translationCache
     // ----------------------------
     public void EnableAll()
     {
-        // Add hook if UI component is enabled
+        // Add hooks based on configuration
         if (config.AlliesCastBarsTarget || config.AlliesCastBarsFocus || config.AlliesCastBarsPartyList) hooks.Add(alliesCastBarsHook);
         if (config.EnemiesCastBarsTarget || config.EnemiesCastBarsFocus || config.EnemiesCastBarsEnmityList) hooks.Add(enemiesCastBarsHook);
         if (config.ActionTooltip) hooks.Add(actionTooltipHook);
@@ -68,7 +67,7 @@ public class HookManager(Configuration config, TranslationCache translationCache
     }
 
     // ----------------------------
-    // Update hooks according to current configuration
+    // Update hooks based on configuration
     // ----------------------------
     public void UpdateHooks()
     {

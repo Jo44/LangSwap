@@ -15,12 +15,12 @@ public class TranslationCache(ExcelProvider excelProvider)
     // Action caches
     private readonly Dictionary<(uint, Language), string?> actionNameCache = [];
     private readonly Dictionary<(uint, Language), string?> actionDescriptionCache = [];
-    private readonly Dictionary<(string, Language), uint?> actionIdByNameCache = [];
+    private readonly Dictionary<(string, Language), uint?> actionIDByNameCache = [];
 
     // Item caches
     private readonly Dictionary<(uint, Language), string?> itemNameCache = [];
     private readonly Dictionary<(uint, Language), string?> itemDescriptionCache = [];
-    private readonly Dictionary<(string, Language), uint?> itemIdByNameCache = [];
+    private readonly Dictionary<(string, Language), uint?> itemIDByNameCache = [];
 
     //
     // ========== BASE PARAMS ==========
@@ -39,20 +39,20 @@ public class TranslationCache(ExcelProvider excelProvider)
     // ----------------------------
     // Get action name
     // ----------------------------
-    public string? GetActionName(uint actionId, Language targetLang) =>
-        GetOrCache(actionNameCache, (actionId, targetLang), () => excelProvider.GetActionName(actionId, targetLang));
+    public string? GetActionName(uint actionID, Language targetLang) =>
+        GetOrCache(actionNameCache, (actionID, targetLang), () => excelProvider.GetActionName(actionID, targetLang));
 
     // ----------------------------
     // Get action description
     // ----------------------------
-    public string? GetActionDescription(uint actionId, Language targetLang) =>
-        GetOrCache(actionDescriptionCache, (actionId, targetLang), () => excelProvider.GetActionDescription(actionId, targetLang));
+    public string? GetActionDescription(uint actionID, Language targetLang) =>
+        GetOrCache(actionDescriptionCache, (actionID, targetLang), () => excelProvider.GetActionDescription(actionID, targetLang));
 
     // ----------------------------
     // Get action ID by name (reverse lookup)
     // ----------------------------
-    public uint? GetActionIdByName(string actionName, Language clientLang) =>
-        GetOrCache(actionIdByNameCache, (actionName, clientLang), () => ExcelProvider.GetActionIdByName(actionName, clientLang));
+    public uint? GetActionIDByName(string actionName, Language clientLang) =>
+        GetOrCache(actionIDByNameCache, (actionName, clientLang), () => ExcelProvider.GetActionIDByName(actionName, clientLang));
 
     //
     // ========== ITEMS ==========
@@ -61,20 +61,20 @@ public class TranslationCache(ExcelProvider excelProvider)
     // ----------------------------
     // Get item name
     // ----------------------------
-    public string? GetItemName(uint itemId, Language targetLang) =>
-         GetOrCache(itemNameCache, (itemId, targetLang), () => excelProvider.GetItemName(itemId, targetLang));
+    public string? GetItemName(uint itemID, Language targetLang) =>
+         GetOrCache(itemNameCache, (itemID, targetLang), () => excelProvider.GetItemName(itemID, targetLang));
 
     // ----------------------------
     // Get item description
     // ----------------------------
-    public string? GetItemDescription(uint itemId, Language targetLang) =>
-        GetOrCache(itemDescriptionCache, (itemId, targetLang), () => excelProvider.GetItemDescription(itemId, targetLang));
+    public string? GetItemDescription(uint itemID, Language targetLang) =>
+        GetOrCache(itemDescriptionCache, (itemID, targetLang), () => excelProvider.GetItemDescription(itemID, targetLang));
 
     // ----------------------------
     // Get item ID by name (reverse lookup)
     // ----------------------------
-    public uint? GetItemIdByName(string itemName, Language clientLang) =>
-        GetOrCache(itemIdByNameCache, (itemName, clientLang), () => ExcelProvider.GetItemIdByName(itemName, clientLang));
+    public uint? GetItemIDByName(string itemName, Language clientLang) =>
+        GetOrCache(itemIDByNameCache, (itemName, clientLang), () => ExcelProvider.GetItemIDByName(itemName, clientLang));
 
     //
     // ========== GLOBAL ==========
@@ -105,12 +105,12 @@ public class TranslationCache(ExcelProvider excelProvider)
         // Clear action caches
         actionNameCache.Clear();
         actionDescriptionCache.Clear();
-        actionIdByNameCache.Clear();
+        actionIDByNameCache.Clear();
 
         // Clear item caches
         itemNameCache.Clear();
         itemDescriptionCache.Clear();
-        itemIdByNameCache.Clear();
+        itemIDByNameCache.Clear();
     }
 
 }

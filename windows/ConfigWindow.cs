@@ -18,11 +18,21 @@ public class ConfigWindow : Window, IDisposable
     // Log
     private const string Class = "[ConfigWindow.cs]";
 
+    // Service
+    private static IPluginLog Log => Plugin.Log;
+
     // Core components
     private readonly Configuration config;
     private readonly Plugin plugin;
     private readonly TranslationCache translationCache;
-    private readonly IPluginLog log;
+
+    // Buttons size
+    private const int ButtonPadding = 15;
+    private const int ButtonWidth = 110;
+
+    // Window size
+    private const int WindowHeight = 410;
+    private const int WindowWidth = 420;
 
     // Primary key options
     private readonly List<KeyValuePair<string, int>> keys = [new("None", -1)];
@@ -30,25 +40,24 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     // Constructor
     // ----------------------------
-    public ConfigWindow(Configuration config, Plugin plugin, TranslationCache translationCache, IPluginLog log) : base("LangSwap - Configuration###LangSwapConfig")
+    public ConfigWindow(Configuration config, Plugin plugin, TranslationCache translationCache) : base("LangSwap - Configuration###LangSwapConfig")
     {
         // Initialize core components
         this.config = config;
         this.plugin = plugin;
         this.translationCache = translationCache;
-        this.log = log;
 
         // Window settings
         Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
                 ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.AlwaysAutoResize;
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(420, 410),
-            MaximumSize = new Vector2(420, float.MaxValue)
+            MinimumSize = new Vector2(WindowWidth, WindowHeight),
+            MaximumSize = new Vector2(WindowWidth, float.MaxValue)
         };
 
         // Initialize primary keys
-        InitPrimaryKeys(keys);
+        InitPrimaryKeys();
     }
 
     // ----------------------------
@@ -56,38 +65,32 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     public override void Draw()
     {
-        // Buttons size
-        const float buttonWidth = 110f;
-        const float buttonRightPadding = 15f;
-        float buttonX = ImGui.GetWindowContentRegionMax().X - buttonWidth - buttonRightPadding;
-
         // Current state
         DrawCurrentState();
 
         // Toggle button
-        DrawToggleButton(buttonX, buttonWidth);
+        DrawToggleButton();
 
         // Target language
         DrawTargetLanguage();
 
         // Customize button
-        DrawCustomizeButton(buttonX, buttonWidth);
+        DrawCustomizeButton();
 
         // Auto Startup
         DrawAutoStartup();
 
         // Clear cache
-        DrawClearCacheButton(buttonX, buttonWidth);
+        DrawClearCacheButton();
         DrawClearCachePopup();
 
         // Information
         DrawInformation();
 
         // Toggle shortcut
-        bool shortcutEnabled = config.ShortcutEnabled;
-        DrawToggleShortcut(shortcutEnabled);
+        DrawToggleShortcut();
 
-        if (shortcutEnabled)
+        if (config.ShortcutEnabled)
         {
             // Primary key
             DrawPrimaryKey();
@@ -117,9 +120,11 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 15f);
         ImGui.AlignTextToFramePadding();
         ImGui.Text("Current state : ");
+
+        // Draw enabled/disabled state
         if (plugin.IsSwapEnabled())
         {
-            // Green "Enabled"
+            // Enabled
             ImGui.SameLine(0, 55f);
             ImGui.AlignTextToFramePadding();
             ImGui.PushStyleColor(ImGuiCol.Text, config.DarkGreen);
@@ -128,7 +133,7 @@ public class ConfigWindow : Window, IDisposable
         }
         else
         {
-            // Red "Disabled"
+            // Disabled
             ImGui.SameLine(0, 55f);
             ImGui.AlignTextToFramePadding();
             ImGui.PushStyleColor(ImGuiCol.Text, config.LightRed);
@@ -140,13 +145,16 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     // Draw toggle button
     // ----------------------------
-    private void DrawToggleButton(float buttonX, float buttonWidth)
+    private void DrawToggleButton()
     {
+        // Calculate button position
+        float buttonX = ImGui.GetWindowContentRegionMax().X - ButtonWidth - ButtonPadding;
+
         // Draw toggle button
         ImGui.SameLine();
         ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), buttonX));
         ImGui.PushStyleColor(ImGuiCol.Button, config.RedDalamud);
-        if (ImGui.Button(plugin.IsSwapEnabled() ? "Disable" : "Enable", new Vector2(buttonWidth, 0f)))
+        if (ImGui.Button(plugin.IsSwapEnabled() ? "Disable" : "Enable", new Vector2(ButtonWidth, 0f)))
         {
             // Toggle translation
             plugin.ToggleTranslation();
@@ -169,6 +177,8 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 15f);
         ImGui.AlignTextToFramePadding();
         ImGui.Text("Target Language :");
+
+        // Draw language combo box
         ImGui.SameLine(0, 15f);
         ImGui.SetNextItemWidth(120f);
         if (ImGui.Combo("##Language", ref currentLang, languages, languages.Length))
@@ -181,12 +191,15 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     // Draw customize button
     // ----------------------------
-    private void DrawCustomizeButton(float buttonX, float buttonWidth)
+    private void DrawCustomizeButton()
     {
+        // Calculate button position
+        float buttonX = ImGui.GetWindowContentRegionMax().X - ButtonWidth - ButtonPadding;
+
         // Draw customize button
         ImGui.SameLine();
         ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), buttonX));
-        if (ImGui.Button("Customize", new Vector2(buttonWidth, 0f)))
+        if (ImGui.Button("Customize", new Vector2(ButtonWidth, 0f)))
         {
             // Open customize window
             plugin.ToggleCustomizeUI();
@@ -213,12 +226,15 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     // Draw clear cache button
     // ----------------------------
-    private static void DrawClearCacheButton(float buttonX, float buttonWidth)
+    private static void DrawClearCacheButton()
     {
+        // Calculate button position
+        float buttonX = ImGui.GetWindowContentRegionMax().X - ButtonWidth - ButtonPadding;
+
         // Draw clear cache button
         ImGui.SameLine(0);
         ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), buttonX));
-        if (ImGui.Button("Clear cache", new Vector2(buttonWidth, 0)))
+        if (ImGui.Button("Clear cache", new Vector2(ButtonWidth, 0)))
         {
             // Open popup
             ImGui.OpenPopup("Confirm clear");
@@ -238,7 +254,7 @@ public class ConfigWindow : Window, IDisposable
         {
             // Clear translation cache
             translationCache.Clear();
-            log.Information($"{Class} - All translation cache cleared");
+            Log.Information($"{Class} - All translation cache cleared");
         });
     }
 
@@ -290,9 +306,10 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     // Draw toggle shortcut
     // ----------------------------
-    private void DrawToggleShortcut(bool shortcutEnabled)
+    private void DrawToggleShortcut()
     {
         // Draw toggle shortcut
+        bool shortcutEnabled = config.ShortcutEnabled;
         ImGui.SameLine(0, 15f);
         if (ImGui.Checkbox(" Toggle shortcut##ShortcutEnabled", ref shortcutEnabled))
         {
@@ -307,8 +324,8 @@ public class ConfigWindow : Window, IDisposable
     private void DrawPrimaryKey()
     {
         // Get selected index
-        int selIndex = keys.FindIndex(key => key.Value == config.PrimaryKey);
-        if (selIndex < 0) selIndex = 0;
+        int selectedIndex = keys.FindIndex(key => key.Value == config.PrimaryKey);
+        if (selectedIndex < 0) selectedIndex = 0;
 
         // Draw primary key
         ImGui.Spacing();
@@ -321,11 +338,11 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SetNextItemWidth(65f);
 
         // Get key names
-        string[] keyNames = [.. keys.ConvertAll(k => k.Key)];
-        if (ImGui.Combo("##PrimaryKey", ref selIndex, keyNames, keyNames.Length))
+        string[] keyNames = [.. keys.ConvertAll(key => key.Key)];
+        if (ImGui.Combo("##PrimaryKey", ref selectedIndex, keyNames, keyNames.Length))
         {
             // Change primary key
-            PrimaryKeyChange(keys[selIndex].Value, () => config.PrimaryKey = keys[selIndex].Value);
+            PrimaryKeyChange(keys[selectedIndex].Value, () => config.PrimaryKey = keys[selectedIndex].Value);
         }
     }
 
@@ -339,6 +356,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 24f);
         if (ImGui.Checkbox(" Ctrl", ref ctrl))
         {
+            // Change ctrl key
             CommonSettingChange("Ctrl", ctrl, () => config.Ctrl = ctrl);
         }
 
@@ -347,6 +365,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 13f);
         if (ImGui.Checkbox(" Alt", ref alt))
         {
+            // Change alt key
             CommonSettingChange("Alt", alt, () => config.Alt = alt);
         }
 
@@ -355,6 +374,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SameLine(0, 13f);
         if (ImGui.Checkbox(" Shift", ref shift))
         {
+            // Change shift key
             CommonSettingChange("Shift", shift, () => config.Shift = shift);
         }
     }
@@ -483,23 +503,23 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     // Initialize primary keys
     // ----------------------------
-    private static void InitPrimaryKeys(List<KeyValuePair<string, int>> keys)
+    private void InitPrimaryKeys()
     {
-        // Letters A-Z
-        int startA = (int)VirtualKey.A;
-        int endZ = (int)VirtualKey.Z;
-        for (int i = startA; i <= endZ; i++)
+        // Letters A - Z
+        int start1 = (int)VirtualKey.A;
+        int end1 = (int)VirtualKey.Z;
+        for (int i = start1; i <= end1; i++)
         {
             // Add key name and value to list
             keys.Add(new KeyValuePair<string, int>(((VirtualKey)i).ToString(), i));
         }
 
-        // Function keys F1-F12
+        // Function keys F1 - F12
         if (Enum.TryParse<VirtualKey>("F1", out _))
         {
-            int startF1 = (int)VirtualKey.F1;
-            int endF12 = (int)VirtualKey.F12;
-            for (int j = startF1; j <= endF12; j++)
+            int start2 = (int)VirtualKey.F1;
+            int end2 = (int)VirtualKey.F12;
+            for (int j = start2; j <= end2; j++)
             {
                 // Add key name and value to list
                 keys.Add(new KeyValuePair<string, int>(((VirtualKey)j).ToString(), j));
@@ -513,7 +533,7 @@ public class ConfigWindow : Window, IDisposable
     private void CommonSettingChange(string settingName, bool value, Action applyChange)
     {
         // Log
-        log.Information($"{Class} - Setting {settingName} to {value}");
+        Log.Information($"{Class} - Setting {settingName} to {value}");
 
         // Apply change
         applyChange();
@@ -523,12 +543,30 @@ public class ConfigWindow : Window, IDisposable
     }
 
     // ----------------------------
+    // UI component change
+    // ----------------------------
+    private void UIComponentChange(string settingName, bool value, Action applyChange)
+    {
+        // Log
+        Log.Information($"{Class} - Setting {settingName} to {value}");
+
+        // Apply change
+        applyChange();
+
+        // Save config
+        config.Save();
+
+        // Apply new UI components immediately
+        plugin.ApplyNewUIComponents();
+    }
+
+    // ----------------------------
     // Target language change
     // ----------------------------
     private void TargetLanguageChange(Language targetLanguage, Action applyChange)
     {
         // Log
-        log.Information($"{Class} - Setting target language to {Enum.GetName(targetLanguage)} ({targetLanguage})");
+        Log.Information($"{Class} - Setting target language to {Enum.GetName(targetLanguage)} ({targetLanguage})");
 
         // Apply change
         applyChange();
@@ -546,31 +584,13 @@ public class ConfigWindow : Window, IDisposable
     private void PrimaryKeyChange(int value, Action applyChange)
     {
         // Log
-        log.Information($"{Class} - Setting PrimaryKey to {value}");
+        Log.Information($"{Class} - Setting PrimaryKey to {value}");
 
         // Apply change
         applyChange();
 
         // Save config
         config.Save();
-    }
-
-    // ----------------------------
-    // UI component change
-    // ----------------------------
-    private void UIComponentChange(string settingName, bool value, Action applyChange)
-    {
-        // Log
-        log.Information($"{Class} - Setting {settingName} to {value}");
-
-        // Apply change
-        applyChange();
-
-        // Save config
-        config.Save();
-
-        // Apply new UI components immediately
-        plugin.ApplyNewUIComponents();
     }
 
     // ----------------------------

@@ -1,5 +1,4 @@
 using Dalamud.Game;
-using Dalamud.IoC;
 using Dalamud.Plugin.Services;
 using LangSwap.translation.@base;
 using LangSwap.translation.model;
@@ -18,11 +17,9 @@ public class ExcelProvider(Configuration config)
     // Log
     private const string Class = "[ExcelProvider.cs]";
 
-    // Service
-    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
-
-    // Service
-    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
+    // Services
+    private static IDataManager DataManager => Plugin.DataManager;
+    private static IPluginLog Log => Plugin.Log;
 
     //
     // ========== BASE PARAMS ==========
@@ -44,24 +41,24 @@ public class ExcelProvider(Configuration config)
             }
 
             // Find the row ID matching the client language name
-            uint? rowId = null;
+            uint? rowID = null;
             foreach (BaseParam row in clientSheet)
             {
                 if (row.Name.ToString().Equals(paramName, StringComparison.OrdinalIgnoreCase))
                 {
-                    rowId = row.RowId;
+                    rowID = row.RowId;
                     break;
                 }
             }
 
             // Check if row ID is found
-            if (rowId == null) return null;
+            if (rowID == null) return null;
 
             // Get the BaseParam sheet for the target language
             ExcelSheet<BaseParam> targetSheet = DataManager.GetExcelSheet<BaseParam>(EnumToClientLang(targetLang));
 
             // Try to get the translated name using the row ID
-            if (targetSheet != null && targetSheet.TryGetRow(rowId.Value, out BaseParam translatedParam)) return translatedParam.Name.ToString();
+            if (targetSheet != null && targetSheet.TryGetRow(rowID.Value, out BaseParam translatedParam)) return translatedParam.Name.ToString();
 
             // No match found
             return null;
@@ -80,14 +77,14 @@ public class ExcelProvider(Configuration config)
     // ----------------------------
     // Get action
     // ----------------------------
-    private Lumina.Excel.Sheets.Action? GetAction(uint actionId, Language targetLang)
+    private Lumina.Excel.Sheets.Action? GetAction(uint actionID, Language targetLang)
     {
         try
         {
             // Validate action ID range
-            if (actionId < 1 || actionId > config.MaxValidActionId)
+            if (actionID < 1 || actionID > config.MaxValidActionID)
             {
-                Log.Warning($"{Class} - Action ID {actionId} is out of valid range (1-{config.MaxValidActionId})");
+                Log.Warning($"{Class} - Action ID {actionID} is out of valid range (1-{config.MaxValidActionID})");
                 return null;
             }
 
@@ -100,9 +97,9 @@ public class ExcelProvider(Configuration config)
             }
 
             // Try to get the action row
-            if (!actionSheet.TryGetRow(actionId, out Lumina.Excel.Sheets.Action action))
+            if (!actionSheet.TryGetRow(actionID, out Lumina.Excel.Sheets.Action action))
             {
-                Log.Warning($"{Class} - Action {actionId} not found in sheet for language {targetLang}");
+                Log.Warning($"{Class} - Action {actionID} not found in sheet for language {targetLang}");
                 return null;
             }
 
@@ -111,7 +108,7 @@ public class ExcelProvider(Configuration config)
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Exception while getting action {actionId} in language {targetLang}");
+            Log.Error(ex, $"{Class} - Exception while getting action {actionID} in language {targetLang}");
             return null;
         }
     }
@@ -119,14 +116,14 @@ public class ExcelProvider(Configuration config)
     // ----------------------------
     // Get action transient (for description)
     // ----------------------------
-    private Lumina.Excel.Sheets.ActionTransient? GetActionTransient(uint actionId, Language targetLang)
+    private Lumina.Excel.Sheets.ActionTransient? GetActionTransient(uint actionID, Language targetLang)
     {
         try
         {
             // Validate action ID range
-            if (actionId < 1 || actionId > config.MaxValidActionId)
+            if (actionID < 1 || actionID > config.MaxValidActionID)
             {
-                Log.Warning($"{Class} - Action transient ID {actionId} is out of valid range (1-{config.MaxValidActionId})");
+                Log.Warning($"{Class} - Action transient ID {actionID} is out of valid range (1-{config.MaxValidActionID})");
                 return null;
             }
 
@@ -139,9 +136,9 @@ public class ExcelProvider(Configuration config)
             }
 
             // Try to get the action row
-            if (!actionTransientSheet.TryGetRow(actionId, out Lumina.Excel.Sheets.ActionTransient action))
+            if (!actionTransientSheet.TryGetRow(actionID, out Lumina.Excel.Sheets.ActionTransient action))
             {
-                Log.Warning($"{Class} - Action transient {actionId} not found in sheet for language {targetLang}");
+                Log.Warning($"{Class} - Action transient {actionID} not found in sheet for language {targetLang}");
                 return null;
             }
 
@@ -150,7 +147,7 @@ public class ExcelProvider(Configuration config)
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Exception while getting action transient {actionId} in language {targetLang}");
+            Log.Error(ex, $"{Class} - Exception while getting action transient {actionID} in language {targetLang}");
             return null;
         }
     }
@@ -158,10 +155,10 @@ public class ExcelProvider(Configuration config)
     // ----------------------------
     // Get action name
     // ----------------------------
-    public string? GetActionName(uint actionId, Language targetLang)
+    public string? GetActionName(uint actionID, Language targetLang)
     {
         // Get the action
-        Lumina.Excel.Sheets.Action? action = GetAction(actionId, targetLang);
+        Lumina.Excel.Sheets.Action? action = GetAction(actionID, targetLang);
         if (action == null) return null;
 
         // Return the action name
@@ -171,10 +168,10 @@ public class ExcelProvider(Configuration config)
     // ----------------------------
     // Get action description
     // ----------------------------
-    public string? GetActionDescription(uint actionId, Language targetLang)
+    public string? GetActionDescription(uint actionID, Language targetLang)
     {
         // Get the action transient
-        ActionTransient? actionTransient = GetActionTransient(actionId, targetLang);
+        ActionTransient? actionTransient = GetActionTransient(actionID, targetLang);
         if (actionTransient == null) return null;
 
         // Return the action description
@@ -184,8 +181,8 @@ public class ExcelProvider(Configuration config)
     // ----------------------------
     // Get action ID by name (reverse lookup)
     // ----------------------------
-    public static uint? GetActionIdByName(string actionName, Language clientLang)
-        => GetIdByName<Lumina.Excel.Sheets.Action>(actionName, clientLang, action => action.Name.ToString());
+    public static uint? GetActionIDByName(string actionName, Language clientLang)
+        => GetIDByName<Lumina.Excel.Sheets.Action>(actionName, clientLang, action => action.Name.ToString());
 
     // ----------------------------
     // Get all obfuscated actions
@@ -205,7 +202,7 @@ public class ExcelProvider(Configuration config)
                 foreach (Lumina.Excel.Sheets.Action action in actionSheet)
                 {
                     // Get action ID
-                    int actionId = (int)action.RowId;
+                    int actionID = (int)action.RowId;
 
                     // Get action name
                     string actionName = action.Name.ToString();
@@ -214,14 +211,14 @@ public class ExcelProvider(Configuration config)
                     if (!string.IsNullOrWhiteSpace(actionName) && actionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
                     {
                         // Add to the set of obfuscated translations
-                        obfuscatedTranslations.Add(new ObfuscatedTranslation { Id = actionId, ObfuscatedName = actionName });
+                        obfuscatedTranslations.Add(new ObfuscatedTranslation { ID = actionID, ObfuscatedName = actionName });
                     }
                 }
             }
 
             // Convert to list and sort by ID
             List<ObfuscatedTranslation> list = [.. obfuscatedTranslations];
-            list.Sort((a, b) => a.Id.CompareTo(b.Id));
+            list.Sort((a, b) => a.ID.CompareTo(b.ID));
 
             // Return obfuscated translations
             return list;
@@ -240,14 +237,14 @@ public class ExcelProvider(Configuration config)
     // ----------------------------
     // Get item
     // ----------------------------
-    private Item? GetItem(uint itemId, Language targetLang)
+    private Item? GetItem(uint itemID, Language targetLang)
     {
         try
         {
             // Validate item ID range
-            if (itemId < 1 || itemId > config.MaxValidItemId)
+            if (itemID < 1 || itemID > config.MaxValidItemID)
             {
-                Log.Warning($"{Class} - Item ID {itemId} is out of valid range (1-{config.MaxValidItemId})");
+                Log.Warning($"{Class} - Item ID {itemID} is out of valid range (1-{config.MaxValidItemID})");
                 return null;
             }
 
@@ -260,9 +257,9 @@ public class ExcelProvider(Configuration config)
             }
 
             // Try to get the item row
-            if (!itemSheet.TryGetRow(itemId, out Item item))
+            if (!itemSheet.TryGetRow(itemID, out Item item))
             {
-                Log.Warning($"{Class} - Item {itemId} not found in sheet for language {targetLang}");
+                Log.Warning($"{Class} - Item {itemID} not found in sheet for language {targetLang}");
                 return null;
             }
 
@@ -271,7 +268,7 @@ public class ExcelProvider(Configuration config)
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Exception while getting item {itemId} in language {targetLang}");
+            Log.Error(ex, $"{Class} - Exception while getting item {itemID} in language {targetLang}");
             return null;
         }
     }
@@ -279,10 +276,10 @@ public class ExcelProvider(Configuration config)
     // ----------------------------
     // Get item name
     // ----------------------------
-    public string? GetItemName(uint itemId, Language targetLang)
+    public string? GetItemName(uint itemID, Language targetLang)
     {
         // Get item
-        Item? item = GetItem(itemId, targetLang);
+        Item? item = GetItem(itemID, targetLang);
         if (item == null) return null;
 
         // Return item name
@@ -292,10 +289,10 @@ public class ExcelProvider(Configuration config)
     // ----------------------------
     // Get item description
     // ----------------------------
-    public string? GetItemDescription(uint itemId, Language targetLang)
+    public string? GetItemDescription(uint itemID, Language targetLang)
     {
         // Get item
-        Item? item = GetItem(itemId, targetLang);
+        Item? item = GetItem(itemID, targetLang);
         if (item == null) return null;
 
         // Return item description
@@ -305,8 +302,8 @@ public class ExcelProvider(Configuration config)
     // ----------------------------
     // Get item ID by name (reverse lookup)
     // ----------------------------
-    public static uint? GetItemIdByName(string itemName, Language clientLang)
-        => GetIdByName<Item>(itemName, clientLang, item => item.Name.ToString());
+    public static uint? GetItemIDByName(string itemName, Language clientLang)
+        => GetIDByName<Item>(itemName, clientLang, item => item.Name.ToString());
 
     //
     // ========== GLOBAL ==========
@@ -315,7 +312,7 @@ public class ExcelProvider(Configuration config)
     // ----------------------------
     // Get row ID by name (reverse lookup)
     // ---------------------------
-    private static uint? GetIdByName<TSheet>(string name, Language clientLang, Func<TSheet, string> getName)
+    private static uint? GetIDByName<TSheet>(string name, Language clientLang, Func<TSheet, string> getName)
         where TSheet : struct, IExcelRow<TSheet>
     {
         try

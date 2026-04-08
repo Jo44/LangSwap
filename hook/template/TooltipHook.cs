@@ -19,8 +19,8 @@ public unsafe abstract class TooltipHook(Configuration config, TranslationCache 
     private const string Class = "[TooltipBaseHook.cs]";
 
     // Services
-    [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
-    [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
+    private static IGameInteropProvider GameInterop => Plugin.GameInterop;
+    private static ISigScanner SigScanner => Plugin.SigScanner;
 
     // Delegate function
     protected delegate void* TooltipDelegate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);

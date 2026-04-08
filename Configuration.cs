@@ -113,8 +113,8 @@ public class Configuration : IPluginConfiguration
     public int ItemMateriaStatEndField { get; } = 62;
 
     // Miscellaneous
-    public int MaxValidActionId { get; } = 100000;
-    public int MaxValidItemId { get; } = 100000;
+    public int MaxValidActionID { get; } = 100000;
+    public int MaxValidItemID { get; } = 100000;
 
     // Symbols
     public char GlamouredSymbol { get; } = '\uE03B'; // Mirage symbol

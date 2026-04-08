@@ -8,7 +8,7 @@ namespace LangSwap.translation.model;
 [Serializable]
 public class ObfuscatedTranslation
 {
-    public int Id { get; set; } = 0;
+    public int ID { get; set; } = 0;
     public string ObfuscatedName { get; set; } = string.Empty;
     public string EnglishName { get; set; } = string.Empty;
     public string FrenchName { get; set; } = string.Empty;

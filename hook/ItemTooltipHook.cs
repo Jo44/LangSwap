@@ -16,10 +16,6 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
     // Log
     private const string Class = "[ItemTooltipHook.cs]";
 
-    // Symbols
-    private readonly char glamouredSymbol = config.GlamouredSymbol;
-    private readonly char highQualitySymbol = config.HighQualitySymbol;
-
     // Memory signature
     protected override string MemorySignature => config.ItemTooltipSignature;
 
@@ -69,13 +65,13 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
                         if (isHighQualityItem) itemName = UnsetHighQuality(itemName);
 
                         // Get item ID
-                        uint itemId = translationCache.GetItemIdByName(itemName, clientLang) ?? 0;
-                        if (itemId > 0 && itemId <= config.MaxValidItemId)
+                        uint itemID = translationCache.GetItemIDByName(itemName, clientLang) ?? 0;
+                        if (itemID > 0 && itemID <= config.MaxValidItemID)
                         {
                             /* Item name */
 
                             // Translate item name
-                            string translatedItemName = TranslateItemName(itemId, isHighQualityItem, targetLang);
+                            string translatedItemName = TranslateItemName(itemID, isHighQualityItem, targetLang);
 
                             // Apply translated item name
                             if (!string.IsNullOrWhiteSpace(translatedItemName))
@@ -100,11 +96,11 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
                                 if (isHighQualityGlamour) glamourName = UnsetHighQuality(glamourName);
 
                                 // Get glamour ID
-                                uint glamourId = translationCache.GetItemIdByName(glamourName, clientLang) ?? 0;
-                                if (glamourId > 0 && glamourId <= config.MaxValidItemId)
+                                uint glamourID = translationCache.GetItemIDByName(glamourName, clientLang) ?? 0;
+                                if (glamourID > 0 && glamourID <= config.MaxValidItemID)
                                 {
                                     // Translate glamour name
-                                    string translatedGlamourName = TranslateGlamourName(glamourId, isHighQualityGlamour, targetLang);
+                                    string translatedGlamourName = TranslateGlamourName(glamourID, isHighQualityGlamour, targetLang);
 
                                     // Apply translated glamour name
                                     if (!string.IsNullOrWhiteSpace(translatedGlamourName))
@@ -120,7 +116,7 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
                             /* Description */
 
                             // Translate description
-                            string translatedDescription = TranslateDescription(itemId, targetLang);
+                            string translatedDescription = TranslateDescription(itemID, targetLang);
 
                             // Apply translated description
                             if (!string.IsNullOrWhiteSpace(translatedDescription))
@@ -178,11 +174,11 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
                                 string materiaName = ReadStringFromArrayData(stringArrayData, j);
 
                                 // Get materia ID
-                                uint materiaId = translationCache.GetItemIdByName(materiaName, clientLang) ?? 0;
-                                if (materiaId > 0 && materiaId <= config.MaxValidItemId)
+                                uint materiaID = translationCache.GetItemIDByName(materiaName, clientLang) ?? 0;
+                                if (materiaID > 0 && materiaID <= config.MaxValidItemID)
                                 {
                                     // Translate materia name
-                                    string translatedMateriaName = TranslateMateriaName(materiaId, targetLang);
+                                    string translatedMateriaName = TranslateMateriaName(materiaID, targetLang);
 
                                     // Apply translated materia name
                                     if (!string.IsNullOrWhiteSpace(translatedMateriaName))
@@ -232,10 +228,10 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
     // ----------------------------
     // Translate item name
     // ----------------------------
-    private string TranslateItemName(uint itemId, bool isHighQuality, Language targetLang)
+    private string TranslateItemName(uint itemID, bool isHighQuality, Language targetLang)
     {
         // Get translated item name from item ID
-        string translatedItemName = translationCache.GetItemName(itemId, targetLang) ?? string.Empty;
+        string translatedItemName = translationCache.GetItemName(itemID, targetLang) ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(translatedItemName))
         {
             // Reapply high quality symbol if it was present
@@ -248,10 +244,10 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
     // ----------------------------
     // Translate glamour name
     // ----------------------------
-    private string TranslateGlamourName(uint glamourId, bool isHighQualityGlamour, Language targetLang)
+    private string TranslateGlamourName(uint glamourID, bool isHighQualityGlamour, Language targetLang)
     {
         // Get translated glamour name from glamour ID
-        string translatedGlamourName = translationCache.GetItemName(glamourId, targetLang) ?? string.Empty;
+        string translatedGlamourName = translationCache.GetItemName(glamourID, targetLang) ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(translatedGlamourName))
         {
             // Reapply glamour symbol
@@ -267,10 +263,10 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
     // ----------------------------
     // Translate description
     // ----------------------------
-    private string TranslateDescription(uint itemId, Language targetLang)
+    private string TranslateDescription(uint itemID, Language targetLang)
     {
         // Get translated description from item ID
-        return translationCache.GetItemDescription(itemId, targetLang) ?? string.Empty;
+        return translationCache.GetItemDescription(itemID, targetLang) ?? string.Empty;
     }
 
     // ----------------------------
@@ -329,10 +325,10 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
     // ----------------------------
     // Translate materia name
     // ----------------------------
-    private string TranslateMateriaName(uint materiaId, Language targetLang)
+    private string TranslateMateriaName(uint materiaID, Language targetLang)
     {
         // Get translated materia name from materia ID
-        return translationCache.GetItemName(materiaId, targetLang) ?? string.Empty;
+        return translationCache.GetItemName(materiaID, targetLang) ?? string.Empty;
     }
 
     // ----------------------------
@@ -387,7 +383,7 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
     // ----------------------------
     private bool IsHighQuality(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) return text.Contains(highQualitySymbol);
+        if (!string.IsNullOrWhiteSpace(text)) return text.Contains(config.HighQualitySymbol);
         else return false;
     }
 
@@ -396,7 +392,7 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
     // ----------------------------
     private string SetHighQuality(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) return text + " " + highQualitySymbol;
+        if (!string.IsNullOrWhiteSpace(text)) return text + " " + config.HighQualitySymbol;
         else return text;
     }
 
@@ -405,7 +401,7 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
     // ----------------------------
     private string UnsetHighQuality(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) return text.Replace(highQualitySymbol.ToString(), "").Trim();
+        if (!string.IsNullOrWhiteSpace(text)) return text.Replace(config.HighQualitySymbol.ToString(), "").Trim();
         else return text;
     }
 
@@ -414,7 +410,7 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
     // ----------------------------
     private string SetGlamour(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) return glamouredSymbol + " " + text;
+        if (!string.IsNullOrWhiteSpace(text)) return config.GlamouredSymbol + " " + text;
         else return text;
     }
 
@@ -423,7 +419,7 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
     // ----------------------------
     private string UnsetGlamour(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text)) return text.Replace(glamouredSymbol.ToString(), "").Trim();
+        if (!string.IsNullOrWhiteSpace(text)) return text.Replace(config.GlamouredSymbol.ToString(), "").Trim();
         else return text;
     }
 

@@ -27,12 +27,19 @@ public sealed class Plugin : IDalamudPlugin
     private const string Class = "[Plugin.cs]";
 
     // Services
+    [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IDalamudPluginInterface DalamudPluginInterface { get; private set; } = null!;
+    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
+    [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
+    [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
+    [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+    [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
+    [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     // Core components
@@ -112,9 +119,9 @@ public sealed class Plugin : IDalamudPlugin
 
             // Initialize windows
             Log.Information($"{Class} === LangSwap : Windows ===");
-            configWindow = new(config, this, translationCache, Log);
-            customizeWindow = new(config, Log);
-            debugWindow = new(config, excelProvider, Log);
+            configWindow = new(config, this, translationCache);
+            customizeWindow = new(config);
+            debugWindow = new(config, excelProvider);
 
             // Register windows
             windowSystem.AddWindow(configWindow);
@@ -268,7 +275,7 @@ public sealed class Plugin : IDalamudPlugin
         // Get client language
         ClientLanguage lang = ClientState.ClientLanguage;
 
-        // Store detected language in configuration
+        // Convert to Language enum
         config.ClientLanguage = ClientLangToLang(lang);
 
         // Save configuration
@@ -287,10 +294,10 @@ public sealed class Plugin : IDalamudPlugin
         return lang switch
         {
             ClientLanguage.Japanese => Language.Japanese,
-            ClientLanguage.English => Language.English,
-            ClientLanguage.German => Language.German,
-            ClientLanguage.French => Language.French,
-            _ => Language.English
+            ClientLanguage.English  => Language.English,
+            ClientLanguage.German   => Language.German,
+            ClientLanguage.French   => Language.French,
+            _                       => Language.English
         };
     }
 
@@ -333,6 +340,44 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
+    // Log obfuscated translations
+    // ----------------------------
+    private static void LogObfuscatedTranslations(string listName, List<ObfuscatedTranslation> translations)
+    {
+        // Count translations
+        int count = translations?.Count ?? 0;
+        Log.Information($"{Class} - {listName} ({count})");
+
+        // Check for empty list
+        if (translations == null || translations.Count == 0) return;
+
+        // Log each translation
+        foreach (ObfuscatedTranslation translation in translations)
+        {
+            Log.Debug($"{Class} - ID = {translation.ID}, Obfuscated = {translation.ObfuscatedName}, English = {translation.EnglishName}, French = {translation.FrenchName}, German = {translation.GermanName}, Japanese = {translation.JapaneseName}");
+        }
+    }
+
+    // ----------------------------
+    // Log alternative translations
+    // ----------------------------
+    private static void LogAlternativeTranslations(string listName, List<AlternativeTranslation> translations)
+    {
+        // Count translations
+        int count = translations?.Count ?? 0;
+        Log.Information($"{Class} - {listName} ({count})");
+
+        // Check for empty list
+        if (translations == null || translations.Count == 0) return;
+
+        // Log each translation
+        foreach (AlternativeTranslation translation in translations)
+        {
+            Log.Debug($"{Class} - Spell = {translation.SpellName}, Alternative = {translation.AlternativeName}");
+        }
+    }
+
+    // ----------------------------
     // Check if the shortcut is currently pressed
     // ----------------------------
     private bool IsShortcutPressed()
@@ -365,106 +410,29 @@ public sealed class Plugin : IDalamudPlugin
     {
         try
         {
-            // Attempt to convert vkCode to VirtualKey enum
+            // Get the underlying type of the VirtualKey enum
             Type underlying = Enum.GetUnderlyingType(typeof(VirtualKey));
-            VirtualKey converted;
-            try
-            {
-                converted = (VirtualKey)Convert.ChangeType(vkCode, underlying);
-            }
-            catch
-            {
-                int rawFallback = KeyState.GetRawValue(vkCode);
-                return rawFallback != 0;
-            }
+
+            // Convert the integer vkCode to the underlying type
+            VirtualKey converted = (VirtualKey)Convert.ChangeType(vkCode, underlying);
 
             // Check if the converted value is a defined VirtualKey
             if (Enum.IsDefined(converted))
             {
+                // Get the VirtualKey
                 VirtualKey vk = (VirtualKey)Enum.ToObject(typeof(VirtualKey), converted);
-                if (KeyState.IsVirtualKeyValid(vk))
-                {
-                    int raw = KeyState.GetRawValue(vk);
-                    return raw != 0;
-                }
+
+                // Return true if the key is down
+                if (KeyState.IsVirtualKeyValid(vk)) return KeyState.GetRawValue(vk) != 0;
             }
 
-            // Fallback to raw value check
-            int rawInt = KeyState.GetRawValue(vkCode);
-            return rawInt != 0;
-        }
-        catch (Exception ex)
-        {
-            Log.Warning($"{Class} - ShortcutDetector.IsKeyDown exception for vk = {vkCode} : {ex.Message}");
+            // Return false
             return false;
         }
-    }
-
-    // ----------------------------
-    // Log obfuscated translations
-    // ----------------------------
-    private static void LogObfuscatedTranslations(string listName, List<ObfuscatedTranslation> translations)
-    {
-        // Count translations
-        int count = translations?.Count ?? 0;
-        Log.Information($"{Class} - {listName} ({count})");
-
-        // Check for empty list
-        if (translations == null || translations.Count == 0) return;
-
-        // Log each translation
-        foreach (ObfuscatedTranslation translation in translations)
-        {
-            Log.Debug($"{Class} - ID = {translation.Id}, Obfuscated = {translation.ObfuscatedName}, English = {translation.EnglishName}, French = {translation.FrenchName}, German = {translation.GermanName}, Japanese = {translation.JapaneseName}");
-        }
-    }
-
-    // ----------------------------
-    // Log alternative translations
-    // ----------------------------
-    private static void LogAlternativeTranslations(string listName, List<AlternativeTranslation> alternativeTranslations)
-    {
-        // Count translations
-        int count = alternativeTranslations?.Count ?? 0;
-        Log.Information($"{Class} - {listName} ({count})");
-
-        // Check for empty list
-        if (alternativeTranslations == null || alternativeTranslations.Count == 0) return;
-
-        // Log each translation
-        foreach (AlternativeTranslation translation in alternativeTranslations)
-        {
-            Log.Debug($"{Class} - Spell = {translation.SpellName}, Alternative = {translation.AlternativeName}");
-        }
-    }
-
-    // ----------------------------
-    // Chat logging
-    // ----------------------------
-    private static void ChatLog(string message)
-    {
-        // Check for empty message
-        if (string.IsNullOrWhiteSpace(message)) return;
-
-        try
-        {
-            // Build log message
-            SeString log = new(new Payload[]
-            {
-                new UIForegroundPayload(45),
-                new TextPayload("[LangSwap] "),
-                new UIForegroundPayload(0),
-                new UIForegroundPayload(57),
-                new TextPayload(message),
-                new UIForegroundPayload(0)
-            });
-
-            // Print to chat
-            ChatGui?.Print(log);
-        }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Failed to print chat log");
+            Log.Warning($"{Class} - IsKeyDown exception for vk = {vkCode} : {ex.Message}");
+            return false;
         }
     }
 
@@ -518,6 +486,41 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
+    // Chat logging
+    // ----------------------------
+    private static void ChatLog(string message)
+    {
+        // Check for empty message
+        if (string.IsNullOrWhiteSpace(message)) return;
+
+        try
+        {
+            // Build log message
+            SeString log = new(new Payload[]
+            {
+                new UIForegroundPayload(45),
+                new TextPayload("[LangSwap] "),
+                new UIForegroundPayload(0),
+                new UIForegroundPayload(57),
+                new TextPayload(message),
+                new UIForegroundPayload(0)
+            });
+
+            // Print to chat
+            ChatGui?.Print(log);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"{Class} - Failed to print chat log");
+        }
+    }
+
+    // ----------------------------
+    // Command handler
+    // ----------------------------
+    private void OnCommand(string command, string args) => configWindow.Toggle();
+
+    // ----------------------------
     // Swap state
     // ----------------------------
     public bool IsSwapEnabled() => isSwapEnabled;
@@ -526,11 +529,6 @@ public sealed class Plugin : IDalamudPlugin
     // Toggle translation
     // ----------------------------
     public void ToggleTranslation() => ToggleLanguageSwap();
-
-    // ----------------------------
-    // Command handler
-    // ----------------------------
-    private void OnCommand(string command, string args) => configWindow.Toggle();
 
     // ----------------------------
     // Toggle config UI

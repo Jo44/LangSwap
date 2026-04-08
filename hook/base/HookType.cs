@@ -1,9 +1,9 @@
 ﻿namespace LangSwap.hook.@base
 {
     // ----------------------------
-    // Enumeration for supported hooks
+    // Enumeration for supported hooks types
     // ----------------------------
-    public enum Hook
+    public enum HookType
     {
         ActionTooltip = 0,
         ItemTooltip = 1,

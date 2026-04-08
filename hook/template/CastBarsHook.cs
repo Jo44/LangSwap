@@ -9,7 +9,7 @@ using LangSwap.translation;
 using System;
 using System.Collections.Generic;
 
-namespace LangSwap.hook.ttt;
+namespace LangSwap.hook.template;
 
 // ----------------------------
 // Base class for all castbars hooks
@@ -33,16 +33,26 @@ public unsafe abstract class CastBarsHook(
     // ----------------------------
     // Update cast bar
     // ----------------------------
-    protected virtual void UpdateCastBar(AtkUnitBase* addon, uint actionId, Addon addonType, string addonName)
+    protected virtual void UpdateCastBar(AtkUnitBase* addon, AddonType addonType, string addonName, uint actionId)
     {
         // TODO : clean up
         try
         {
-            // Only update if language is swapped, we have a valid action ID and the addon is visible
-            if (!isLanguageSwapped || actionId == 0 || addon == null || !addon -> IsVisible) return;
+            // Only update if we have a valid action ID and the addon is visible
+            if (actionId == 0 || actionId > config.MaxValidActionId || addon == null || !addon -> IsVisible) return;
+
+            // Get the component field
+            int fieldIndex = addonType switch
+            {
+                AddonType.CastBar       => config.CastBarField,
+                AddonType.TargetInfo    => config.TargetInfoField,
+                AddonType.TargetCastBar => config.TargetCastBarField,
+                AddonType.FocusCastBar  => config.FocusCastBarField,
+                _                   => throw new ArgumentOutOfRangeException(nameof(addonType))
+            };
 
             // Get the text node
-            AtkResNode* fieldNode = addon -> UldManager.NodeList[fieldIndex];
+            AtkResNode * fieldNode = addon -> UldManager.NodeList[fieldIndex];
             if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
             AtkTextNode* textNode = (AtkTextNode*)fieldNode;
             if (textNode == null || textNode -> NodeText.Length == 0) return;
@@ -63,14 +73,14 @@ public unsafe abstract class CastBarsHook(
     // ----------------------------
     // Update list
     // ----------------------------
-    protected void UpdateList(AtkUnitBase* addon, uint[] entityIDs, Addon addonType, string addonName)
+    protected void UpdateList(AtkUnitBase* addon, AddonType addonType, string addonName, uint[] entityIDs)
     {
         // TODO : clean up
         try
         {
             if (!isLanguageSwapped || addon == null || !addon -> IsVisible) return;
 
-            ObjectKind objectKind = (addonType == Addon.) ? ObjectKind.Player : ObjectKind.BattleNpc;
+            ObjectKind objectKind = (addonType == AddonType.) ? ObjectKind.Player : ObjectKind.BattleNpc;
 
             // Build current-tick EntityId -> CastActionId snapshot
             Dictionary<uint, uint> currentCasts = [];

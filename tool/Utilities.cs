@@ -42,10 +42,10 @@ public unsafe class Utilities(
         return lang switch
         {
             ClientLanguage.Japanese => Language.Japanese,
-            ClientLanguage.English => Language.English,
-            ClientLanguage.German => Language.German,
-            ClientLanguage.French => Language.French,
-            _ => Language.English
+            ClientLanguage.English  => Language.English,
+            ClientLanguage.German   => Language.German,
+            ClientLanguage.French   => Language.French,
+            _                       => Language.English
         };
     }
 
@@ -58,10 +58,10 @@ public unsafe class Utilities(
         return lang switch
         {
             Language.Japanese => ClientLanguage.Japanese,
-            Language.English => ClientLanguage.English,
-            Language.German => ClientLanguage.German,
-            Language.French => ClientLanguage.French,
-            _ => ClientLanguage.English
+            Language.English  => ClientLanguage.English,
+            Language.German   => ClientLanguage.German,
+            Language.French   => ClientLanguage.French,
+            _                 => ClientLanguage.English
         };
     }
 
@@ -439,10 +439,10 @@ public unsafe class Utilities(
                 return targetLanguage switch
                 {
                     Language.Japanese => obfuscatedTranslation.JapaneseName,
-                    Language.English => obfuscatedTranslation.EnglishName,
-                    Language.German => obfuscatedTranslation.GermanName,
-                    Language.French => obfuscatedTranslation.FrenchName,
-                    _ => obfuscatedTranslation.EnglishName,
+                    Language.English  => obfuscatedTranslation.EnglishName,
+                    Language.German   => obfuscatedTranslation.GermanName,
+                    Language.French   => obfuscatedTranslation.FrenchName,
+                    _                 => obfuscatedTranslation.EnglishName,
                 };
             }
         }

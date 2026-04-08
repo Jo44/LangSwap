@@ -5,7 +5,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using LangSwap.hook.@base;
-using LangSwap.hook.ttt;
+using LangSwap.hook.template;
 using LangSwap.tool;
 using LangSwap.translation;
 using System;
@@ -76,7 +76,7 @@ public unsafe class EnemiesCastBarsHook(
         if (config.EnemiesCastBarsTarget)
         {
             uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.BattleNpc && t.IsCasting ? (uint)t.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), actionId, Addon.Ennemies, "target info");
+            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), actionId, AddonType.Ennemies, "target info");
         }
     }
 
@@ -88,7 +88,7 @@ public unsafe class EnemiesCastBarsHook(
         if (config.EnemiesCastBarsTarget)
         {
             uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.BattleNpc && t.IsCasting ? (uint)t.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), actionId, Addon.Ennemies, "target castbar");
+            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), actionId, AddonType.Ennemies, "target castbar");
         }
     }
 
@@ -100,7 +100,7 @@ public unsafe class EnemiesCastBarsHook(
         if (config.EnemiesCastBarsFocus)
         {
             uint actionId = targetManager.FocusTarget is IBattleChara f && f.ObjectKind == ObjectKind.BattleNpc && f.IsCasting ? (uint)f.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), actionId, Addon.Ennemies, "focus castbar");
+            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), actionId, AddonType.Ennemies, "focus castbar");
         }
     }
 
@@ -118,7 +118,7 @@ public unsafe class EnemiesCastBarsHook(
             if (hater != null)
                 for (int i = 0; i < count && i < hater->HaterCount; i++)
                     entityIDs[i] = ((HaterInfo*)hater)[i].EntityId;
-            UpdateList(utilities.GetAddon(config.EnmityListAddon), entityIDs, Addon.Ennemies, "enmity list");
+            UpdateList(utilities.GetAddon(config.EnmityListAddon), entityIDs, AddonType.Ennemies, "enmity list");
         }
     }
 

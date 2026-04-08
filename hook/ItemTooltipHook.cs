@@ -1,6 +1,6 @@
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using LangSwap.hook.ttt;
+using LangSwap.hook.template;
 using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.translation.@base;

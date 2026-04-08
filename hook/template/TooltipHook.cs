@@ -5,7 +5,7 @@ using LangSwap.tool;
 using LangSwap.translation;
 using System;
 
-namespace LangSwap.hook.ttt;
+namespace LangSwap.hook.template;
 
 // ----------------------------
 // Base class for all tooltips hooks

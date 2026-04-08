@@ -1,9 +1,9 @@
 ﻿namespace LangSwap.hook.@base
 {
     // ----------------------------
-    // Enumeration for UI addons
+    // Enumeration for UI addons types
     // ----------------------------
-    public enum Addon
+    public enum AddonType
     {
         CastBar = 0,
         TargetInfo = 1,

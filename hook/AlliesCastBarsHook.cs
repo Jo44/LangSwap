@@ -5,7 +5,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Group;
 using LangSwap.hook.@base;
-using LangSwap.hook.ttt;
+using LangSwap.hook.template;
 using LangSwap.tool;
 using LangSwap.translation;
 using System;
@@ -78,7 +78,7 @@ public unsafe class AlliesCastBarsHook(
         if (config.AlliesCastBarsTarget || config.AlliesCastBarsFocus || config.AlliesCastBarsPartyList)
         {
             uint actionId = objectTable.LocalPlayer is IBattleChara lp && lp.IsCasting ? (uint)lp.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.CastBarAddon), actionId, Addon.Allies, "castbar");
+            UpdateCastBar(utilities.GetAddon(config.CastBarAddon), actionId, AddonType.Allies, "castbar");
         }
     }
 
@@ -90,7 +90,7 @@ public unsafe class AlliesCastBarsHook(
         if (config.AlliesCastBarsTarget)
         {
             uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.Player && t.IsCasting ? (uint)t.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), actionId, Addon.Allies, "target info");
+            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), actionId, AddonType.Allies, "target info");
         }
     }
 
@@ -102,7 +102,7 @@ public unsafe class AlliesCastBarsHook(
         if (config.AlliesCastBarsTarget)
         {
             uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.Player && t.IsCasting ? (uint)t.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), actionId, Addon.Allies, "target castbar");
+            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), actionId, AddonType.Allies, "target castbar");
         }
     }
 
@@ -114,7 +114,7 @@ public unsafe class AlliesCastBarsHook(
         if (config.AlliesCastBarsFocus)
         {
             uint actionId = targetManager.FocusTarget is IBattleChara f && f.ObjectKind == ObjectKind.Player && f.IsCasting ? (uint)f.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), actionId, config.FocusCastBarField, Addon.Allies);
+            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), actionId, config.FocusCastBarField, AddonType.Allies);
         }
     }
 
@@ -131,7 +131,7 @@ public unsafe class AlliesCastBarsHook(
             uint[] slotEntityIds = new uint[count];
             for (int i = 0; i < count && i < groupManager->MainGroup.MemberCount; i++)
                 slotEntityIds[i] = groupManager->MainGroup.PartyMembers[i].EntityId;
-            UpdateList(utilities.GetAddon(config.PartyListAddon), config.PartyListCastField, config.PartyListStartField, config.PartyListEndField, true, Addon.Allies, slotEntityIds);
+            UpdateList(utilities.GetAddon(config.PartyListAddon), config.PartyListCastField, config.PartyListStartField, config.PartyListEndField, true, AddonType.Allies, slotEntityIds);
         }
     }
 

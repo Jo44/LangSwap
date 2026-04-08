@@ -3,7 +3,7 @@
     // ----------------------------
     // Enumeration for supported languages
     // ----------------------------
-    public enum LanguageEnum
+    public enum Language
     {
         Japanese = 0,
         English = 1,

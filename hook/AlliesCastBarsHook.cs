@@ -5,6 +5,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Group;
 using LangSwap.hook.@base;
+using LangSwap.hook.ttt;
 using LangSwap.tool;
 using LangSwap.translation;
 using System;
@@ -22,24 +23,10 @@ public unsafe class AlliesCastBarsHook(
     ITargetManager targetManager,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : CastBarsBaseHook(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log)
+    IPluginLog log) : CastBarsHook(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[AlliesCastBarsHook.cs]";
-
-    // UI components
-    private bool castBarsTarget = false;
-    private bool castBarsFocus = false;
-    private bool castBarsPartyList = false;
-
-    // Castbars fields
-    private readonly int castBarField = config.CastBarField;
-    private readonly int targetInfoField = config.TargetInfoField;
-    private readonly int targetCastBarField = config.TargetCastBarField;
-    private readonly int focusCastBarField = config.FocusCastBarField;
-    private readonly int partyListStartField = config.PartyListStartField;
-    private readonly int partyListEndField = config.PartyListEndField;
-    private readonly int partyListCastField = config.PartyListCastField;
 
     // ----------------------------
     // Enable the hook
@@ -75,11 +62,6 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     protected override void OnLanguageSwap()
     {
-        // Initialize UI components
-        castBarsTarget = config.AlliesCastBarsTarget;
-        castBarsFocus = config.AlliesCastBarsFocus;
-        castBarsPartyList = config.AlliesCastBarsPartyList;
-
         // Refresh addons
         utilities.RefreshAddon(utilities.GetAddon(config.CastBarAddon), "castbar");
         utilities.RefreshAddon(utilities.GetAddon(config.TargetInfoAddon), "target info");
@@ -93,10 +75,10 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        if (castBarsTarget || castBarsFocus || castBarsPartyList)
+        if (config.AlliesCastBarsTarget || config.AlliesCastBarsFocus || config.AlliesCastBarsPartyList)
         {
             uint actionId = objectTable.LocalPlayer is IBattleChara lp && lp.IsCasting ? (uint)lp.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.CastBarAddon), actionId, castBarField, "castbar");
+            UpdateCastBar(utilities.GetAddon(config.CastBarAddon), actionId, Addon.Allies, "castbar");
         }
     }
 
@@ -105,10 +87,10 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnTargetInfoUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        if (castBarsTarget)
+        if (config.AlliesCastBarsTarget)
         {
             uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.Player && t.IsCasting ? (uint)t.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), actionId, targetInfoField, "target info");
+            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), actionId, Addon.Allies, "target info");
         }
     }
 
@@ -117,10 +99,10 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnTargetCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        if (castBarsTarget)
+        if (config.AlliesCastBarsTarget)
         {
             uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.Player && t.IsCasting ? (uint)t.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), actionId, targetCastBarField, "target castbar");
+            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), actionId, Addon.Allies, "target castbar");
         }
     }
 
@@ -129,10 +111,10 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnFocusCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        if (castBarsFocus)
+        if (config.AlliesCastBarsFocus)
         {
             uint actionId = targetManager.FocusTarget is IBattleChara f && f.ObjectKind == ObjectKind.Player && f.IsCasting ? (uint)f.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), actionId, focusCastBarField, "focus castbar");
+            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), actionId, config.FocusCastBarField, Addon.Allies);
         }
     }
 
@@ -141,15 +123,15 @@ public unsafe class AlliesCastBarsHook(
     // ----------------------------
     private void OnPartyListUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        if (castBarsPartyList)
+        if (config.AlliesCastBarsPartyList)
         {
             GroupManager* groupManager = GroupManager.Instance();
             if (groupManager == null) return;
-            int count = partyListEndField - partyListStartField + 1;
+            int count = config.PartyListEndField - config.PartyListStartField + 1;
             uint[] slotEntityIds = new uint[count];
             for (int i = 0; i < count && i < groupManager->MainGroup.MemberCount; i++)
                 slotEntityIds[i] = groupManager->MainGroup.PartyMembers[i].EntityId;
-            UpdateList(utilities.GetAddon(config.PartyListAddon), partyListCastField, partyListStartField, partyListEndField, true, ObjectKind.Player, slotEntityIds);
+            UpdateList(utilities.GetAddon(config.PartyListAddon), config.PartyListCastField, config.PartyListStartField, config.PartyListEndField, true, Addon.Allies, slotEntityIds);
         }
     }
 

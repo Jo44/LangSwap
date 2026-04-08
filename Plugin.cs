@@ -5,7 +5,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using LangSwap.hook;
+using LangSwap.hook.manager;
 using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.windows;
@@ -131,7 +131,7 @@ public sealed class Plugin : IDalamudPlugin
             DalamudPluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
 
             // Register command
-            CommandManager.AddHandler("/langswap", new CommandInfo(OnCommand) { HelpMessage = "Opens the LangSwap configuration window" });
+            CommandManager.AddHandler("/langswap", new CommandInfo(OnCommand) { HelpMessage = "Opens the configuration window" });
 
             // Enable hooks
             Log.Information($"{Class} === LangSwap : Hooks ===");
@@ -180,9 +180,11 @@ public sealed class Plugin : IDalamudPlugin
         if ((DateTime.Now - lastToggle).TotalMilliseconds < 500) return;
         lastToggle = DateTime.Now;
 
+        // Set swapping flag
+        isSwapping = true;
+
         // Register for deferred swap
         deferredFrameCount = 0;
-        isSwapping = true;
         Framework.Update += DeferredSwap;
     }
 
@@ -197,7 +199,7 @@ public sealed class Plugin : IDalamudPlugin
         // Wait for deferred frames
         if (++deferredFrameCount < 2) return;
 
-        // Unregister immediately
+        // Unregister deferred swap
         Framework.Update -= DeferredSwap;
 
         // Perform the swap or restore

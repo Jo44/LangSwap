@@ -3,17 +3,18 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using LangSwap.hook.@base;
 using LangSwap.tool;
 using LangSwap.translation;
 using System;
 using System.Collections.Generic;
 
-namespace LangSwap.hook.@base;
+namespace LangSwap.hook.ttt;
 
 // ----------------------------
 // Base class for all castbars hooks
 // ----------------------------
-public unsafe abstract class CastBarsBaseHook(
+public unsafe abstract class CastBarsHook(
     IAddonLifecycle addonLifecycle,
     Configuration config,
     IFramework framework,
@@ -32,8 +33,9 @@ public unsafe abstract class CastBarsBaseHook(
     // ----------------------------
     // Update cast bar
     // ----------------------------
-    protected virtual void UpdateCastBar(AtkUnitBase* addon, uint actionId, int fieldIndex, string addonName)
+    protected virtual void UpdateCastBar(AtkUnitBase* addon, uint actionId, Addon addonType, string addonName)
     {
+        // TODO : clean up
         try
         {
             // Only update if language is swapped, we have a valid action ID and the addon is visible
@@ -61,12 +63,14 @@ public unsafe abstract class CastBarsBaseHook(
     // ----------------------------
     // Update list
     // ----------------------------
-    protected void UpdateList(AtkUnitBase* addon, int fieldIndex, int startField, int endField, bool ascending, ObjectKind objectKind, uint[] slotEntityIds)
+    protected void UpdateList(AtkUnitBase* addon, uint[] entityIDs, Addon addonType, string addonName)
     {
         // TODO : clean up
         try
         {
             if (!isLanguageSwapped || addon == null || !addon -> IsVisible) return;
+
+            ObjectKind objectKind = (addonType == Addon.) ? ObjectKind.Player : ObjectKind.BattleNpc;
 
             // Build current-tick EntityId -> CastActionId snapshot
             Dictionary<uint, uint> currentCasts = [];

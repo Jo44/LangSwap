@@ -5,12 +5,12 @@ using LangSwap.tool;
 using LangSwap.translation;
 using System;
 
-namespace LangSwap.hook.@base;
+namespace LangSwap.hook.ttt;
 
 // ----------------------------
 // Base class for all tooltips hooks
 // ----------------------------
-public unsafe abstract class TooltipBaseHook(
+public unsafe abstract class TooltipHook(
     Configuration config,
     IGameInteropProvider gameInterop,
     ISigScanner sigScanner,

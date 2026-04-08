@@ -3,7 +3,7 @@ using LangSwap.tool;
 using LangSwap.translation;
 using System;
 
-namespace LangSwap.hook.@base;
+namespace LangSwap.hook.ttt;
 
 // ----------------------------
 // Base class for all hooks

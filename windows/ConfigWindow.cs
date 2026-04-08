@@ -4,7 +4,6 @@ using Dalamud.Plugin.Services;
 using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.translation.@base;
-using LangSwap.windows.@base;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -42,8 +41,6 @@ public class ConfigWindow : Window, IDisposable
         // Window settings
         Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
                 ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.AlwaysAutoResize;
-
-        // Auto-adjust size
         SizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = new Vector2(420, 410),
@@ -163,7 +160,7 @@ public class ConfigWindow : Window, IDisposable
     private void DrawTargetLanguage()
     {
         // Get language names and current language
-        string[] languages = Enum.GetNames<LanguageEnum>();
+        string[] languages = Enum.GetNames<Language>();
         int currentLang = (int)config.TargetLanguage;
 
         // Draw target language
@@ -177,7 +174,7 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.Combo("##Language", ref currentLang, languages, languages.Length))
         {
             // Change target language
-            TargetLanguageChange((LanguageEnum)currentLang, () => config.TargetLanguage = (LanguageEnum)currentLang);
+            TargetLanguageChange((Language)currentLang, () => config.TargetLanguage = (Language)currentLang);
         }
     }
 
@@ -501,7 +498,7 @@ public class ConfigWindow : Window, IDisposable
     // ----------------------------
     // Target language change
     // ----------------------------
-    private void TargetLanguageChange(LanguageEnum targetLanguage, Action applyChange)
+    private void TargetLanguageChange(Language targetLanguage, Action applyChange)
     {
         // Log
         log.Information($"{Class} - Setting target language to {Enum.GetName(targetLanguage)} ({targetLanguage})");

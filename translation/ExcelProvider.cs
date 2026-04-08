@@ -1,6 +1,7 @@
 using Dalamud.Plugin.Services;
 using LangSwap.tool;
 using LangSwap.translation.@base;
+using LangSwap.translation.model;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
 using System;
@@ -23,7 +24,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get base param by name
     // ----------------------------
-    public string? GetBaseParamName(string paramName, LanguageEnum clientLang, LanguageEnum targetLang)
+    public string? GetBaseParamName(string paramName, Language clientLang, Language targetLang)
     {
         try
         {
@@ -72,7 +73,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get action
     // ----------------------------
-    private Lumina.Excel.Sheets.Action? GetAction(uint actionId, LanguageEnum targetLang)
+    private Lumina.Excel.Sheets.Action? GetAction(uint actionId, Language targetLang)
     {
         try
         {
@@ -111,7 +112,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get action transient (for description)
     // ----------------------------
-    private Lumina.Excel.Sheets.ActionTransient? GetActionTransient(uint actionId, LanguageEnum targetLang)
+    private Lumina.Excel.Sheets.ActionTransient? GetActionTransient(uint actionId, Language targetLang)
     {
         try
         {
@@ -150,7 +151,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get action name
     // ----------------------------
-    public string? GetActionName(uint actionId, LanguageEnum targetLang)
+    public string? GetActionName(uint actionId, Language targetLang)
     {
         // Get the action
         Lumina.Excel.Sheets.Action? action = GetAction(actionId, targetLang);
@@ -163,7 +164,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get action description
     // ----------------------------
-    public string? GetActionDescription(uint actionId, LanguageEnum targetLang)
+    public string? GetActionDescription(uint actionId, Language targetLang)
     {
         // Get the action transient
         ActionTransient? actionTransient = GetActionTransient(actionId, targetLang);
@@ -176,7 +177,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get action ID by name (reverse lookup)
     // ----------------------------
-    public uint? GetActionIdByName(string actionName, LanguageEnum clientLang)
+    public uint? GetActionIdByName(string actionName, Language clientLang)
         => GetIdByName<Lumina.Excel.Sheets.Action>(actionName, clientLang, action => action.Name.ToString());
 
     // ----------------------------
@@ -190,7 +191,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             HashSet<ObfuscatedTranslation> obfuscatedTranslations = [];
 
             // Get the english action sheet
-            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(Utilities.EnumToClientLang(LanguageEnum.English));
+            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(Utilities.EnumToClientLang(Language.English));
             if (actionSheet != null)
             {
                 // Loop through actions to find obfuscated ones
@@ -232,7 +233,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get item
     // ----------------------------
-    private Item? GetItem(uint itemId, LanguageEnum targetLang)
+    private Item? GetItem(uint itemId, Language targetLang)
     {
         try
         {
@@ -271,7 +272,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get item name
     // ----------------------------
-    public string? GetItemName(uint itemId, LanguageEnum targetLang)
+    public string? GetItemName(uint itemId, Language targetLang)
     {
         // Get item
         Item? item = GetItem(itemId, targetLang);
@@ -284,7 +285,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get item description
     // ----------------------------
-    public string? GetItemDescription(uint itemId, LanguageEnum targetLang)
+    public string? GetItemDescription(uint itemId, Language targetLang)
     {
         // Get item
         Item? item = GetItem(itemId, targetLang);
@@ -297,7 +298,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get item ID by name (reverse lookup)
     // ----------------------------
-    public uint? GetItemIdByName(string itemName, LanguageEnum clientLang)
+    public uint? GetItemIdByName(string itemName, Language clientLang)
         => GetIdByName<Item>(itemName, clientLang, item => item.Name.ToString());
 
     //
@@ -307,7 +308,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get row ID by name (reverse lookup)
     // ---------------------------
-    private uint? GetIdByName<TSheet>(string name, LanguageEnum clientLang, Func<TSheet, string> getName)
+    private uint? GetIdByName<TSheet>(string name, Language clientLang, Func<TSheet, string> getName)
         where TSheet : struct, IExcelRow<TSheet>
     {
         try

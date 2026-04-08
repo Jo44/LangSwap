@@ -3,7 +3,7 @@
     // ----------------------------
     // Enumeration for supported hooks
     // ----------------------------
-    public enum HookEnum
+    public enum Hook
     {
         ActionTooltip = 0,
         ItemTooltip = 1,

@@ -1,6 +1,7 @@
 using Dalamud.Configuration;
 using Dalamud.Game.ClientState.Keys;
 using LangSwap.translation.@base;
+using LangSwap.translation.model;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -17,8 +18,8 @@ public class Configuration : IPluginConfiguration
     public int Version { get; set; } = 2;
 
     // Language
-    public LanguageEnum ClientLanguage { get; set; } = LanguageEnum.English;
-    public LanguageEnum TargetLanguage { get; set; } = LanguageEnum.English;
+    public Language ClientLanguage { get; set; } = Language.English;
+    public Language TargetLanguage { get; set; } = Language.English;
 
     // Colors
     public Vector4 DarkGreen { get; } = new Vector4(0.00f, 0.80f, 0.13f, 1.00f); // Dark Green
@@ -63,22 +64,28 @@ public class Configuration : IPluginConfiguration
 
     // Common CastBar Addons
     public string TargetInfoAddon { get; } = "_TargetInfo";
+    public string TargetInfoName { get; } = "target info";
     public int TargetInfoField { get; } = 44;
     public string TargetCastBarAddon { get; } = "_TargetInfoCastBar";
+    public string TargetCastBarName { get; } = "target castbar";
     public int TargetCastBarField { get; } = 5;
     public string FocusCastBarAddon { get; } = "_FocusTargetInfo";
+    public string FocusCastBarName { get; } = "focus castbar";
     public int FocusCastBarField { get; } = 16;
 
     // Allies CastBar Addons
     public string CastBarAddon { get; } = "_CastBar";
+    public string CastBarName { get; } = "castbar";
     public int CastBarField { get; } = 11;
     public string PartyListAddon { get; } = "_PartyList";
+    public string PartyListName { get; } = "party list";
     public int PartyListStartField { get; } = 16;
     public int PartyListEndField { get; } = 23;
     public int PartyListCastField { get; } = 30;
 
     // Enemies CastBar Addons
     public string EnmityListAddon { get; } = "_EnemyList";
+    public string EnmityListName { get; } = "enmity list";
     public int EnmityListStartField { get; } = 4;
     public int EnmityListEndField { get; } = 11;
     public int EnmityListCastField { get; } = 16;
@@ -86,12 +93,14 @@ public class Configuration : IPluginConfiguration
     // Action Detail Addon
     public string ActionTooltipSignature { get; } = "E8 ?? ?? ?? ?? 48 8B 43 28 48 8B AF";
     public string ActionDetailAddon { get; } = "ActionDetail";
+    public string ActionDetailName { get; } = "action detail";
     public int ActionNameField { get; } = 0;
     public int ActionDescriptionField { get; } = 13;
 
     // Item Detail Addon
     public string ItemTooltipSignature { get; } = "48 89 5C 24 ?? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ?? 48 8B 42 ?? 4C 8B EA";
     public string ItemDetailAddon { get; } = "ItemDetail";
+    public string ItemDetailName { get; } = "item detail";
     public int ItemNameField { get; } = 0;
     public int GlamourNameField { get; } = 1;
     public int ItemDescriptionField { get; } = 13;

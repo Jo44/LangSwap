@@ -10,17 +10,17 @@ namespace LangSwap.translation;
 public class TranslationCache(ExcelProvider excelProvider)
 {
     // Base param cache
-    private readonly Dictionary<(string, LanguageEnum, LanguageEnum), string?> baseParamCache = [];
+    private readonly Dictionary<(string, Language, Language), string?> baseParamCache = [];
 
     // Action caches
-    private readonly Dictionary<(uint, LanguageEnum), string?> actionNameCache = [];
-    private readonly Dictionary<(uint, LanguageEnum), string?> actionDescriptionCache = [];
-    private readonly Dictionary<(string, LanguageEnum), uint?> actionIdByNameCache = [];
+    private readonly Dictionary<(uint, Language), string?> actionNameCache = [];
+    private readonly Dictionary<(uint, Language), string?> actionDescriptionCache = [];
+    private readonly Dictionary<(string, Language), uint?> actionIdByNameCache = [];
 
     // Item caches
-    private readonly Dictionary<(uint, LanguageEnum), string?> itemNameCache = [];
-    private readonly Dictionary<(uint, LanguageEnum), string?> itemDescriptionCache = [];
-    private readonly Dictionary<(string, LanguageEnum), uint?> itemIdByNameCache = [];
+    private readonly Dictionary<(uint, Language), string?> itemNameCache = [];
+    private readonly Dictionary<(uint, Language), string?> itemDescriptionCache = [];
+    private readonly Dictionary<(string, Language), uint?> itemIdByNameCache = [];
 
     //
     // ========== BASE PARAMS ==========
@@ -29,7 +29,7 @@ public class TranslationCache(ExcelProvider excelProvider)
     // ----------------------------
     // Get base param name
     // ----------------------------
-    public string? GetBaseParamName(string paramName, LanguageEnum clientLang, LanguageEnum targetLang) =>
+    public string? GetBaseParamName(string paramName, Language clientLang, Language targetLang) =>
         GetOrCache(baseParamCache, (paramName, clientLang, targetLang), () => excelProvider.GetBaseParamName(paramName, clientLang, targetLang));
 
     //
@@ -39,19 +39,19 @@ public class TranslationCache(ExcelProvider excelProvider)
     // ----------------------------
     // Get action name
     // ----------------------------
-    public string? GetActionName(uint actionId, LanguageEnum targetLang) =>
+    public string? GetActionName(uint actionId, Language targetLang) =>
         GetOrCache(actionNameCache, (actionId, targetLang), () => excelProvider.GetActionName(actionId, targetLang));
 
     // ----------------------------
     // Get action description
     // ----------------------------
-    public string? GetActionDescription(uint actionId, LanguageEnum targetLang) =>
+    public string? GetActionDescription(uint actionId, Language targetLang) =>
         GetOrCache(actionDescriptionCache, (actionId, targetLang), () => excelProvider.GetActionDescription(actionId, targetLang));
 
     // ----------------------------
     // Get action ID by name (reverse lookup)
     // ----------------------------
-    public uint? GetActionIdByName(string actionName, LanguageEnum clientLang) =>
+    public uint? GetActionIdByName(string actionName, Language clientLang) =>
         GetOrCache(actionIdByNameCache, (actionName, clientLang), () => excelProvider.GetActionIdByName(actionName, clientLang));
 
     //
@@ -61,19 +61,19 @@ public class TranslationCache(ExcelProvider excelProvider)
     // ----------------------------
     // Get item name
     // ----------------------------
-    public string? GetItemName(uint itemId, LanguageEnum targetLang) =>
+    public string? GetItemName(uint itemId, Language targetLang) =>
          GetOrCache(itemNameCache, (itemId, targetLang), () => excelProvider.GetItemName(itemId, targetLang));
 
     // ----------------------------
     // Get item description
     // ----------------------------
-    public string? GetItemDescription(uint itemId, LanguageEnum targetLang) =>
+    public string? GetItemDescription(uint itemId, Language targetLang) =>
         GetOrCache(itemDescriptionCache, (itemId, targetLang), () => excelProvider.GetItemDescription(itemId, targetLang));
 
     // ----------------------------
     // Get item ID by name (reverse lookup)
     // ----------------------------
-    public uint? GetItemIdByName(string itemName, LanguageEnum clientLang) =>
+    public uint? GetItemIdByName(string itemName, Language clientLang) =>
         GetOrCache(itemIdByNameCache, (itemName, clientLang), () => excelProvider.GetItemIdByName(itemName, clientLang));
 
     //

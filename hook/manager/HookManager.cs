@@ -1,11 +1,11 @@
 using Dalamud.Plugin.Services;
-using LangSwap.hook.@base;
+using LangSwap.hook.ttt;
 using LangSwap.tool;
 using LangSwap.translation;
 using System;
 using System.Collections.Generic;
 
-namespace LangSwap.hook;
+namespace LangSwap.hook.manager;
 
 // ----------------------------
 // Hook Manager

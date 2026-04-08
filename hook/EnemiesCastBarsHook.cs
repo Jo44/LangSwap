@@ -5,6 +5,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using LangSwap.hook.@base;
+using LangSwap.hook.ttt;
 using LangSwap.tool;
 using LangSwap.translation;
 using System;
@@ -22,23 +23,10 @@ public unsafe class EnemiesCastBarsHook(
     ITargetManager targetManager,
     TranslationCache translationCache,
     Utilities utilities,
-    IPluginLog log) : CastBarsBaseHook(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log)
+    IPluginLog log) : CastBarsHook(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log)
 {
     // Log
     private const string Class = "[EnemiesCastBarsHook.cs]";
-
-    // UI components
-    private bool castBarsTarget = false;
-    private bool castBarsFocus = false;
-    private bool castBarsEnmityList = false;
-
-    // Castbars fields
-    private readonly int targetInfoField = config.TargetInfoField;
-    private readonly int targetCastBarField = config.TargetCastBarField;
-    private readonly int focusCastBarField = config.FocusCastBarField;
-    private readonly int enmityListStartField = config.EnmityListStartField;
-    private readonly int enmityListEndField = config.EnmityListEndField;
-    private readonly int enmityListCastField = config.EnmityListCastField;
 
     // ----------------------------
     // Enable the hook
@@ -73,11 +61,6 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     protected override void OnLanguageSwap()
     {
-        // Initialize UI components
-        castBarsTarget = config.EnemiesCastBarsTarget;
-        castBarsFocus = config.EnemiesCastBarsFocus;
-        castBarsEnmityList = config.EnemiesCastBarsEnmityList;
-
         // Refresh addons
         utilities.RefreshAddon(utilities.GetAddon(config.TargetInfoAddon), "target info");
         utilities.RefreshAddon(utilities.GetAddon(config.TargetCastBarAddon), "target castbar");
@@ -90,10 +73,10 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     private void OnTargetInfoUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        if (castBarsTarget)
+        if (config.EnemiesCastBarsTarget)
         {
             uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.BattleNpc && t.IsCasting ? (uint)t.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), actionId, targetInfoField, "target info");
+            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), actionId, Addon.Ennemies, "target info");
         }
     }
 
@@ -102,10 +85,10 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     private void OnTargetCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        if (castBarsTarget)
+        if (config.EnemiesCastBarsTarget)
         {
             uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.BattleNpc && t.IsCasting ? (uint)t.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), actionId, targetCastBarField, "target castbar");
+            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), actionId, Addon.Ennemies, "target castbar");
         }
     }
 
@@ -114,10 +97,10 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     private void OnFocusCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        if (castBarsFocus)
+        if (config.EnemiesCastBarsFocus)
         {
             uint actionId = targetManager.FocusTarget is IBattleChara f && f.ObjectKind == ObjectKind.BattleNpc && f.IsCasting ? (uint)f.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), actionId, focusCastBarField, "focus castbar");
+            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), actionId, Addon.Ennemies, "focus castbar");
         }
     }
 
@@ -126,16 +109,16 @@ public unsafe class EnemiesCastBarsHook(
     // ----------------------------
     private void OnEnmityListUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        if (castBarsEnmityList)
+        if (config.EnemiesCastBarsEnmityList)
         {
             UIState* uiState = UIState.Instance();
             Hater* hater = uiState != null ? &uiState->Hater : null;
-            int count = enmityListEndField - enmityListStartField + 1;
-            uint[] slotEntityIds = new uint[count];
+            int count = config.EnmityListEndField - config.EnmityListStartField + 1;
+            uint[] entityIDs = new uint[count];
             if (hater != null)
                 for (int i = 0; i < count && i < hater->HaterCount; i++)
-                    slotEntityIds[i] = ((HaterInfo*)hater)[i].EntityId;
-            UpdateList(utilities.GetAddon(config.EnmityListAddon), enmityListCastField, enmityListStartField, enmityListEndField, false, ObjectKind.BattleNpc, slotEntityIds);
+                    entityIDs[i] = ((HaterInfo*)hater)[i].EntityId;
+            UpdateList(utilities.GetAddon(config.EnmityListAddon), entityIDs, Addon.Ennemies, "enmity list");
         }
     }
 

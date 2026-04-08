@@ -8,6 +8,7 @@ using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.translation.@base;
+using LangSwap.translation.model;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -33,33 +34,33 @@ public unsafe class Utilities(
     private readonly char[] targetIndicatorSymbols = config.TargetIndicatorSymbols;
 
     // ----------------------------
-    // Convert ClientLanguage to LanguageEnum
+    // Convert ClientLanguage to Language
     // ----------------------------
-    private static LanguageEnum ClientLangToEnum(ClientLanguage lang)
+    private static Language ClientLangToEnum(ClientLanguage lang)
     {
-        // Map ClientLanguage to LanguageEnum
+        // Map ClientLanguage to Language
         return lang switch
         {
-            ClientLanguage.Japanese => LanguageEnum.Japanese,
-            ClientLanguage.English => LanguageEnum.English,
-            ClientLanguage.German => LanguageEnum.German,
-            ClientLanguage.French => LanguageEnum.French,
-            _ => LanguageEnum.English
+            ClientLanguage.Japanese => Language.Japanese,
+            ClientLanguage.English => Language.English,
+            ClientLanguage.German => Language.German,
+            ClientLanguage.French => Language.French,
+            _ => Language.English
         };
     }
 
     // ----------------------------
-    // Convert LanguageEnum to ClientLanguage
+    // Convert Language to ClientLanguage
     // ----------------------------
-    public static ClientLanguage EnumToClientLang(LanguageEnum lang)
+    public static ClientLanguage EnumToClientLang(Language lang)
     {
-        // Map LanguageEnum to ClientLanguage
+        // Map Language to ClientLanguage
         return lang switch
         {
-            LanguageEnum.Japanese => ClientLanguage.Japanese,
-            LanguageEnum.English => ClientLanguage.English,
-            LanguageEnum.German => ClientLanguage.German,
-            LanguageEnum.French => ClientLanguage.French,
+            Language.Japanese => ClientLanguage.Japanese,
+            Language.English => ClientLanguage.English,
+            Language.German => ClientLanguage.German,
+            Language.French => ClientLanguage.French,
             _ => ClientLanguage.English
         };
     }
@@ -415,7 +416,7 @@ public unsafe class Utilities(
     // ----------------------------
     // Get obfuscated translation
     // ----------------------------
-    public string? GetObfuscatedTranslation(uint actionId, LanguageEnum targetLanguage)
+    public string? GetObfuscatedTranslation(uint actionId, Language targetLanguage)
     {
         // Check for valid action ID
         if (actionId <= 0) return null;
@@ -437,10 +438,10 @@ public unsafe class Utilities(
             {
                 return targetLanguage switch
                 {
-                    LanguageEnum.Japanese => obfuscatedTranslation.JapaneseName,
-                    LanguageEnum.English => obfuscatedTranslation.EnglishName,
-                    LanguageEnum.German => obfuscatedTranslation.GermanName,
-                    LanguageEnum.French => obfuscatedTranslation.FrenchName,
+                    Language.Japanese => obfuscatedTranslation.JapaneseName,
+                    Language.English => obfuscatedTranslation.EnglishName,
+                    Language.German => obfuscatedTranslation.GermanName,
+                    Language.French => obfuscatedTranslation.FrenchName,
                     _ => obfuscatedTranslation.EnglishName,
                 };
             }
@@ -451,7 +452,7 @@ public unsafe class Utilities(
     // ----------------------------
     // Scan an obfuscated translation discovered
     // ----------------------------
-    public void ScanObfuscatedTranslation(uint actionId, string obfuscatedName, string displayName, LanguageEnum clientLanguage)
+    public void ScanObfuscatedTranslation(uint actionId, string obfuscatedName, string displayName, Language clientLanguage)
     {
         // Skip if action ID, obfuscated name or display name are invalid
         if (actionId < 0 || actionId > config.MaxValidActionId || obfuscatedName.IsNullOrWhitespace() || displayName.IsNullOrWhitespace()) return;
@@ -470,10 +471,10 @@ public unsafe class Utilities(
 
         switch (clientLanguage)
         {
-            case LanguageEnum.Japanese: scanned.JapaneseName = displayName; break;
-            case LanguageEnum.English: scanned.EnglishName = displayName; break;
-            case LanguageEnum.German: scanned.GermanName = displayName; break;
-            case LanguageEnum.French: scanned.FrenchName = displayName; break;
+            case Language.Japanese: scanned.JapaneseName = displayName; break;
+            case Language.English: scanned.EnglishName = displayName; break;
+            case Language.German: scanned.GermanName = displayName; break;
+            case Language.French: scanned.FrenchName = displayName; break;
         }
 
         config.ScannedObfuscatedTranslations.Add(scanned);

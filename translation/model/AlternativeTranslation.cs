@@ -1,6 +1,6 @@
 using System;
 
-namespace LangSwap.translation.@base;
+namespace LangSwap.translation.model;
 
 // ----------------------------
 // Alternative Translation

@@ -3,8 +3,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using LangSwap.tool;
 using LangSwap.translation;
-using LangSwap.translation.@base;
-using LangSwap.windows.@base;
+using LangSwap.translation.model;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -49,8 +48,6 @@ public class DebugWindow : Window, IDisposable
 
         // Window settings
         Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize;
-
-        // Fixed size
         SizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = new Vector2(1200, 478),

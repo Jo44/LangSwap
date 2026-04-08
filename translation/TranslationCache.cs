@@ -30,7 +30,7 @@ public class TranslationCache(ExcelProvider excelProvider)
     // Get base param name
     // ----------------------------
     public string? GetBaseParamName(string paramName, Language clientLang, Language targetLang) =>
-        GetOrCache(baseParamCache, (paramName, clientLang, targetLang), () => excelProvider.GetBaseParamName(paramName, clientLang, targetLang));
+        GetOrCache(baseParamCache, (paramName, clientLang, targetLang), () => ExcelProvider.GetBaseParamName(paramName, clientLang, targetLang));
 
     //
     // ========== ACTIONS ==========
@@ -52,7 +52,7 @@ public class TranslationCache(ExcelProvider excelProvider)
     // Get action ID by name (reverse lookup)
     // ----------------------------
     public uint? GetActionIdByName(string actionName, Language clientLang) =>
-        GetOrCache(actionIdByNameCache, (actionName, clientLang), () => excelProvider.GetActionIdByName(actionName, clientLang));
+        GetOrCache(actionIdByNameCache, (actionName, clientLang), () => ExcelProvider.GetActionIdByName(actionName, clientLang));
 
     //
     // ========== ITEMS ==========
@@ -74,7 +74,7 @@ public class TranslationCache(ExcelProvider excelProvider)
     // Get item ID by name (reverse lookup)
     // ----------------------------
     public uint? GetItemIdByName(string itemName, Language clientLang) =>
-        GetOrCache(itemIdByNameCache, (itemName, clientLang), () => excelProvider.GetItemIdByName(itemName, clientLang));
+        GetOrCache(itemIdByNameCache, (itemName, clientLang), () => ExcelProvider.GetItemIdByName(itemName, clientLang));
 
     //
     // ========== GLOBAL ==========

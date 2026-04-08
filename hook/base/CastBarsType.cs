@@ -5,7 +5,7 @@
     // ----------------------------
     public enum CastBarsType
     {
-        Allies = 0,
-        Ennemies = 1
+        Allies,
+        Ennemies
     }
 }

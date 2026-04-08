@@ -1,7 +1,10 @@
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
+using Dalamud.IoC;
+using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using LangSwap.tool;
 using LangSwap.translation;
 using System;
 
@@ -10,20 +13,14 @@ namespace LangSwap.hook.template;
 // ----------------------------
 // Base class for all tooltips hooks
 // ----------------------------
-public unsafe abstract class TooltipHook(
-    Configuration config,
-    IGameInteropProvider gameInterop,
-    ISigScanner sigScanner,
-    TranslationCache translationCache,
-    Utilities utilities,
-    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
+public unsafe abstract class TooltipHook(Configuration config, TranslationCache translationCache) : BaseHook(config, translationCache)
 {
     // Log
     private const string Class = "[TooltipBaseHook.cs]";
 
-    // Core components
-    private readonly IGameInteropProvider gameInterop = gameInterop;
-    private readonly ISigScanner sigScanner = sigScanner;
+    // Services
+    [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
+    [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
 
     // Delegate function
     protected delegate void* TooltipDelegate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
@@ -45,11 +42,11 @@ public unsafe abstract class TooltipHook(
         try
         {
             // Get address from signature
-            nint tooltipAddr = sigScanner.ScanText(MemorySignature);
+            nint tooltipAddr = SigScanner.ScanText(MemorySignature);
             if (tooltipAddr != IntPtr.Zero)
             {
                 // Get hook from address
-                tooltipHook = gameInterop.HookFromAddress<TooltipDelegate>(tooltipAddr, OnTooltipUpdate);
+                tooltipHook = GameInterop.HookFromAddress<TooltipDelegate>(tooltipAddr, OnTooltipUpdate);
 
                 // Enable hook
                 tooltipHook.Enable();
@@ -58,16 +55,16 @@ public unsafe abstract class TooltipHook(
                 isEnabled = true;
 
                 // Log
-                log.Information($"{Class} - {hookName} hook enabled at 0x{tooltipAddr:X}");
+                Log.Information($"{Class} - {hookName} hook enabled at 0x{tooltipAddr:X}");
             }
             else
             {
-                log.Error($"{Class} - {hookName} signature not found");
+                Log.Error($"{Class} - {hookName} signature not found");
             }
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to enable {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to enable {hookName} hook");
         }
     }
 
@@ -75,6 +72,129 @@ public unsafe abstract class TooltipHook(
     // On tooltip update
     // ----------------------------
     protected abstract void* OnTooltipUpdate(AtkUnitBase* tooltipAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
+
+    // ----------------------------
+    // Read string from StringArrayData at specified index
+    // ----------------------------
+    protected string ReadStringFromArrayData(StringArrayData* stringArrayData, int index)
+    {
+        try
+        {
+            // Check for null pointer or invalid index
+            if (stringArrayData == null || index >= stringArrayData->AtkArrayData.Size) return string.Empty;
+
+            // Get memory address of the string
+            nint address = new(stringArrayData->StringArray[index]);
+            if (address == IntPtr.Zero) return string.Empty;
+
+            // Get SeString from memory address
+            SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
+
+            // Return string value from SeString
+            if (seString != null) return seString.ToString().Trim();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"{Class} - Failed to read string at index {index}");
+        }
+        return string.Empty;
+    }
+
+    // ----------------------------
+    // Write string to StringArrayData at specified index
+    // ----------------------------
+    protected bool WriteStringToArrayData(StringArrayData* stringArrayData, int index, string translatedText)
+    {
+        try
+        {
+            // Check if translated text is null or empty
+            if (string.IsNullOrWhiteSpace(translatedText)) return false;
+
+            // Check for null pointer or invalid index
+            if (stringArrayData == null || index >= stringArrayData->AtkArrayData.Size) return false;
+
+            // Get memory address of the string
+            nint address = new(stringArrayData->StringArray[index]);
+            if (address == IntPtr.Zero) return false;
+
+            // Get SeString from memory address
+            SeString seString = MemoryHelper.ReadSeStringNullTerminated(address);
+            if (seString == null) return false;
+
+            // Prepare a new SeString builder
+            SeStringBuilder builder = new();
+            bool textReplaced = false;
+
+            // Iterate through the payloads of the original SeString
+            foreach (Payload payload in seString.Payloads)
+            {
+                if (!textReplaced && payload is TextPayload textPayload)
+                {
+                    // Replace first TextPayload with translated text
+                    builder.AddText(translatedText);
+
+                    // Flag to indicate text has been replaced
+                    textReplaced = true;
+                }
+                else
+                {
+                    // Clean other payloads of any text
+                    if (payload is TextPayload otherTextPayload)
+                    {
+                        otherTextPayload.Text = "";
+                    }
+                    // Keep them in same order
+                    builder.Add(payload);
+                }
+            }
+
+            // Encode the modified SeString
+            byte[] bytes = builder.Build().Encode();
+
+            // Write the new bytes into StringArrayData at the specified index
+            stringArrayData->SetValue(index, bytes, false, true, false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"{Class} - Failed to write string at index {index}");
+        }
+        return false;
+    }
+
+    // ----------------------------
+    // Log the structure of StringArrayData (debugging)
+    // ----------------------------
+    protected void LogSADStructure(StringArrayData* stringArrayData)
+    {
+        if (stringArrayData != null)
+        {
+            Log.Debug($"{Class} === StringArrayData Structure ===");
+            Log.Debug($"{Class} - Total Size: {stringArrayData->AtkArrayData.Size}");
+
+            // Log each field with its content
+            for (int i = 0; i < stringArrayData->AtkArrayData.Size; i++)
+            {
+                // Read the string at this index
+                string text = ReadStringFromArrayData(stringArrayData, i);
+
+                // Log all non-empty fields
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    // Truncate long text for readability
+                    string displayText = text.Length > 100 ? text[..100] + "..." : text;
+
+                    // Replace line breaks for compact display
+                    displayText = displayText.Replace("\n", " | ");
+
+                    // Log
+                    Log.Debug($"{Class} - [{i,2}] {displayText}");
+                }
+            }
+
+            Log.Debug($"{Class} === End of StringArrayData ===");
+        }
+    }
 
     // ----------------------------
     // Disable the hook
@@ -91,11 +211,11 @@ public unsafe abstract class TooltipHook(
 
             // Set disabled flag
             isEnabled = false;
-            log.Information($"{Class} - {hookName} hook disabled");
+            Log.Information($"{Class} - {hookName} hook disabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to disable {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to disable {hookName} hook");
         }
     }
 
@@ -119,7 +239,7 @@ public unsafe abstract class TooltipHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to dispose {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to dispose {hookName} hook");
         }
     }
 

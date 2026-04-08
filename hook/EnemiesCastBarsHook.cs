@@ -15,15 +15,7 @@ namespace LangSwap.hook;
 // ----------------------------
 // Enemies CastBars Hook
 // ----------------------------
-public unsafe class EnemiesCastBarsHook(
-    IAddonLifecycle addonLifecycle,
-    Configuration config,
-    IFramework framework,
-    IObjectTable objectTable,
-    ITargetManager targetManager,
-    TranslationCache translationCache,
-    Utilities utilities,
-    IPluginLog log) : CastBarsHook(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log)
+public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache translationCache) : CastBarsHook(config, translationCache)
 {
     // Log
     private const string Class = "[EnemiesCastBarsHook.cs]";
@@ -39,20 +31,20 @@ public unsafe class EnemiesCastBarsHook(
         try
         {
             // Register addon lifecycle listeners
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
+            AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
+            AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
+            AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
 
             // Set enabled flag
             isEnabled = true;
 
             // Log
-            log.Information($"{Class} - {hookName} hook enabled");
+            Log.Information($"{Class} - {hookName} hook enabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to enable {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to enable {hookName} hook");
         }
     }
 
@@ -62,10 +54,10 @@ public unsafe class EnemiesCastBarsHook(
     protected override void OnLanguageSwap()
     {
         // Refresh addons
-        utilities.RefreshAddon(utilities.GetAddon(config.TargetInfoAddon), config.TargetInfoName);
-        utilities.RefreshAddon(utilities.GetAddon(config.TargetCastBarAddon), config.TargetCastBarName);
-        utilities.RefreshAddon(utilities.GetAddon(config.FocusCastBarAddon), config.FocusCastBarName);
-        utilities.RefreshAddon(utilities.GetAddon(config.EnmityListAddon), config.EnmityListName);
+        RefreshAddon(GetAddon(config.TargetInfoAddon), config.TargetInfoName);
+        RefreshAddon(GetAddon(config.TargetCastBarAddon), config.TargetCastBarName);
+        RefreshAddon(GetAddon(config.FocusCastBarAddon), config.FocusCastBarName);
+        RefreshAddon(GetAddon(config.EnmityListAddon), config.EnmityListName);
     }
 
     // ----------------------------
@@ -76,10 +68,10 @@ public unsafe class EnemiesCastBarsHook(
         if (config.EnemiesCastBarsTarget)
         {
             // Get action ID
-            uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.BattleNpc && t.IsCasting ? (uint)t.CastActionId : 0;
+            uint actionId = TargetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.BattleNpc && t.IsCasting ? (uint)t.CastActionId : 0;
 
             // Update cast bar
-            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), AddonType.TargetInfo, actionId);
+            UpdateCastBar(GetAddon(config.TargetInfoAddon), AddonType.TargetInfo, actionId);
         }
     }
 
@@ -91,10 +83,10 @@ public unsafe class EnemiesCastBarsHook(
         if (config.EnemiesCastBarsTarget)
         {
             // Get action ID
-            uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.BattleNpc && t.IsCasting ? (uint)t.CastActionId : 0;
+            uint actionId = TargetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.BattleNpc && t.IsCasting ? (uint)t.CastActionId : 0;
 
             // Update cast bar
-            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), AddonType.TargetCastBar, actionId);
+            UpdateCastBar(GetAddon(config.TargetCastBarAddon), AddonType.TargetCastBar, actionId);
         }
     }
 
@@ -106,10 +98,10 @@ public unsafe class EnemiesCastBarsHook(
         if (config.EnemiesCastBarsFocus)
         {
             // Get action ID
-            uint actionId = targetManager.FocusTarget is IBattleChara f && f.ObjectKind == ObjectKind.BattleNpc && f.IsCasting ? (uint)f.CastActionId : 0;
+            uint actionId = TargetManager.FocusTarget is IBattleChara f && f.ObjectKind == ObjectKind.BattleNpc && f.IsCasting ? (uint)f.CastActionId : 0;
 
             // Update cast bar
-            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), AddonType.FocusCastBar, actionId);
+            UpdateCastBar(GetAddon(config.FocusCastBarAddon), AddonType.FocusCastBar, actionId);
         }
     }
 
@@ -130,7 +122,7 @@ public unsafe class EnemiesCastBarsHook(
                     entityIDs[i] = ((HaterInfo*)hater)[i].EntityId;
 
             // Update enmity list
-            UpdateList(utilities.GetAddon(config.EnmityListAddon), AddonType.EnmityList, CastBarsType.Ennemies, entityIDs);
+            UpdateList(GetAddon(config.EnmityListAddon), AddonType.EnmityList, CastBarsType.Ennemies, entityIDs);
         }
     }
 
@@ -145,18 +137,18 @@ public unsafe class EnemiesCastBarsHook(
         try
         {
             // Unregister addon lifecycle listeners
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
 
             // Set disabled flag
             isEnabled = false;
-            log.Information($"{Class} - {hookName} hook disabled");
+            Log.Information($"{Class} - {hookName} hook disabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to disable {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to disable {hookName} hook");
         }
     }
 
@@ -168,10 +160,10 @@ public unsafe class EnemiesCastBarsHook(
         try
         {
             // Unregister addon lifecycle listeners
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
 
             // Set disabled flag
             isEnabled = false;
@@ -181,7 +173,7 @@ public unsafe class EnemiesCastBarsHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to dispose {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to dispose {hookName} hook");
         }
     }
 

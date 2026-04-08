@@ -1,7 +1,7 @@
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.ClientState.Keys;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
-using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.translation.@base;
 using System;
@@ -48,7 +48,7 @@ public class ConfigWindow : Window, IDisposable
         };
 
         // Initialize primary keys
-        Utilities.InitPrimaryKeys(keys);
+        InitPrimaryKeys(keys);
     }
 
     // ----------------------------
@@ -478,6 +478,33 @@ public class ConfigWindow : Window, IDisposable
             UIComponentChange("Item tooltip", itemTooltip, () => config.ItemTooltip = itemTooltip);
         }
         ImGui.Spacing();
+    }
+
+    // ----------------------------
+    // Initialize primary keys
+    // ----------------------------
+    private static void InitPrimaryKeys(List<KeyValuePair<string, int>> keys)
+    {
+        // Letters A-Z
+        int startA = (int)VirtualKey.A;
+        int endZ = (int)VirtualKey.Z;
+        for (int i = startA; i <= endZ; i++)
+        {
+            // Add key name and value to list
+            keys.Add(new KeyValuePair<string, int>(((VirtualKey)i).ToString(), i));
+        }
+
+        // Function keys F1-F12
+        if (Enum.TryParse<VirtualKey>("F1", out _))
+        {
+            int startF1 = (int)VirtualKey.F1;
+            int endF12 = (int)VirtualKey.F12;
+            for (int j = startF1; j <= endF12; j++)
+            {
+                // Add key name and value to list
+                keys.Add(new KeyValuePair<string, int>(((VirtualKey)j).ToString(), j));
+            }
+        }
     }
 
     // ----------------------------

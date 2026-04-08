@@ -1,5 +1,7 @@
+using Dalamud.Game.NativeWrapper;
+using Dalamud.IoC;
 using Dalamud.Plugin.Services;
-using LangSwap.tool;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.translation;
 using System;
 
@@ -8,20 +10,18 @@ namespace LangSwap.hook.template;
 // ----------------------------
 // Base class for all hooks
 // ----------------------------
-public abstract class BaseHook(
-    Configuration config,
-    TranslationCache translationCache,
-    Utilities utilities,
-    IPluginLog log) : IDisposable
+public unsafe abstract class BaseHook(Configuration config, TranslationCache translationCache) : IDisposable
 {
     // Log
     private const string Class = "[BaseHook.cs]";
 
+    // Services
+    [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
+    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+
     // Core components
     protected readonly Configuration config = config;
     protected readonly TranslationCache translationCache = translationCache;
-    protected readonly Utilities utilities = utilities;
-    protected readonly IPluginLog log = log;
 
     // Toggle states
     protected bool isEnabled = false;
@@ -44,7 +44,7 @@ public abstract class BaseHook(
         isLanguageSwapped = true;
 
         // Log
-        log.Debug($"{Class} - {GetType().Name} : Swap enabled");
+        Log.Debug($"{Class} - {GetType().Name} : Swap enabled");
 
         // Call hook-specific behavior
         OnLanguageSwap();
@@ -62,7 +62,7 @@ public abstract class BaseHook(
         isLanguageSwapped = false;
 
         // Log
-        log.Debug($"{Class} - {GetType().Name} : Swap disabled");
+        Log.Debug($"{Class} - {GetType().Name} : Swap disabled");
 
         // Call hook-specific behavior
         OnLanguageSwap();
@@ -72,6 +72,49 @@ public abstract class BaseHook(
     // Called when language is swapped or restored
     // ----------------------------
     protected virtual void OnLanguageSwap() { }
+
+    // ----------------------------
+    // Get addon
+    // ----------------------------
+    protected static AtkUnitBase* GetAddon(string addonName)
+    {
+        try
+        {
+            // Get pointer from name
+            AtkUnitBasePtr addonPtr = GameGui.GetAddonByName(addonName);
+
+            // Check for null pointer
+            if (addonPtr.IsNull) return null;
+
+            // Return addon from pointer
+            return (AtkUnitBase*)addonPtr.Address;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"{Class} - Failed to get {addonName} addon");
+        }
+        return null;
+    }
+
+    // ----------------------------
+    // Refresh addon
+    // ----------------------------
+    protected void RefreshAddon(AtkUnitBase* addon, string errorContext)
+    {
+        try
+        {
+            // Only refresh if the addon is currently visible
+            if (addon != null && addon->IsVisible)
+            {
+                addon->Hide(true, false, 0);
+                addon->Show(true, 0);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"{Class} - Failed to refresh {errorContext} addon");
+        }
+    }
 
     // ----------------------------
     // Disable the hook

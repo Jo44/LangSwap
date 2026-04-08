@@ -1,5 +1,6 @@
+using Dalamud.Game;
+using Dalamud.IoC;
 using Dalamud.Plugin.Services;
-using LangSwap.tool;
 using LangSwap.translation.@base;
 using LangSwap.translation.model;
 using Lumina.Excel;
@@ -12,10 +13,16 @@ namespace LangSwap.translation;
 // ----------------------------
 // Excel Provider
 // ----------------------------
-public class ExcelProvider(Configuration config, IDataManager dataManager, IPluginLog log)
+public class ExcelProvider(Configuration config)
 {
     // Log
     private const string Class = "[ExcelProvider.cs]";
+
+    // Service
+    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+
+    // Service
+    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
 
     //
     // ========== BASE PARAMS ==========
@@ -24,15 +31,15 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get base param by name
     // ----------------------------
-    public string? GetBaseParamName(string paramName, Language clientLang, Language targetLang)
+    public static string? GetBaseParamName(string paramName, Language clientLang, Language targetLang)
     {
         try
         {
             // Get the BaseParam sheet for the client language
-            ExcelSheet<BaseParam> clientSheet = dataManager.GetExcelSheet<BaseParam>(Utilities.EnumToClientLang(clientLang));
+            ExcelSheet<BaseParam> clientSheet = DataManager.GetExcelSheet<BaseParam>(EnumToClientLang(clientLang));
             if (clientSheet == null)
             {
-                log.Warning($"{Class} - BaseParam sheet is not available for language {clientLang}");
+                Log.Warning($"{Class} - BaseParam sheet is not available for language {clientLang}");
                 return null;
             }
 
@@ -51,7 +58,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             if (rowId == null) return null;
 
             // Get the BaseParam sheet for the target language
-            ExcelSheet<BaseParam> targetSheet = dataManager.GetExcelSheet<BaseParam>(Utilities.EnumToClientLang(targetLang));
+            ExcelSheet<BaseParam> targetSheet = DataManager.GetExcelSheet<BaseParam>(EnumToClientLang(targetLang));
 
             // Try to get the translated name using the row ID
             if (targetSheet != null && targetSheet.TryGetRow(rowId.Value, out BaseParam translatedParam)) return translatedParam.Name.ToString();
@@ -61,7 +68,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Exception while getting BaseParam {paramName} from {clientLang} to {targetLang}");
+            Log.Error(ex, $"{Class} - Exception while getting BaseParam {paramName} from {clientLang} to {targetLang}");
             return null;
         }
     }
@@ -80,22 +87,22 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             // Validate action ID range
             if (actionId < 1 || actionId > config.MaxValidActionId)
             {
-                log.Warning($"{Class} - Action ID {actionId} is out of valid range (1-{config.MaxValidActionId})");
+                Log.Warning($"{Class} - Action ID {actionId} is out of valid range (1-{config.MaxValidActionId})");
                 return null;
             }
 
             // Get the Action sheet for the target language
-            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(Utilities.EnumToClientLang(targetLang));
+            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(targetLang));
             if (actionSheet == null)
             {
-                log.Warning($"{Class} - Action sheet is not available for language {targetLang}");
+                Log.Warning($"{Class} - Action sheet is not available for language {targetLang}");
                 return null;
             }
 
             // Try to get the action row
             if (!actionSheet.TryGetRow(actionId, out Lumina.Excel.Sheets.Action action))
             {
-                log.Warning($"{Class} - Action {actionId} not found in sheet for language {targetLang}");
+                Log.Warning($"{Class} - Action {actionId} not found in sheet for language {targetLang}");
                 return null;
             }
 
@@ -104,7 +111,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Exception while getting action {actionId} in language {targetLang}");
+            Log.Error(ex, $"{Class} - Exception while getting action {actionId} in language {targetLang}");
             return null;
         }
     }
@@ -119,22 +126,22 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             // Validate action ID range
             if (actionId < 1 || actionId > config.MaxValidActionId)
             {
-                log.Warning($"{Class} - Action transient ID {actionId} is out of valid range (1-{config.MaxValidActionId})");
+                Log.Warning($"{Class} - Action transient ID {actionId} is out of valid range (1-{config.MaxValidActionId})");
                 return null;
             }
 
             // Get the ActionTransient sheet for the target language
-            ExcelSheet<ActionTransient> actionTransientSheet = dataManager.GetExcelSheet<ActionTransient>(Utilities.EnumToClientLang(targetLang));
+            ExcelSheet<ActionTransient> actionTransientSheet = DataManager.GetExcelSheet<ActionTransient>(EnumToClientLang(targetLang));
             if (actionTransientSheet == null)
             {
-                log.Warning($"{Class} - Action transient sheet is not available for language {targetLang}");
+                Log.Warning($"{Class} - Action transient sheet is not available for language {targetLang}");
                 return null;
             }
 
             // Try to get the action row
             if (!actionTransientSheet.TryGetRow(actionId, out Lumina.Excel.Sheets.ActionTransient action))
             {
-                log.Warning($"{Class} - Action transient {actionId} not found in sheet for language {targetLang}");
+                Log.Warning($"{Class} - Action transient {actionId} not found in sheet for language {targetLang}");
                 return null;
             }
 
@@ -143,7 +150,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Exception while getting action transient {actionId} in language {targetLang}");
+            Log.Error(ex, $"{Class} - Exception while getting action transient {actionId} in language {targetLang}");
             return null;
         }
     }
@@ -177,7 +184,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get action ID by name (reverse lookup)
     // ----------------------------
-    public uint? GetActionIdByName(string actionName, Language clientLang)
+    public static uint? GetActionIdByName(string actionName, Language clientLang)
         => GetIdByName<Lumina.Excel.Sheets.Action>(actionName, clientLang, action => action.Name.ToString());
 
     // ----------------------------
@@ -191,7 +198,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             HashSet<ObfuscatedTranslation> obfuscatedTranslations = [];
 
             // Get the english action sheet
-            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = dataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(Utilities.EnumToClientLang(Language.English));
+            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(Language.English));
             if (actionSheet != null)
             {
                 // Loop through actions to find obfuscated ones
@@ -221,7 +228,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Exception while getting all obfuscated actions");
+            Log.Error(ex, $"{Class} - Exception while getting all obfuscated actions");
             return [];
         }
     }
@@ -240,22 +247,22 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             // Validate item ID range
             if (itemId < 1 || itemId > config.MaxValidItemId)
             {
-                log.Warning($"{Class} - Item ID {itemId} is out of valid range (1-{config.MaxValidItemId})");
+                Log.Warning($"{Class} - Item ID {itemId} is out of valid range (1-{config.MaxValidItemId})");
                 return null;
             }
 
             // // Get the Item sheet for the target language
-            ExcelSheet<Item> itemSheet = dataManager.GetExcelSheet<Item>(Utilities.EnumToClientLang(targetLang));
+            ExcelSheet<Item> itemSheet = DataManager.GetExcelSheet<Item>(EnumToClientLang(targetLang));
             if (itemSheet == null)
             {
-                log.Warning($"{Class} - Item sheet is not available for language {targetLang}");
+                Log.Warning($"{Class} - Item sheet is not available for language {targetLang}");
                 return null;
             }
 
             // Try to get the item row
             if (!itemSheet.TryGetRow(itemId, out Item item))
             {
-                log.Warning($"{Class} - Item {itemId} not found in sheet for language {targetLang}");
+                Log.Warning($"{Class} - Item {itemId} not found in sheet for language {targetLang}");
                 return null;
             }
 
@@ -264,7 +271,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Exception while getting item {itemId} in language {targetLang}");
+            Log.Error(ex, $"{Class} - Exception while getting item {itemId} in language {targetLang}");
             return null;
         }
     }
@@ -298,7 +305,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get item ID by name (reverse lookup)
     // ----------------------------
-    public uint? GetItemIdByName(string itemName, Language clientLang)
+    public static uint? GetItemIdByName(string itemName, Language clientLang)
         => GetIdByName<Item>(itemName, clientLang, item => item.Name.ToString());
 
     //
@@ -308,7 +315,7 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
     // ----------------------------
     // Get row ID by name (reverse lookup)
     // ---------------------------
-    private uint? GetIdByName<TSheet>(string name, Language clientLang, Func<TSheet, string> getName)
+    private static uint? GetIdByName<TSheet>(string name, Language clientLang, Func<TSheet, string> getName)
         where TSheet : struct, IExcelRow<TSheet>
     {
         try
@@ -317,10 +324,10 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
             if (string.IsNullOrWhiteSpace(name)) return null;
 
             // Get the sheet for the specified language
-            ExcelSheet<TSheet> sheet = dataManager.GetExcelSheet<TSheet>(Utilities.EnumToClientLang(clientLang));
+            ExcelSheet<TSheet> sheet = DataManager.GetExcelSheet<TSheet>(EnumToClientLang(clientLang));
             if (sheet == null)
             {
-                log.Warning($"{Class} - Sheet {typeof(TSheet).Name} is not available for language {clientLang}");
+                Log.Warning($"{Class} - Sheet {typeof(TSheet).Name} is not available for language {clientLang}");
                 return null;
             }
 
@@ -339,9 +346,25 @@ public class ExcelProvider(Configuration config, IDataManager dataManager, IPlug
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to get {typeof(TSheet).Name} ID for name {name} in language {clientLang}");
+            Log.Error(ex, $"{Class} - Failed to get {typeof(TSheet).Name} ID for name {name} in language {clientLang}");
             return null;
         }
+    }
+
+    // ----------------------------
+    // Convert Language to ClientLanguage
+    // ----------------------------
+    private static ClientLanguage EnumToClientLang(Language lang)
+    {
+        // Map Language to ClientLanguage
+        return lang switch
+        {
+            Language.Japanese => ClientLanguage.Japanese,
+            Language.English => ClientLanguage.English,
+            Language.German => ClientLanguage.German,
+            Language.French => ClientLanguage.French,
+            _ => ClientLanguage.English
+        };
     }
 
 }

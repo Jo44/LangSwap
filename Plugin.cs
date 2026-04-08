@@ -1,3 +1,5 @@
+using Dalamud.Game;
+using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -8,8 +10,12 @@ using Dalamud.Plugin.Services;
 using LangSwap.hook.manager;
 using LangSwap.tool;
 using LangSwap.translation;
+using LangSwap.translation.@base;
+using LangSwap.translation.model;
 using LangSwap.windows;
 using System;
+using System.Collections.Generic;
+using System.Net.Http;
 
 namespace LangSwap;
 
@@ -22,27 +28,19 @@ public sealed class Plugin : IDalamudPlugin
     private const string Class = "[Plugin.cs]";
 
     // Services
-    [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IDalamudPluginInterface DalamudPluginInterface { get; private set; } = null!;
-    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
-    [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
-    [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
-    [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
-    [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
-    [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
 
     // Core components
     private readonly Configuration config = null!;
     private readonly ExcelProvider excelProvider = null!;
     private readonly HookManager hookManager = null!;
     private readonly TranslationCache translationCache = null!;
-    private readonly Utilities utilities = null!;
 
     // UI windows
     private readonly ConfigWindow configWindow = null!;
@@ -72,13 +70,12 @@ public sealed class Plugin : IDalamudPlugin
             config = DalamudPluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
             // Initialize core components
-            utilities = new(ClientState, config, GameGui, KeyState, Log);
-            excelProvider = new(config, DataManager, Log);
+            excelProvider = new(config);
             translationCache = new(excelProvider);
-            hookManager = new(AddonLifecycle, config, Framework, GameInterop, ObjectTable, SigScanner, TargetManager, translationCache, utilities, Log);
+            hookManager = new(config, translationCache);
 
             // Detect client language
-            utilities.DetectClientLanguage();
+            DetectClientLanguage();
 
             // Log configuration
             Log.Information($"{Class} === LangSwap : Configuration ===");
@@ -103,16 +100,16 @@ public sealed class Plugin : IDalamudPlugin
             Log.Information($"{Class} === LangSwap : Obfuscated Translations ===");
 
             // Get remote
-            utilities.GetRemoteObfuscatedTranslations();
+            GetRemoteObfuscatedTranslations();
 
             // Log remote / scanned / local
-            utilities.LogObfuscatedTranslations("Remote", config.RemoteObfuscatedTranslations);
-            utilities.LogObfuscatedTranslations("Scanned", config.ScannedObfuscatedTranslations);
-            utilities.LogObfuscatedTranslations("Local", config.LocalObfuscatedTranslations);
+            Utilities.LogObfuscatedTranslations("Remote", config.RemoteObfuscatedTranslations);
+            Utilities.LogObfuscatedTranslations("Scanned", config.ScannedObfuscatedTranslations);
+            Utilities.LogObfuscatedTranslations("Local", config.LocalObfuscatedTranslations);
 
             // Log alternative translations
             Log.Information($"{Class} === LangSwap : Alternative Translations ===");
-            utilities.LogAlternativeTranslations("Alternative", config.AlternativeTranslations);
+            Utilities.LogAlternativeTranslations("Alternative", config.AlternativeTranslations);
 
             // Initialize windows
             Log.Information($"{Class} === LangSwap : Windows ===");
@@ -159,7 +156,7 @@ public sealed class Plugin : IDalamudPlugin
         if (disposed) return;
 
         // Check current shortcut state
-        bool shortcutPressed = utilities.IsShortcutPressed();
+        bool shortcutPressed = IsShortcutPressed();
 
         // Toggle language swap
         if (shortcutPressed && !previousShortcutPressed) ToggleLanguageSwap();
@@ -262,6 +259,146 @@ public sealed class Plugin : IDalamudPlugin
 
         // Notify restore
         ChatLog(info);
+    }
+
+    // ----------------------------
+    // Detect client language
+    // ----------------------------
+    private void DetectClientLanguage()
+    {
+        // Get client language
+        ClientLanguage lang = ClientState.ClientLanguage;
+
+        // Store detected language in configuration
+        config.ClientLanguage = ClientLangToLang(lang);
+
+        // Save configuration
+        config.Save();
+
+        // Log unrecognized language
+        if ((int)lang < 0 || (int)lang > 3) Log.Warning($"{Class} - Unrecognized client language: {lang}, defaulting to English");
+    }
+
+    // ----------------------------
+    // Convert ClientLanguage to Language
+    // ----------------------------
+    private static Language ClientLangToLang(ClientLanguage lang)
+    {
+        // Map ClientLanguage to Language
+        return lang switch
+        {
+            ClientLanguage.Japanese => Language.Japanese,
+            ClientLanguage.English => Language.English,
+            ClientLanguage.German => Language.German,
+            ClientLanguage.French => Language.French,
+            _ => Language.English
+        };
+    }
+
+    // ----------------------------
+    // Get remote obfuscated translations
+    // ----------------------------
+    private void GetRemoteObfuscatedTranslations()
+    {
+        try
+        {
+            // Validate URL
+            if (string.IsNullOrWhiteSpace(config.RemoteUrl)) return;
+
+            // Download remote CSV
+            using HttpClient httpClient = new();
+            string csv = httpClient.GetStringAsync(config.RemoteUrl).GetAwaiter().GetResult();
+            if (string.IsNullOrWhiteSpace(csv))
+            {
+                Log.Warning($"{Class} - Remote obfuscated translations CSV is empty");
+                return;
+            }
+
+            // Import CSV content into a temporary list
+            List<ObfuscatedTranslation> importedTranslations = [];
+            if (!Utilities.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
+            {
+                Log.Warning($"{Class} - Failed to import remote obfuscated translations CSV: {status}");
+                return;
+            }
+
+            // Replace current remote translations and persist
+            config.RemoteObfuscatedTranslations.Clear();
+            config.RemoteObfuscatedTranslations.AddRange(importedTranslations);
+            config.Save();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, $"{Class} - Failed to download remote obfuscated translations CSV");
+        }
+    }
+
+    // ----------------------------
+    // Check if the shortcut is currently pressed
+    // ----------------------------
+    private bool IsShortcutPressed()
+    {
+        // Check for null key state
+        if (KeyState is null) return false;
+
+        // Check if shortcut is enabled
+        if (!config.ShortcutEnabled) return false;
+
+        // Get primary key state
+        bool primary = config.PrimaryKey < 0 || IsKeyDown(config.PrimaryKey);
+
+        // Get modifier keys states
+        bool ctrl = !config.Ctrl || IsKeyDown((int)VirtualKey.LCONTROL) || IsKeyDown((int)VirtualKey.RCONTROL) || IsKeyDown((int)VirtualKey.CONTROL);
+        bool alt = !config.Alt || IsKeyDown((int)VirtualKey.LMENU) || IsKeyDown((int)VirtualKey.RMENU) || IsKeyDown((int)VirtualKey.MENU);
+        bool shift = !config.Shift || IsKeyDown((int)VirtualKey.LSHIFT) || IsKeyDown((int)VirtualKey.RSHIFT) || IsKeyDown((int)VirtualKey.SHIFT);
+
+        // Always return false if no keys are configured
+        if (config.PrimaryKey == 0 && !config.Ctrl && !config.Alt && !config.Shift) return false;
+
+        // Final evaluation
+        return primary && ctrl && alt && shift;
+    }
+
+    // ----------------------------
+    // Check if a virtual key is currently down
+    // ----------------------------
+    private static bool IsKeyDown(int vkCode)
+    {
+        try
+        {
+            // Attempt to convert vkCode to VirtualKey enum
+            Type underlying = Enum.GetUnderlyingType(typeof(VirtualKey));
+            VirtualKey converted;
+            try
+            {
+                converted = (VirtualKey)Convert.ChangeType(vkCode, underlying);
+            }
+            catch
+            {
+                int rawFallback = KeyState.GetRawValue(vkCode);
+                return rawFallback != 0;
+            }
+
+            // Check if the converted value is a defined VirtualKey
+            if (Enum.IsDefined(converted))
+            {
+                VirtualKey vk = (VirtualKey)Enum.ToObject(typeof(VirtualKey), converted);
+                if (KeyState.IsVirtualKeyValid(vk))
+                {
+                    int raw = KeyState.GetRawValue(vk);
+                    return raw != 0;
+                }
+            }
+
+            // Fallback to raw value check
+            int rawInt = KeyState.GetRawValue(vkCode);
+            return rawInt != 0;
+        }
+        catch (Exception ex)
+        {
+            Log.Warning($"{Class} - ShortcutDetector.IsKeyDown exception for vk = {vkCode} : {ex.Message}");
+            return false;
+        }
     }
 
     // ----------------------------

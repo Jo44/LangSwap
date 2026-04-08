@@ -1,6 +1,6 @@
+using Dalamud.IoC;
 using Dalamud.Plugin.Services;
 using LangSwap.hook.template;
-using LangSwap.tool;
 using LangSwap.translation;
 using System;
 using System.Collections.Generic;
@@ -10,26 +10,19 @@ namespace LangSwap.hook.manager;
 // ----------------------------
 // Hook Manager
 // ----------------------------
-public class HookManager(
-    IAddonLifecycle addonLifecycle,
-    Configuration config,
-    IFramework framework,
-    IGameInteropProvider gameInterop,
-    IObjectTable objectTable,
-    ISigScanner sigScanner,
-    ITargetManager targetManager,
-    TranslationCache translationCache,
-    Utilities utilities,
-    IPluginLog log) : IDisposable
+public class HookManager(Configuration config, TranslationCache translationCache) : IDisposable
 {
     // Log
     private const string Class = "[HookManager.cs]";
 
+    // Service
+    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+
     // Individual hooks
-    private readonly AlliesCastBarsHook alliesCastBarsHook = new(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log);
-    private readonly EnemiesCastBarsHook enemiesCastBarsHook = new(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log);
-    private readonly ActionTooltipHook actionTooltipHook = new(config, gameInterop, sigScanner, translationCache, utilities, log);
-    private readonly ItemTooltipHook itemTooltipHook = new(config, gameInterop, sigScanner, translationCache, utilities, log);
+    private readonly AlliesCastBarsHook alliesCastBarsHook = new(config, translationCache);
+    private readonly EnemiesCastBarsHook enemiesCastBarsHook = new(config, translationCache);
+    private readonly ActionTooltipHook actionTooltipHook = new(config, translationCache);
+    private readonly ItemTooltipHook itemTooltipHook = new(config, translationCache);
 
     // Active hooks
     private readonly HashSet<BaseHook> hooks = [];
@@ -69,7 +62,7 @@ public class HookManager(
             }
             catch (Exception ex)
             {
-                log.Error(ex, $"{Class} - Failed to enable {hook.GetType().Name}");
+                Log.Error(ex, $"{Class} - Failed to enable {hook.GetType().Name}");
             }
         }
     }
@@ -84,12 +77,12 @@ public class HookManager(
         if (alliesEnabled && !hooks.Contains(alliesCastBarsHook))
         {
             try { alliesCastBarsHook.Enable("Allies CastBars"); hooks.Add(alliesCastBarsHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Allies CastBars"); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable Allies CastBars"); }
         }
         else if (!alliesEnabled && hooks.Contains(alliesCastBarsHook))
         {
             try { alliesCastBarsHook.Disable("Allies CastBars"); hooks.Remove(alliesCastBarsHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Allies CastBars"); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable Allies CastBars"); }
         }
 
         // Enemies CastBars
@@ -97,36 +90,36 @@ public class HookManager(
         if (enemiesEnabled && !hooks.Contains(enemiesCastBarsHook))
         {
             try { enemiesCastBarsHook.Enable("Enemies CastBars"); hooks.Add(enemiesCastBarsHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Enemies CastBars"); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable Enemies CastBars"); }
         }
         else if (!enemiesEnabled && hooks.Contains(enemiesCastBarsHook))
         {
             try { enemiesCastBarsHook.Disable("Enemies CastBars"); hooks.Remove(enemiesCastBarsHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Enemies CastBars"); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable Enemies CastBars"); }
         }
 
         // Action Tooltip
         if (config.ActionTooltip && !hooks.Contains(actionTooltipHook))
         {
             try { actionTooltipHook.Enable("Action Tooltip"); hooks.Add(actionTooltipHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Action Tooltip"); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable Action Tooltip"); }
         }
         else if (!config.ActionTooltip && hooks.Contains(actionTooltipHook))
         {
             try { actionTooltipHook.Disable("Action Tooltip"); hooks.Remove(actionTooltipHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Action Tooltip"); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable Action Tooltip"); }
         }
 
         // Item Tooltip
         if (config.ItemTooltip && !hooks.Contains(itemTooltipHook))
         {
             try { itemTooltipHook.Enable("Item Tooltip"); hooks.Add(itemTooltipHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to enable Item Tooltip"); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable Item Tooltip"); }
         }
         else if (!config.ItemTooltip && hooks.Contains(itemTooltipHook))
         {
             try { itemTooltipHook.Disable("Item Tooltip"); hooks.Remove(itemTooltipHook); }
-            catch (Exception ex) { log.Error(ex, $"{Class} - Failed to disable Item Tooltip"); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable Item Tooltip"); }
         }
     }
 
@@ -144,7 +137,7 @@ public class HookManager(
             }
             catch (Exception ex)
             {
-                log.Error(ex, $"{Class} - Failed to swap language for {hook.GetType().Name}");
+                Log.Error(ex, $"{Class} - Failed to swap language for {hook.GetType().Name}");
             }
         }
     }
@@ -163,7 +156,7 @@ public class HookManager(
             }
             catch (Exception ex)
             {
-                log.Error(ex, $"{Class} - Failed to restore language for {hook.GetType().Name}");
+                Log.Error(ex, $"{Class} - Failed to restore language for {hook.GetType().Name}");
             }
         }
     }
@@ -171,7 +164,7 @@ public class HookManager(
     // ----------------------------
     // Disable all translation hooks
     // ----------------------------
-    public void DisableAll()
+    private void DisableAll()
     {
         // Disable all active hooks
         foreach (BaseHook hook in hooks)
@@ -197,7 +190,7 @@ public class HookManager(
             }
             catch (Exception ex)
             {
-                log.Error(ex, $"{Class} - Failed to disable {hook.GetType().Name}");
+                Log.Error(ex, $"{Class} - Failed to disable {hook.GetType().Name}");
             }
         }
     }
@@ -219,7 +212,7 @@ public class HookManager(
             }
             catch (Exception ex)
             {
-                log.Error(ex, $"{Class} - Failed to dispose {hook.GetType().Name}");
+                Log.Error(ex, $"{Class} - Failed to dispose {hook.GetType().Name}");
             }
         }
 

@@ -2,11 +2,9 @@ using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Group;
 using LangSwap.hook.@base;
 using LangSwap.hook.template;
-using LangSwap.tool;
 using LangSwap.translation;
 using System;
 
@@ -15,15 +13,7 @@ namespace LangSwap.hook;
 // ----------------------------
 // Allies CastBars Hook
 // ----------------------------
-public unsafe class AlliesCastBarsHook(
-    IAddonLifecycle addonLifecycle,
-    Configuration config,
-    IFramework framework,
-    IObjectTable objectTable,
-    ITargetManager targetManager,
-    TranslationCache translationCache,
-    Utilities utilities,
-    IPluginLog log) : CastBarsHook(addonLifecycle, config, framework, objectTable, targetManager, translationCache, utilities, log)
+public unsafe class AlliesCastBarsHook(Configuration config, TranslationCache translationCache) : CastBarsHook(config, translationCache)
 {
     // Log
     private const string Class = "[AlliesCastBarsHook.cs]";
@@ -39,21 +29,21 @@ public unsafe class AlliesCastBarsHook(
         try
         {
             // Register addon lifecycle listeners
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
+            AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
+            AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
+            AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
+            AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
 
             // Set enabled flag
             isEnabled = true;
 
             // Log
-            log.Information($"{Class} - {hookName} hook enabled");
+            Log.Information($"{Class} - {hookName} hook enabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to enable {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to enable {hookName} hook");
         }
     }
 
@@ -63,11 +53,11 @@ public unsafe class AlliesCastBarsHook(
     protected override void OnLanguageSwap()
     {
         // Refresh addons
-        utilities.RefreshAddon(utilities.GetAddon(config.CastBarAddon), config.CastBarName);
-        utilities.RefreshAddon(utilities.GetAddon(config.TargetInfoAddon), config.TargetInfoName);
-        utilities.RefreshAddon(utilities.GetAddon(config.TargetCastBarAddon), config.TargetCastBarName);
-        utilities.RefreshAddon(utilities.GetAddon(config.FocusCastBarAddon), config.FocusCastBarName);
-        utilities.RefreshAddon(utilities.GetAddon(config.PartyListAddon), config.PartyListName);
+        RefreshAddon(GetAddon(config.CastBarAddon), config.CastBarName);
+        RefreshAddon(GetAddon(config.TargetInfoAddon), config.TargetInfoName);
+        RefreshAddon(GetAddon(config.TargetCastBarAddon), config.TargetCastBarName);
+        RefreshAddon(GetAddon(config.FocusCastBarAddon), config.FocusCastBarName);
+        RefreshAddon(GetAddon(config.PartyListAddon), config.PartyListName);
     }
 
     // ----------------------------
@@ -78,10 +68,10 @@ public unsafe class AlliesCastBarsHook(
         if (config.AlliesCastBarsTarget || config.AlliesCastBarsFocus || config.AlliesCastBarsPartyList)
         {
             // Get the action ID
-            uint actionId = objectTable.LocalPlayer is IBattleChara lp && lp.IsCasting ? (uint)lp.CastActionId : 0;
+            uint actionId = ObjectTable.LocalPlayer is IBattleChara lp && lp.IsCasting ? (uint)lp.CastActionId : 0;
 
             // Update the cast bar
-            UpdateCastBar(utilities.GetAddon(config.CastBarAddon), AddonType.CastBar, actionId);
+            UpdateCastBar(GetAddon(config.CastBarAddon), AddonType.CastBar, actionId);
         }
     }
 
@@ -93,10 +83,10 @@ public unsafe class AlliesCastBarsHook(
         if (config.AlliesCastBarsTarget)
         {
             // Get the action ID
-            uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.Player && t.IsCasting ? (uint)t.CastActionId : 0;
+            uint actionId = TargetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.Player && t.IsCasting ? (uint)t.CastActionId : 0;
 
             // Update the cast bar
-            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), AddonType.TargetInfo, actionId);
+            UpdateCastBar(GetAddon(config.TargetInfoAddon), AddonType.TargetInfo, actionId);
         }
     }
 
@@ -108,10 +98,10 @@ public unsafe class AlliesCastBarsHook(
         if (config.AlliesCastBarsTarget)
         {
             // Get the action ID
-            uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.Player && t.IsCasting ? (uint)t.CastActionId : 0;
+            uint actionId = TargetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.Player && t.IsCasting ? (uint)t.CastActionId : 0;
 
             // Update the cast bar
-            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), AddonType.TargetCastBar, actionId);
+            UpdateCastBar(GetAddon(config.TargetCastBarAddon), AddonType.TargetCastBar, actionId);
         }
     }
 
@@ -123,10 +113,10 @@ public unsafe class AlliesCastBarsHook(
         if (config.AlliesCastBarsFocus)
         {
             // Get the action ID
-            uint actionId = targetManager.FocusTarget is IBattleChara f && f.ObjectKind == ObjectKind.Player && f.IsCasting ? (uint)f.CastActionId : 0;
+            uint actionId = TargetManager.FocusTarget is IBattleChara f && f.ObjectKind == ObjectKind.Player && f.IsCasting ? (uint)f.CastActionId : 0;
 
             // Update the cast bar
-            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), AddonType.FocusCastBar, actionId);
+            UpdateCastBar(GetAddon(config.FocusCastBarAddon), AddonType.FocusCastBar, actionId);
         }
     }
 
@@ -146,7 +136,7 @@ public unsafe class AlliesCastBarsHook(
                 entityIDs[i] = groupManager->MainGroup.PartyMembers[i].EntityId;
 
             // Update part list
-            UpdateList(utilities.GetAddon(config.PartyListAddon), AddonType.PartyList, CastBarsType.Allies, entityIDs);
+            UpdateList(GetAddon(config.PartyListAddon), AddonType.PartyList, CastBarsType.Allies, entityIDs);
         }
     }
 
@@ -161,19 +151,19 @@ public unsafe class AlliesCastBarsHook(
         try
         {
             // Unregister addon lifecycle listeners
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
 
             // Set disabled flag
             isEnabled = false;
-            log.Information($"{Class} - {hookName} hook disabled");
+            Log.Information($"{Class} - {hookName} hook disabled");
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to disable {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to disable {hookName} hook");
         }
     }
 
@@ -185,11 +175,11 @@ public unsafe class AlliesCastBarsHook(
         try
         {
             // Unregister addon lifecycle listeners
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.PartyListAddon, OnPartyListUpdate);
 
             // Set disabled flag
             isEnabled = false;
@@ -199,7 +189,7 @@ public unsafe class AlliesCastBarsHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Failed to dispose {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to dispose {hookName} hook");
         }
     }
 

@@ -1,7 +1,5 @@
-using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.hook.template;
-using LangSwap.tool;
 using LangSwap.translation;
 using LangSwap.translation.@base;
 using System;
@@ -11,13 +9,7 @@ namespace LangSwap.hook;
 // ----------------------------
 // Action Tooltip Hook
 // ----------------------------
-public unsafe class ActionTooltipHook(
-    Configuration config,
-    IGameInteropProvider gameInterop,
-    ISigScanner sigScanner,
-    TranslationCache translationCache,
-    Utilities utilities,
-    IPluginLog log) : TooltipHook(config, gameInterop, sigScanner, translationCache, utilities, log)
+public unsafe class ActionTooltipHook(Configuration config, TranslationCache translationCache) : TooltipHook(config, translationCache)
 {
     // Log
     private const string Class = "[ActionTooltipHook.cs]";
@@ -31,7 +23,7 @@ public unsafe class ActionTooltipHook(
     protected override void OnLanguageSwap()
     {
         // Refresh action detail addon
-        utilities.RefreshAddon(utilities.GetAddon(config.ActionDetailAddon), config.ActionDetailName);
+        RefreshAddon(GetAddon(config.ActionDetailAddon), config.ActionDetailName);
     }
 
     // ----------------------------
@@ -57,7 +49,7 @@ public unsafe class ActionTooltipHook(
                 if (clientLang != targetLang)
                 {
                     // Get action name
-                    string actionName = utilities.ReadStringFromArrayData(stringArrayData, config.ActionNameField);
+                    string actionName = ReadStringFromArrayData(stringArrayData, config.ActionNameField);
                     if (!string.IsNullOrWhiteSpace(actionName))
                     {
                         // Get action ID 
@@ -72,9 +64,9 @@ public unsafe class ActionTooltipHook(
                             // Apply translated action name
                             if (!string.IsNullOrWhiteSpace(translatedActionName))
                             {
-                                if (!utilities.WriteStringToArrayData(stringArrayData, config.ActionNameField, translatedActionName))
+                                if (!WriteStringToArrayData(stringArrayData, config.ActionNameField, translatedActionName))
                                 {
-                                    log.Error($"{Class} - Failed to write translated action name ({translatedActionName}) to field {config.ActionNameField}");
+                                    Log.Error($"{Class} - Failed to write translated action name ({translatedActionName}) to field {config.ActionNameField}");
                                 }
                             }
 
@@ -86,9 +78,9 @@ public unsafe class ActionTooltipHook(
                             // Apply translated description
                             if (!string.IsNullOrWhiteSpace(translatedDescription))
                             {
-                                if (!utilities.WriteStringToArrayData(stringArrayData, config.ActionDescriptionField, translatedDescription))
+                                if (!WriteStringToArrayData(stringArrayData, config.ActionDescriptionField, translatedDescription))
                                 {
-                                    log.Error($"{Class} - Failed to write translated description ({translatedDescription}) to field {config.ActionDescriptionField}");
+                                    Log.Error($"{Class} - Failed to write translated description ({translatedDescription}) to field {config.ActionDescriptionField}");
                                 }
                             }
                         }
@@ -98,7 +90,7 @@ public unsafe class ActionTooltipHook(
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"{Class} - Exception in OnTooltipUpdate");
+            Log.Error(ex, $"{Class} - Exception in OnTooltipUpdate");
         }
 
         // Call original function with modified data

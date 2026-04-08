@@ -1,11 +1,13 @@
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.IoC;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.hook.@base;
-using LangSwap.tool;
 using LangSwap.translation;
+using LangSwap.translation.@base;
+using LangSwap.translation.model;
 using System;
 using System.Collections.Generic;
 
@@ -14,24 +16,19 @@ namespace LangSwap.hook.template;
 // ----------------------------
 // Base class for all castbars hooks
 // ----------------------------
-public unsafe abstract class CastBarsHook(
-    IAddonLifecycle addonLifecycle,
-    Configuration config,
-    IFramework framework,
-    IObjectTable objectTable,
-    ITargetManager targetManager,
-    TranslationCache translationCache,
-    Utilities utilities,
-    IPluginLog log) : BaseHook(config, translationCache, utilities, log)
+public unsafe abstract class CastBarsHook(Configuration config, TranslationCache translationCache) : BaseHook(config, translationCache)
 {
     // Log
     private const string Class = "[CastBarsHook.cs]";
 
-    // Core components
-    protected IAddonLifecycle addonLifecycle = addonLifecycle;
-    protected IFramework framework = framework;
-    protected IObjectTable objectTable = objectTable;
-    protected ITargetManager targetManager = targetManager;
+    // Services
+    [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
+    [PluginService] internal static IFramework Framework { get; private set; } = null!;
+    [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+    [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
+
+    // Symbols
+    private readonly char[] targetIndicatorSymbols = config.TargetIndicatorSymbols;
 
     // ----------------------------
     // Update cast bar
@@ -68,7 +65,7 @@ public unsafe abstract class CastBarsHook(
             string addonName = GetAddonName(addonType);
 
             // Log
-            log.Error(ex, $"{Class} - Error updating {addonName} addon");
+            Log.Error(ex, $"{Class} - Error updating {addonName} addon");
         }
     }
 
@@ -86,7 +83,7 @@ public unsafe abstract class CastBarsHook(
 
             // Build current-tick EntityId -> CastActionId snapshot
             Dictionary<uint, uint> currentCasts = [];
-            foreach (IGameObject obj in objectTable)
+            foreach (IGameObject obj in ObjectTable)
             {
                 if (obj is not IBattleChara bc || !bc.IsCasting || bc.ObjectKind != objectKind) continue;
                 uint castActionId = (uint)bc.CastActionId;
@@ -131,9 +128,15 @@ public unsafe abstract class CastBarsHook(
 
                 if (entityId > 0 && currentCasts.TryGetValue(entityId, out uint directActionId))
                 {
-                    // Get the current display name and target indicator (if any)
-                    string[] textParts = utilities.RemoveTargetIndicator(textNode -> NodeText.ToString());
+                    // Get the current display name
+                    string currentDisplayName = textNode -> NodeText.ToString();
+
+                    // Remove any target indicator and store it
+                    string[] textParts = RemoveTargetIndicator(currentDisplayName);
                     string targetIndicator = textParts[1];
+
+                    // Remove any ellipsis
+                    textParts[0] = RemoveEllipsis(textParts[0]);
 
                     // Resolve action name
                     string? actionName = ResolveActionName(directActionId, textParts[0]);
@@ -153,25 +156,15 @@ public unsafe abstract class CastBarsHook(
             string addonName = GetAddonName(addonType);
 
             // Log
-            log.Error(ex, $"{Class} - Error updating {addonName} addon");
+            Log.Error(ex, $"{Class} - Error updating {addonName} addon");
         }
-    }
-
-    // ----------------------------
-    // Check if character is in list
-    // ----------------------------
-    protected static bool IsInList(IBattleChara character, StatusFlags flag)
-    {
-        // Check if character has the specified status flag
-        if (character != null && character.StatusFlags.HasFlag(flag)) return true;
-        else return false;
     }
 
     // ----------------------------
     // Resolve an action name for display, handling obfuscation and alternatives
     // Returns null if the name should not be displayed (unknown obfuscated or empty)
     // ----------------------------
-    protected string? ResolveActionName(uint actionId, string currentDisplayName)
+    private string? ResolveActionName(uint actionId, string currentDisplayName)
     {
         // TODO : clean up
         string? actionName = translationCache.GetActionName(actionId, config.TargetLanguage);
@@ -179,22 +172,107 @@ public unsafe abstract class CastBarsHook(
 
         if (actionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
         {
-            string? resolvedName = utilities.GetObfuscatedTranslation(actionId, config.TargetLanguage);
+            string? resolvedName = GetObfuscatedTranslation(actionId, config.TargetLanguage);
             if (!resolvedName.IsNullOrWhitespace())
             {
                 actionName = resolvedName;
             }
             else
             {
-                utilities.ScanObfuscatedTranslation(actionId, actionName, currentDisplayName, config.ClientLanguage);
+                ScanObfuscatedTranslation(actionId, actionName, currentDisplayName, config.ClientLanguage);
                 return null;
             }
         }
 
-        string? alternativeName = Utilities.GetAlternativeTranslation(actionName, config.AlternativeTranslations);
+        string? alternativeName = GetAlternativeTranslation(actionName, config.AlternativeTranslations);
         if (!alternativeName.IsNullOrWhitespace()) actionName = alternativeName;
 
         return actionName;
+    }
+
+    // ----------------------------
+    // Get obfuscated translation
+    // ----------------------------
+    private string? GetObfuscatedTranslation(uint actionId, Language targetLanguage)
+    {
+        // Check for valid action ID
+        if (actionId <= 0) return null;
+
+        // Priority order : remote -> scanned -> local
+        List<ObfuscatedTranslation>[] obfuscatedTranslationsSources =
+        [
+            config.RemoteObfuscatedTranslations,
+            config.ScannedObfuscatedTranslations,
+            config.LocalObfuscatedTranslations
+        ];
+
+        // Search for translation in each source
+        foreach (List<ObfuscatedTranslation> obfuscatedTranslations in obfuscatedTranslationsSources)
+        {
+            // Find obfuscated translation by action ID
+            ObfuscatedTranslation? obfuscatedTranslation = obfuscatedTranslations.FindLast(translation => translation.Id == actionId);
+            if (obfuscatedTranslation != null)
+            {
+                return targetLanguage switch
+                {
+                    Language.Japanese => obfuscatedTranslation.JapaneseName,
+                    Language.English => obfuscatedTranslation.EnglishName,
+                    Language.German => obfuscatedTranslation.GermanName,
+                    Language.French => obfuscatedTranslation.FrenchName,
+                    _ => obfuscatedTranslation.EnglishName,
+                };
+            }
+        }
+        return null;
+    }
+
+    // ----------------------------
+    // Scan an obfuscated translation discovered
+    // ----------------------------
+    private void ScanObfuscatedTranslation(uint actionId, string obfuscatedName, string displayName, Language clientLanguage)
+    {
+        // Skip if action ID, obfuscated name or display name are invalid
+        if (actionId < 0 || actionId > config.MaxValidActionId || obfuscatedName.IsNullOrWhitespace() || displayName.IsNullOrWhitespace()) return;
+
+        // Skip if already scanned
+        if (config.ScannedObfuscatedTranslations.FindIndex(translation => translation.Id == (int)actionId) >= 0) return;
+
+        // TODO : can already be scanned but missing some language display name, in that case we should update the existing entry instead of creating a new one
+
+        // Create new scanned entry with the client language display name
+        ObfuscatedTranslation scanned = new()
+        {
+            Id = (int)actionId,
+            ObfuscatedName = obfuscatedName
+        };
+
+        switch (clientLanguage)
+        {
+            case Language.Japanese: scanned.JapaneseName = displayName; break;
+            case Language.English: scanned.EnglishName = displayName; break;
+            case Language.German: scanned.GermanName = displayName; break;
+            case Language.French: scanned.FrenchName = displayName; break;
+        }
+
+        config.ScannedObfuscatedTranslations.Add(scanned);
+        config.Save();
+
+        Log.Information($"{Class} - Scanned obfuscated translation: ID={actionId}, Obfuscated={obfuscatedName}, {clientLanguage}={displayName}");
+    }
+
+
+    // ----------------------------
+    // Get alternative translation
+    // ----------------------------
+    private static string? GetAlternativeTranslation(string spellName, List<AlternativeTranslation> alternativeTranslations)
+    {
+        // Check for null, empty spell name or empty translations list
+        if (!spellName.IsNullOrWhitespace() && alternativeTranslations != null && alternativeTranslations.Count > 0)
+        {
+            // Find alternative translation by spell name
+            return alternativeTranslations.FindLast(translation => translation.SpellName == spellName)?.AlternativeName ?? string.Empty;
+        }
+        return null;
     }
 
     // ----------------------------
@@ -229,6 +307,40 @@ public unsafe abstract class CastBarsHook(
             AddonType.EnmityList    => config.EnmityListName,
             _                       => throw new ArgumentOutOfRangeException(nameof(addonType))
         };
+    }
+
+    // ----------------------------
+    // Remove target indicator from text
+    // ----------------------------
+    private string[] RemoveTargetIndicator(string text)
+    {
+        // Check for null or empty text
+        if (string.IsNullOrWhiteSpace(text)) return [string.Empty, string.Empty];
+
+        // Initialize result with original text
+        string[] result = [text, string.Empty];
+
+        // Check if text contains any target indicator
+        for (int i = 0; i < targetIndicatorSymbols.Length; i++)
+        {
+            if (text.Contains(targetIndicatorSymbols[i]))
+            {
+                // Remove target indicator symbol from text and store it
+                result[0] = text.Replace(targetIndicatorSymbols[i].ToString(), "").Trim();
+                result[1] = targetIndicatorSymbols[i].ToString();
+                break;
+            }
+        }
+        return result;
+    }
+
+    // ----------------------------
+    // Remove ellipsis from text
+    // ----------------------------
+    private static string RemoveEllipsis(string text)
+    {
+        if (!string.IsNullOrWhiteSpace(text)) return text.Replace("...", "").Trim();
+        else return text;
     }
 
 }

@@ -86,12 +86,12 @@ public class TranslationCache(ExcelProvider excelProvider)
     private static TValue? GetOrCache<TKey, TValue>(Dictionary<TKey, TValue?> cache, TKey key, Func<TValue?> fetch) where TKey : notnull
     {
         // Try to get from cache
-        if (cache.TryGetValue(key, out TValue? val)) return val;
+        if (cache.TryGetValue(key, out TValue? value)) return value;
 
         // Fetch, cache, then return
-        val = fetch();
-        cache[key] = val;
-        return val;
+        value = fetch();
+        cache[key] = value;
+        return value;
     }
 
     // ----------------------------

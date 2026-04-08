@@ -36,7 +36,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             if (addon == null || !addon -> IsVisible) return;
 
             // Check if we have a valid action ID
-            if (!AreValidActionIDs([actionId])) return;
+            if (!IsValidActionID(actionId)) return;
 
             // Get the cast field
             int castField = GetCastField(addonType);
@@ -77,9 +77,6 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             // Check if addon is visible
             if (addon == null || !addon -> IsVisible) return;
 
-            // Check if we have valid action IDs
-            if (AreValidActionIDs(entityIDs)) return;
-
             // Get object kind
             ObjectKind objectKind = castBarsType == CastBarsType.Allies ? ObjectKind.Player : ObjectKind.BattleNpc;
 
@@ -92,7 +89,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
 
                 // Add to current casts if we have a valid action ID
                 uint actionID = (uint)battleCharacter.CastActionId;
-                if (AreValidActionIDs([actionID])) currentCasts[battleCharacter.EntityId] = actionID;
+                if (IsValidActionID(actionID)) currentCasts[battleCharacter.EntityId] = actionID;
             }
 
             // Skip if no current casts
@@ -210,7 +207,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     private string? GetObfuscatedTranslation(uint actionID, Language targetLanguage)
     {
         // Check for valid action ID
-        if (!AreValidActionIDs([actionID])) return null;
+        if (!IsValidActionID(actionID)) return null;
 
         // Obfuscated translations sources in priority order
         List<ObfuscatedTranslation>[] obfuscatedTranslationsSources =
@@ -246,7 +243,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     private void ScanObfuscatedTranslation(uint actionID, string obfuscatedName, string displayName, Language clientLanguage)
     {
         // Check for valid action ID
-        if (!AreValidActionIDs([actionID])) return;
+        if (!IsValidActionID(actionID)) return;
 
         // Check if obfuscated name or display name are invalid
         if (obfuscatedName.IsNullOrWhitespace() || displayName.IsNullOrWhitespace()) return;
@@ -328,16 +325,11 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     }
 
     // ----------------------------
-    // Check if action IDs are valid
+    // Check if action ID is valid
     // ----------------------------
-    private bool AreValidActionIDs(uint[] actionIDs)
+    private bool IsValidActionID(uint actionID)
     {
-        // Check each action ID
-        foreach (uint actionID in actionIDs)
-        {
-            if (actionID <= 0 || actionID > config.MaxValidActionID) return true;
-        }
-        return true;
+        return actionID >= 0 && actionID <= config.MaxValidActionID;
     }
 
     // ----------------------------

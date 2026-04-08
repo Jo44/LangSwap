@@ -81,12 +81,8 @@ public class ExcelProvider(Configuration config)
     {
         try
         {
-            // Validate action ID range
-            if (actionID < 1 || actionID > config.MaxValidActionID)
-            {
-                Log.Warning($"{Class} - Action ID {actionID} is out of valid range (1-{config.MaxValidActionID})");
-                return null;
-            }
+            // Check if valid action ID
+            if (actionID < 1 || actionID > config.MaxValidActionID) return null;
 
             // Get the Action sheet for the target language
             ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(targetLang));
@@ -120,12 +116,8 @@ public class ExcelProvider(Configuration config)
     {
         try
         {
-            // Validate action ID range
-            if (actionID < 1 || actionID > config.MaxValidActionID)
-            {
-                Log.Warning($"{Class} - Action transient ID {actionID} is out of valid range (1-{config.MaxValidActionID})");
-                return null;
-            }
+            // Check if valid action ID
+            if (actionID < 1 || actionID > config.MaxValidActionID) return null;
 
             // Get the ActionTransient sheet for the target language
             ExcelSheet<ActionTransient> actionTransientSheet = DataManager.GetExcelSheet<ActionTransient>(EnumToClientLang(targetLang));
@@ -241,12 +233,8 @@ public class ExcelProvider(Configuration config)
     {
         try
         {
-            // Validate item ID range
-            if (itemID < 1 || itemID > config.MaxValidItemID)
-            {
-                Log.Warning($"{Class} - Item ID {itemID} is out of valid range (1-{config.MaxValidItemID})");
-                return null;
-            }
+            // Check if valid item ID
+            if (itemID < 1 || itemID > config.MaxValidItemID) return null;
 
             // // Get the Item sheet for the target language
             ExcelSheet<Item> itemSheet = DataManager.GetExcelSheet<Item>(EnumToClientLang(targetLang));

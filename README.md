@@ -10,6 +10,7 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 
 ## Limitations
 - Spell names can only be translated in some UI components, and not in chat or floating actions on enemies
+- Spell names can only be translated when character is in combat 
 - Action tooltip only translate : `Name` / `Description`
 - Item tooltip only translate : `Name` / `Glamour` / `Description` / `Effects` / `Bonuses` / `Materias`
 

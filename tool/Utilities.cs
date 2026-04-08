@@ -449,6 +449,40 @@ public unsafe class Utilities(
     }
 
     // ----------------------------
+    // Scan an obfuscated translation discovered
+    // ----------------------------
+    public void ScanObfuscatedTranslation(uint actionId, string obfuscatedName, string displayName, LanguageEnum clientLanguage)
+    {
+        // Skip if action ID, obfuscated name or display name are invalid
+        if (actionId < 0 || actionId > config.MaxValidActionId || obfuscatedName.IsNullOrWhitespace() || displayName.IsNullOrWhitespace()) return;
+
+        // Skip if already scanned
+        if (config.ScannedObfuscatedTranslations.FindIndex(translation => translation.Id == (int)actionId) >= 0) return;
+
+        // TODO : can already be scanned but missing some language display name, in that case we should update the existing entry instead of creating a new one
+
+        // Create new scanned entry with the client language display name
+        ObfuscatedTranslation scanned = new()
+        {
+            Id = (int)actionId,
+            ObfuscatedName = obfuscatedName
+        };
+
+        switch (clientLanguage)
+        {
+            case LanguageEnum.Japanese: scanned.JapaneseName = displayName; break;
+            case LanguageEnum.English: scanned.EnglishName = displayName; break;
+            case LanguageEnum.German: scanned.GermanName = displayName; break;
+            case LanguageEnum.French: scanned.FrenchName = displayName; break;
+        }
+
+        config.ScannedObfuscatedTranslations.Add(scanned);
+        config.Save();
+
+        log.Information($"{Class} - Scanned obfuscated translation: ID={actionId}, Obfuscated={obfuscatedName}, {clientLanguage}={displayName}");
+    }
+
+    // ----------------------------
     // Get alternative translation
     // ----------------------------
     public static string? GetAlternativeTranslation(string spellName, List<AlternativeTranslation> alternativeTranslations)

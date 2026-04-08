@@ -1,17 +1,13 @@
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.Enums;
-using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
-using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Component.GUI;
+using FFXIVClientStructs.FFXIV.Client.Game.Group;
 using LangSwap.hook.@base;
 using LangSwap.tool;
 using LangSwap.translation;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace LangSwap.hook;
 
@@ -45,11 +41,6 @@ public unsafe class AlliesCastBarsHook(
     private readonly int partyListEndField = config.PartyListEndField;
     private readonly int partyListCastField = config.PartyListCastField;
 
-    // Action IDs
-    private uint currentActionId = 0;
-    private uint currentAllyTargetActionId = 0;
-    private uint currentAllyFocusActionId = 0;
-
     // ----------------------------
     // Enable the hook
     // ----------------------------
@@ -60,9 +51,6 @@ public unsafe class AlliesCastBarsHook(
 
         try
         {
-            // Subscribe to framework update
-            framework.Update += OnFrameworkUpdate;
-
             // Register addon lifecycle listeners
             addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
             addonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
@@ -101,92 +89,14 @@ public unsafe class AlliesCastBarsHook(
     }
 
     // ----------------------------
-    // On framework update
-    // ----------------------------
-    protected override void OnFrameworkUpdate(IFramework framework)
-    {
-        try
-        {
-            // Check if language is swapped
-            if (!isLanguageSwapped) return;
-
-            // Get local player
-            IPlayerCharacter? player = objectTable.LocalPlayer;
-            if (player == null) return;
-
-            // Get player's ID
-            ulong playerId = player.GameObjectId;
-
-            // Get player's target ID
-            ulong targetId = player.TargetObjectId;
-            
-            // Get player's focus ID
-            ulong focusId = targetManager.FocusTarget?.GameObjectId ?? 0;
-
-            // Clean expired list casts
-            CleanExpiredListCasts();
-
-            // Iterate through all players
-            foreach (IGameObject obj in objectTable)
-            {
-                // Filter for players
-                if (obj == null || obj.ObjectKind != ObjectKind.Player || obj is not IPlayerCharacter || obj is not IBattleChara battleChara) continue;
-
-                // Check if this character is the current player
-                bool isCharacter = battleChara.GameObjectId == playerId;
-                
-                // Check if this character is the current player's target
-                bool isTarget = battleChara.GameObjectId == targetId;
-
-                // Check if this character is the current player's focus
-                bool isFocus = battleChara.GameObjectId == focusId;
-
-                // Check if this character is in the current player's party list
-                bool inPartyList = IsInList(battleChara, StatusFlags.PartyMember);
-
-                // Skip if not relevant
-                if (!isCharacter && !isTarget && !isFocus && !inPartyList) continue;
-
-                // Check if casting
-                if (battleChara.IsCasting)
-                {
-                    // Get action ID
-                    uint actionId = (uint)battleChara.CastActionId;
-                    if (actionId > 0)
-                    {
-                        // Update player
-                        if (isCharacter) currentActionId = actionId;
-
-                        // Update target
-                        if (isTarget) currentAllyTargetActionId = actionId;
-
-                        // Update focus
-                        if (isFocus) currentAllyFocusActionId = actionId;
-
-                        // Update party list
-                        if (inPartyList)
-                        {
-                            listCasts[battleChara.GameObjectId] = actionId;
-                            listCastsExpiry[battleChara.GameObjectId] = Stopwatch.GetTimestamp() * 10_000_000L / Stopwatch.Frequency;
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error in OnFrameworkUpdate");
-        }
-    }
-
-    // ----------------------------
     // On cast bar update
     // ----------------------------
     private void OnCastBarUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
         if (castBarsTarget || castBarsFocus || castBarsPartyList)
         {
-            UpdateCastBar(utilities.GetAddon(config.CastBarAddon), currentActionId, castBarField, "castbar");
+            uint actionId = objectTable.LocalPlayer is IBattleChara lp && lp.IsCasting ? (uint)lp.CastActionId : 0;
+            UpdateCastBar(utilities.GetAddon(config.CastBarAddon), actionId, castBarField, "castbar");
         }
     }
 
@@ -197,7 +107,8 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), currentAllyTargetActionId, targetInfoField, "target info");
+            uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.Player && t.IsCasting ? (uint)t.CastActionId : 0;
+            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), actionId, targetInfoField, "target info");
         }
     }
 
@@ -208,7 +119,8 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsTarget)
         {
-            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), currentAllyTargetActionId, targetCastBarField, "target castbar");
+            uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.Player && t.IsCasting ? (uint)t.CastActionId : 0;
+            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), actionId, targetCastBarField, "target castbar");
         }
     }
 
@@ -219,7 +131,8 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsFocus)
         {
-            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), currentAllyFocusActionId, focusCastBarField, "focus castbar");
+            uint actionId = targetManager.FocusTarget is IBattleChara f && f.ObjectKind == ObjectKind.Player && f.IsCasting ? (uint)f.CastActionId : 0;
+            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), actionId, focusCastBarField, "focus castbar");
         }
     }
 
@@ -230,136 +143,13 @@ public unsafe class AlliesCastBarsHook(
     {
         if (castBarsPartyList)
         {
-            UpdateList(utilities.GetAddon(config.PartyListAddon), partyListCastField);
-        }
-    }
-
-    // ----------------------------
-    // Update cast bar
-    // ----------------------------
-    protected override void UpdateCastBar(AtkUnitBase* addon, uint actionId, int fieldIndex, string addonName)
-    {
-        try
-        {
-            // Only update if language is swapped, we have a valid action ID and the addon is visible
-            if (!isLanguageSwapped || actionId == 0 || addon == null || !addon -> IsVisible) return;
-
-            // Get action name
-            string? actionName = translationCache.GetActionName(actionId, config.TargetLanguage);
-            if (actionName.IsNullOrWhitespace()) return;
-
-            // Check for alternative translation
-            string? alternativeName = Utilities.GetAlternativeTranslation(actionName, config.AlternativeTranslations);
-            if (!alternativeName.IsNullOrWhitespace()) actionName = alternativeName;
-
-            // Get the text node
-            AtkResNode* fieldNode = addon -> UldManager.NodeList[fieldIndex];
-            if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
-            AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-            if (textNode == null || textNode -> NodeText.Length == 0) return;
-
-            // Update the text node
-            textNode -> SetText(actionName);
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error updating {addonName} addon");
-        }
-    }
-
-    // ----------------------------
-    // Update list
-    // ----------------------------
-    protected override void UpdateList(AtkUnitBase* addon, int fieldIndex)
-    {
-        try
-        {
-            // Only update if language is swapped, we have casts to translate and the addon is visible
-            if (!isLanguageSwapped || (listCasts.Count < 1) || addon == null || !addon -> IsVisible) return;
-
-            // Process each slot in the list
-            for (int slotIndex = partyListStartField; slotIndex <= partyListEndField; slotIndex++)
-            {
-                // Get the slot node
-                AtkResNode* slotNode = addon -> UldManager.NodeList[slotIndex];
-                if (slotNode == null || !slotNode -> IsVisible() || (ushort)slotNode -> Type < 1000) return;
-
-                // Get the component node
-                AtkComponentNode* componentNode = (AtkComponentNode*)slotNode;
-                if (componentNode -> Component == null) return;
-
-                // Get the uld manager
-                AtkUldManager* uldManager = &componentNode -> Component -> UldManager;
-                if (uldManager == null || uldManager -> NodeListCount == 0) return;
-
-                // Get the field node
-                AtkResNode* fieldNode = uldManager -> NodeList[fieldIndex];
-                if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
-
-                // Get the text node
-                AtkTextNode* textNode = (AtkTextNode*)fieldNode;
-                if (textNode == null || textNode -> NodeText.Length == 0) return;
-
-                // Translate the slot
-                TranslateSlot(textNode);
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, $"{Class} - Error updating partylist addon");
-        }
-    }
-
-    // ----------------------------
-    // Translate the slot
-    // ----------------------------
-    protected override void TranslateSlot(AtkTextNode* textNode)
-    {
-        // Get display name
-        string displayName = textNode -> NodeText.ToString();
-        if (string.IsNullOrWhiteSpace(displayName)) return;
-
-        // Remove target indicator and ellipsis for comparison
-        string[] textParts = utilities.RemoveTargetIndicator(displayName);
-        string textWithoutIndicator = Utilities.RemoveEllipsis(textParts[0]);
-        string targetIndicator = textParts[1];
-
-        // Check if the current text contains any of the casts in the party list and translate it
-        foreach (KeyValuePair<ulong, uint> cast in listCasts)
-        {
-            // Get the action ID
-            uint actionId = cast.Value;
-
-            // Get the client language action name
-            string? clientActionName = translationCache.GetActionName(actionId, config.ClientLanguage);
-            if (clientActionName.IsNullOrWhitespace()) continue;
-
-            // If the client language action name contains the display name, translate it
-            if (clientActionName.StartsWith(textWithoutIndicator))
-            {
-                // Get the target language action name
-                string? actionName = translationCache.GetActionName(actionId, config.TargetLanguage);
-                if (!actionName.IsNullOrWhitespace())
-                {
-                    // Check for alternative translation
-                    string? alternativeName = Utilities.GetAlternativeTranslation(actionName, config.AlternativeTranslations);
-                    if (!alternativeName.IsNullOrWhitespace()) actionName = alternativeName;
-
-                    // If the original text had a target indicator, preserve it in the translation
-                    if (!targetIndicator.IsNullOrWhitespace())
-                    {
-                        // Update the text node with the action name and target indicator
-                        textNode -> SetText(actionName + " " + targetIndicator);
-                        break;
-                    }
-                    else
-                    {
-                        // Update the text node with the action name
-                        textNode -> SetText(actionName);
-                        break;
-                    }
-                }
-            }
+            GroupManager* groupManager = GroupManager.Instance();
+            if (groupManager == null) return;
+            int count = partyListEndField - partyListStartField + 1;
+            uint[] slotEntityIds = new uint[count];
+            for (int i = 0; i < count && i < groupManager->MainGroup.MemberCount; i++)
+                slotEntityIds[i] = groupManager->MainGroup.PartyMembers[i].EntityId;
+            UpdateList(utilities.GetAddon(config.PartyListAddon), partyListCastField, partyListStartField, partyListEndField, true, ObjectKind.Player, slotEntityIds);
         }
     }
 
@@ -373,9 +163,6 @@ public unsafe class AlliesCastBarsHook(
 
         try
         {
-            // Unsubscribe from framework update
-            framework.Update -= OnFrameworkUpdate;
-
             // Unregister addon lifecycle listeners
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
@@ -400,9 +187,6 @@ public unsafe class AlliesCastBarsHook(
     {
         try
         {
-            // Unsubscribe from framework update
-            framework.Update -= OnFrameworkUpdate;
-
             // Unregister addon lifecycle listeners
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.CastBarAddon, OnCastBarUpdate);
             addonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);

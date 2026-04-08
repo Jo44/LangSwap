@@ -7,6 +7,7 @@ using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using LangSwap.hook.@base;
 using LangSwap.translation.@base;
 using LangSwap.translation.model;
 using System;

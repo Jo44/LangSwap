@@ -24,6 +24,9 @@ public unsafe abstract class CastBarsHook(
     Utilities utilities,
     IPluginLog log) : BaseHook(config, translationCache, utilities, log)
 {
+    // Log
+    private const string Class = "[CastBarsHook.cs]";
+
     // Core components
     protected IAddonLifecycle addonLifecycle = addonLifecycle;
     protected IFramework framework = framework;
@@ -33,54 +36,53 @@ public unsafe abstract class CastBarsHook(
     // ----------------------------
     // Update cast bar
     // ----------------------------
-    protected virtual void UpdateCastBar(AtkUnitBase* addon, AddonType addonType, string addonName, uint actionId)
+    protected virtual void UpdateCastBar(AtkUnitBase* addon, AddonType addonType, uint actionId)
     {
-        // TODO : clean up
         try
         {
-            // Only update if we have a valid action ID and the addon is visible
+            // Check if we have a valid action ID and the addon is visible
             if (actionId == 0 || actionId > config.MaxValidActionId || addon == null || !addon -> IsVisible) return;
 
-            // Get the component field
-            int fieldIndex = addonType switch
-            {
-                AddonType.CastBar       => config.CastBarField,
-                AddonType.TargetInfo    => config.TargetInfoField,
-                AddonType.TargetCastBar => config.TargetCastBarField,
-                AddonType.FocusCastBar  => config.FocusCastBarField,
-                _                   => throw new ArgumentOutOfRangeException(nameof(addonType))
-            };
+            // Get the cast field
+            int castField = GetCastField(addonType);
 
             // Get the text node
-            AtkResNode * fieldNode = addon -> UldManager.NodeList[fieldIndex];
+            AtkResNode * fieldNode = addon -> UldManager.NodeList[castField];
             if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
             AtkTextNode* textNode = (AtkTextNode*)fieldNode;
             if (textNode == null || textNode -> NodeText.Length == 0) return;
 
-            // Resolve action name (handles obfuscation detection and alternative translations)
+            // Resolve action name
             string? actionName = ResolveActionName(actionId, textNode -> NodeText.ToString());
             if (actionName.IsNullOrWhitespace()) return;
+
+            // Only update if language is swapped
+            if (!isLanguageSwapped) return;
 
             // Update the text node
             textNode -> SetText(actionName);
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"[{GetType().Name}] - Error updating {addonName} addon");
+            // Get the addon name
+            string addonName = GetAddonName(addonType);
+
+            // Log
+            log.Error(ex, $"{Class} - Error updating {addonName} addon");
         }
     }
 
     // ----------------------------
     // Update list
     // ----------------------------
-    protected void UpdateList(AtkUnitBase* addon, AddonType addonType, string addonName, uint[] entityIDs)
+    protected void UpdateList(AtkUnitBase* addon, AddonType addonType, CastBarsType castBarsType, uint[] entityIDs)
     {
-        // TODO : clean up
         try
         {
+            // Check if the addon is visible and we have at least one valid entity ID
             if (!isLanguageSwapped || addon == null || !addon -> IsVisible) return;
 
-            ObjectKind objectKind = (addonType == AddonType.) ? ObjectKind.Player : ObjectKind.BattleNpc;
+            ObjectKind objectKind = castBarsType == CastBarsType.Allies ? ObjectKind.Player : ObjectKind.BattleNpc;
 
             // Build current-tick EntityId -> CastActionId snapshot
             Dictionary<uint, uint> currentCasts = [];
@@ -92,7 +94,13 @@ public unsafe abstract class CastBarsHook(
             }
             if (currentCasts.Count < 1) return;
 
+            // TODO
+            bool ascending = castBarsType == CastBarsType.Allies;
             int step = ascending ? 1 : -1;
+            int startField = castBarsType == CastBarsType.Allies ? config.PartyListStartField : config.EnmityListStartField;
+            int endField = castBarsType == CastBarsType.Allies ? config.PartyListEndField : config.EnmityListEndField;
+            int fieldIndex = castBarsType == CastBarsType.Allies ? config.PartyListCastField : config.EnmityListCastField;
+
             for (int slotIndex = ascending ? startField : endField; ascending ? slotIndex <= endField : slotIndex >= startField; slotIndex += step)
             {
                 // Get the slot node
@@ -115,25 +123,37 @@ public unsafe abstract class CastBarsHook(
                 AtkTextNode* textNode = (AtkTextNode*)fieldNode;
                 if (textNode == null || textNode -> NodeText.Length == 0) continue;
 
+                // Calculate the relative index of the slot within the list
                 int slotRelativeIndex = ascending ? slotIndex - startField : endField - slotIndex;
-                uint entityId = slotRelativeIndex < slotEntityIds.Length ? slotEntityIds[slotRelativeIndex] : 0;
+
+                // Get the entity ID for this slot
+                uint entityId = slotRelativeIndex < entityIDs.Length ? entityIDs[slotRelativeIndex] : 0;
 
                 if (entityId > 0 && currentCasts.TryGetValue(entityId, out uint directActionId))
                 {
+                    // Get the current display name and target indicator (if any)
                     string[] textParts = utilities.RemoveTargetIndicator(textNode -> NodeText.ToString());
                     string targetIndicator = textParts[1];
 
+                    // Resolve action name
                     string? actionName = ResolveActionName(directActionId, textParts[0]);
                     if (actionName.IsNullOrWhitespace()) continue;
+                    
+                    // Only update if language is swapped
+                    if (!isLanguageSwapped) return;
 
+                    // Update the text node
                     textNode -> SetText(targetIndicator.IsNullOrWhitespace() ? actionName : actionName + " " + targetIndicator);
                 }
             }
         }
         catch (Exception ex)
         {
-            // TODO : clean up
-            log.Error(ex, $"[{GetType().Name}] - Error updating list addon");
+            // Get the addon name
+            string addonName = GetAddonName(addonType);
+
+            // Log
+            log.Error(ex, $"{Class} - Error updating {addonName} addon");
         }
     }
 
@@ -175,6 +195,40 @@ public unsafe abstract class CastBarsHook(
         if (!alternativeName.IsNullOrWhitespace()) actionName = alternativeName;
 
         return actionName;
+    }
+
+    // ----------------------------
+    // Get cast field
+    // ----------------------------
+    private int GetCastField(AddonType addonType)
+    {
+        return addonType switch
+        {
+            AddonType.CastBar       => config.CastBarField,
+            AddonType.TargetInfo    => config.TargetInfoField,
+            AddonType.TargetCastBar => config.TargetCastBarField,
+            AddonType.FocusCastBar  => config.FocusCastBarField,
+            AddonType.PartyList     => config.PartyListCastField,
+            AddonType.EnmityList    => config.EnmityListCastField,
+            _                       => throw new ArgumentOutOfRangeException(nameof(addonType))
+        };
+    }
+
+    // ----------------------------
+    // Get addon name
+    // ----------------------------
+    private string GetAddonName(AddonType addonType)
+    {
+        return addonType switch
+        {
+            AddonType.CastBar       => config.CastBarName,
+            AddonType.TargetInfo    => config.TargetInfoName,
+            AddonType.TargetCastBar => config.TargetCastBarName,
+            AddonType.FocusCastBar  => config.FocusCastBarName,
+            AddonType.PartyList     => config.PartyListName,
+            AddonType.EnmityList    => config.EnmityListName,
+            _                       => throw new ArgumentOutOfRangeException(nameof(addonType))
+        };
     }
 
 }

@@ -1,5 +1,5 @@
 using Dalamud.Plugin.Services;
-using LangSwap.hook.ttt;
+using LangSwap.hook.template;
 using LangSwap.tool;
 using LangSwap.translation;
 using System;

@@ -62,10 +62,10 @@ public unsafe class EnemiesCastBarsHook(
     protected override void OnLanguageSwap()
     {
         // Refresh addons
-        utilities.RefreshAddon(utilities.GetAddon(config.TargetInfoAddon), "target info");
-        utilities.RefreshAddon(utilities.GetAddon(config.TargetCastBarAddon), "target castbar");
-        utilities.RefreshAddon(utilities.GetAddon(config.FocusCastBarAddon), "focus castbar");
-        utilities.RefreshAddon(utilities.GetAddon(config.EnmityListAddon), "enmity list");
+        utilities.RefreshAddon(utilities.GetAddon(config.TargetInfoAddon), config.TargetInfoName);
+        utilities.RefreshAddon(utilities.GetAddon(config.TargetCastBarAddon), config.TargetCastBarName);
+        utilities.RefreshAddon(utilities.GetAddon(config.FocusCastBarAddon), config.FocusCastBarName);
+        utilities.RefreshAddon(utilities.GetAddon(config.EnmityListAddon), config.EnmityListName);
     }
 
     // ----------------------------
@@ -75,8 +75,11 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (config.EnemiesCastBarsTarget)
         {
+            // Get action ID
             uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.BattleNpc && t.IsCasting ? (uint)t.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), actionId, AddonType.Ennemies, "target info");
+
+            // Update cast bar
+            UpdateCastBar(utilities.GetAddon(config.TargetInfoAddon), AddonType.TargetInfo, actionId);
         }
     }
 
@@ -87,8 +90,11 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (config.EnemiesCastBarsTarget)
         {
+            // Get action ID
             uint actionId = targetManager.Target is IBattleChara t && t.ObjectKind == ObjectKind.BattleNpc && t.IsCasting ? (uint)t.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), actionId, AddonType.Ennemies, "target castbar");
+
+            // Update cast bar
+            UpdateCastBar(utilities.GetAddon(config.TargetCastBarAddon), AddonType.TargetCastBar, actionId);
         }
     }
 
@@ -99,8 +105,11 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (config.EnemiesCastBarsFocus)
         {
+            // Get action ID
             uint actionId = targetManager.FocusTarget is IBattleChara f && f.ObjectKind == ObjectKind.BattleNpc && f.IsCasting ? (uint)f.CastActionId : 0;
-            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), actionId, AddonType.Ennemies, "focus castbar");
+
+            // Update cast bar
+            UpdateCastBar(utilities.GetAddon(config.FocusCastBarAddon), AddonType.FocusCastBar, actionId);
         }
     }
 
@@ -111,6 +120,7 @@ public unsafe class EnemiesCastBarsHook(
     {
         if (config.EnemiesCastBarsEnmityList)
         {
+            // TODO
             UIState* uiState = UIState.Instance();
             Hater* hater = uiState != null ? &uiState->Hater : null;
             int count = config.EnmityListEndField - config.EnmityListStartField + 1;
@@ -118,7 +128,9 @@ public unsafe class EnemiesCastBarsHook(
             if (hater != null)
                 for (int i = 0; i < count && i < hater->HaterCount; i++)
                     entityIDs[i] = ((HaterInfo*)hater)[i].EntityId;
-            UpdateList(utilities.GetAddon(config.EnmityListAddon), entityIDs, AddonType.Ennemies, "enmity list");
+
+            // Update enmity list
+            UpdateList(utilities.GetAddon(config.EnmityListAddon), AddonType.EnmityList, CastBarsType.Ennemies, entityIDs);
         }
     }
 

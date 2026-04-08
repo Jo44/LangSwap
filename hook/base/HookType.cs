@@ -1,7 +1,7 @@
 ﻿namespace LangSwap.hook.@base
 {
     // ----------------------------
-    // Enumeration for supported hooks types
+    // Enumeration for hooks types
     // ----------------------------
     public enum HookType
     {

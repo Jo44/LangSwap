@@ -34,8 +34,6 @@ public class DebugWindow : Window, IDisposable
 
     // Message
     private string message = string.Empty;
-    private DateTime messageUpdated = DateTime.MinValue;
-    private const int MessageDuration = 5;
 
     // Window size
     private const int WindowHeight = 478;
@@ -57,18 +55,18 @@ public class DebugWindow : Window, IDisposable
             MinimumSize = new Vector2(WindowWidth, WindowHeight),
             MaximumSize = new Vector2(WindowWidth, WindowHeight)
         };
-
-        // Load obfuscated translations
-        LoadObfuscatedTranslations();
     }
-    
+
     // ----------------------------
-    // On close
+    // On open
     // ----------------------------
-    public override void OnClose()
+    public override void OnOpen()
     {
-        // Reload obfuscated translations to discard unsaved changes
-        LoadObfuscatedTranslations();
+        // Load obfuscated translations
+        int count = LoadObfuscatedTranslations();
+
+        // Set message
+        message = $"{count} obfuscated translations loaded";
     }
 
     // ----------------------------
@@ -117,13 +115,6 @@ public class DebugWindow : Window, IDisposable
     {
         // Check if there is a message to display
         if (string.IsNullOrWhiteSpace(message)) return;
-
-        // Check if the message has expired
-        if ((DateTime.Now - messageUpdated).TotalSeconds >= MessageDuration)
-        {
-            message = string.Empty;
-            return;
-        }
 
         // Calculate text position
         Vector2 textSize = ImGui.CalcTextSize(message);
@@ -269,17 +260,14 @@ public class DebugWindow : Window, IDisposable
     private void DrawExportScannedPopup()
     {
         // Draw export CSV popup
-        PopupBuilder.DrawExportCSVPopup("Export scanned", "##ExportScannedCsv", ref exportCSV, new Vector2(900f, 400f), false, () =>
+        PopupBuilder.DrawExportCSVPopup("Export scanned", "##ExportScannedCsv", ref exportCSV, new Vector2(900f, 400f), () =>
         {
             // Count exported translations
             int count = config.ScannedObfuscatedTranslations.Count;
 
             // Log
-            string message = $"{count} scanned obfuscated translations exported";
+            message = $"{count} scanned obfuscated translations exported";
             Log.Information($"{Class} - {message}");
-
-            // Set message
-            SetMessage(message);
         });
     }
 
@@ -322,11 +310,8 @@ public class DebugWindow : Window, IDisposable
                 int count = config.LocalObfuscatedTranslations.Count;
 
                 // Log
-                string message = $"{count} local obfuscated translations imported";
+                message = $"{count} local obfuscated translations imported";
                 Log.Information($"{Class} - {message}");
-
-                // Set message
-                SetMessage(message);
 
                 // Reset status
                 return string.Empty;
@@ -368,11 +353,8 @@ public class DebugWindow : Window, IDisposable
             config.Save();
 
             // Log
-            string message = $"{count} local obfuscated translations cleared";
+            message = $"{count} local obfuscated translations cleared";
             Log.Information($"{Class} - {message}");
-
-            // Set message
-            SetMessage(message);
 
             // Reload obfuscated translations
             LoadObfuscatedTranslations();
@@ -382,7 +364,7 @@ public class DebugWindow : Window, IDisposable
     // ----------------------------
     // Load obfuscated translations
     // ----------------------------
-    private void LoadObfuscatedTranslations()
+    private int LoadObfuscatedTranslations()
     {
         // Clear translations list
         translations.Clear();
@@ -398,12 +380,15 @@ public class DebugWindow : Window, IDisposable
         }
 
         // Merge obfuscated translations lists
-        MergeObfuscatedTranslations(config.RemoteObfuscatedTranslations);
-        MergeObfuscatedTranslations(config.ScannedObfuscatedTranslations);
-        MergeObfuscatedTranslations(config.LocalObfuscatedTranslations);
+        // MergeObfuscatedTranslations(config.RemoteObfuscatedTranslations);
+        // MergeObfuscatedTranslations(config.ScannedObfuscatedTranslations);
+        // MergeObfuscatedTranslations(config.LocalObfuscatedTranslations);
 
         // Log
         Log.Information($"{Class} - Loaded {translations.Count} obfuscated translations");
+
+        // Return count
+        return translations.Count;
     }
 
     // ----------------------------
@@ -540,15 +525,6 @@ public class DebugWindow : Window, IDisposable
     {
         // Remove line breaks and trim whitespace to prevent CSV formatting issues
         return (field ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
-    }
-
-    // ----------------------------
-    // Set message
-    // ----------------------------
-    private void SetMessage(string message)
-    {
-        this.message = message;
-        messageUpdated = DateTime.Now;
     }
 
     // ----------------------------

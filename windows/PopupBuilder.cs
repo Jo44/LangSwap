@@ -12,7 +12,7 @@ public static class PopupBuilder
     // ----------------------------
     // Draw export CSV popup
     // ----------------------------
-    public static void DrawExportCSVPopup(string popup, string inputID, ref string csv, Vector2 windowSize, bool closeOnCopy, Action onCopy)
+    public static void DrawExportCSVPopup(string popup, string inputID, ref string csv, Vector2 windowSize, Action onCopy)
     {
         // Define window size
         ImGui.SetNextWindowSize(windowSize, ImGuiCond.Appearing);
@@ -34,6 +34,9 @@ public static class PopupBuilder
         ImGui.SameLine(15f);
         if (ImGui.Button("Copy", new Vector2((windowSize.X - 45f) / 2, 0f)))
         {
+            // Validate CSV
+            if (string.IsNullOrWhiteSpace(csv)) return;
+
             // Copy to clipboard
             ImGui.SetClipboardText(csv);
 
@@ -41,7 +44,7 @@ public static class PopupBuilder
             onCopy();
 
             // Close popup
-            if (closeOnCopy) ImGui.CloseCurrentPopup();
+            ImGui.CloseCurrentPopup();
         }
 
         // Close button

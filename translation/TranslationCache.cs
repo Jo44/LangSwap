@@ -7,7 +7,7 @@ namespace LangSwap.translation;
 // ----------------------------
 // Translation Cache
 // ----------------------------
-public class TranslationCache(ExcelProvider excelProvider)
+public class TranslationCache(Configuration config, ExcelProvider excelProvider)
 {
     // Base param cache
     private readonly Dictionary<(string, Language, Language), string?> baseParamCache = [];
@@ -83,34 +83,55 @@ public class TranslationCache(ExcelProvider excelProvider)
     // ----------------------------
     // Get or cache value
     // ----------------------------
-    private static TValue? GetOrCache<TKey, TValue>(Dictionary<TKey, TValue?> cache, TKey key, Func<TValue?> fetch) where TKey : notnull
+    private TValue? GetOrCache<TKey, TValue>(Dictionary<TKey, TValue?> cache, TKey key, Func<TValue?> fetch) where TKey : notnull
     {
         // Try to get from cache
         if (cache.TryGetValue(key, out TValue? value)) return value;
 
-        // Fetch, cache, then return
+        // Fetch
         value = fetch();
-        cache[key] = value;
+
+        // Cache only if non-obfuscated
+        if (value is string strValue && !strValue.StartsWith(config.ObfuscatedPrefix)) 
+        {
+            // Cache
+            cache[key] = value;
+        }
+
+        // Return value
         return value;
     }
 
     // ----------------------------
     // Clear all caches
     // ----------------------------
-    public void Clear()
+    public uint ClearAll()
     {
+        // Count cleared entries
+        int count = 0;
+
         // Clear base param cache
+        count += baseParamCache.Count;
         baseParamCache.Clear();
 
         // Clear action caches
+        count += actionNameCache.Count;
         actionNameCache.Clear();
+        count += actionDescriptionCache.Count;
         actionDescriptionCache.Clear();
+        count += actionIDByNameCache.Count;
         actionIDByNameCache.Clear();
 
         // Clear item caches
+        count += itemNameCache.Count;
         itemNameCache.Clear();
+        count += itemDescriptionCache.Count;
         itemDescriptionCache.Clear();
+        count += itemIDByNameCache.Count;
         itemIDByNameCache.Clear();
+
+        // Return total cleared entries
+        return (uint)count;
     }
 
 }

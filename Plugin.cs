@@ -77,7 +77,7 @@ public sealed class Plugin : IDalamudPlugin
 
             // Initialize core components
             excelProvider = new(config);
-            translationCache = new(excelProvider);
+            translationCache = new(config, excelProvider);
             hookManager = new(config, translationCache);
 
             // Detect client language

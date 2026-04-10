@@ -25,9 +25,8 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     protected static IObjectTable ObjectTable => Plugin.ObjectTable;
     protected static ITargetManager TargetManager => Plugin.TargetManager;
 
-    // Caches
-    private readonly Dictionary<uint, uint> _recentCasts = [];
-    private readonly Dictionary<string, uint> _seenActionNames = [];
+    // Cache actions (fallback)
+    private readonly Dictionary<string, uint> cacheActions = [];
 
     // ----------------------------
     // Update cast bar
@@ -40,26 +39,72 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             if (addon == null || !addon -> IsVisible) return;
 
             // Check if we have a valid action ID
-            if (!IsValidActionID(actionId)) return;
+            if (IsValidActionID(actionId))
+            {
+                // Get the action
+                string? clientName = translationCache.GetActionName(actionId, config.ClientLanguage);
 
-            // Get the cast field
+                // Cache the action
+                if (!string.IsNullOrWhiteSpace(clientName)) cacheActions[clientName] = actionId;
+            }
+
+            // Cleanup cache actions
+            if (cacheActions.Count > 100) cacheActions.Clear();
+
+            // Get cast field
             int castField = GetCastField(addonType);
 
-            // Get the text node
-            AtkResNode * fieldNode = addon -> UldManager.NodeList[castField];
+            // Check node list
+            if (addon -> UldManager.NodeList == null || addon -> UldManager.NodeListCount <= castField) return;
+
+            // Get field node
+            AtkResNode* fieldNode = addon -> UldManager.NodeList[castField];
             if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
+
+            // Get text node
             AtkTextNode* textNode = (AtkTextNode*)fieldNode;
             if (textNode == null || textNode -> NodeText.Length == 0) return;
 
-            // Resolve action name
-            string? actionName = ResolveActionName(actionId, textNode -> NodeText.ToString());
-            if (actionName.IsNullOrWhitespace()) return;
+            // Get the current display name
+            string currentDisplayName = textNode -> NodeText.ToString();
+            if (string.IsNullOrWhiteSpace(currentDisplayName)) return;
 
-            // Only update if language is swapped
-            if (!isLanguageSwapped) return;
+            // Remove any target indicator and store it
+            string[] displayParts = RemoveTargetIndicator(currentDisplayName);
+            string targetIndicator = displayParts[1];
 
-            // Update the text node
-            textNode -> SetText(actionName);
+            // Remove any ellipsis
+            string cleanDisplayName = RemoveEllipsis(displayParts[0]);
+
+            // Try exact match via action ID
+            uint resolveActionID = 0;
+            if (IsValidActionID(actionId))
+            {
+                // Resolve via action ID
+                resolveActionID = actionId;
+            }
+            else if (cacheActions.TryGetValue(cleanDisplayName, out uint cachedActionID))
+            {
+                // Try fallback match via cached actions
+                resolveActionID = cachedActionID;
+            }
+
+            // If action ID is resolved
+            if (resolveActionID > 0)
+            {
+                // Resolve action name
+                string? actionName = ResolveActionName(resolveActionID, cleanDisplayName);
+                if (string.IsNullOrWhiteSpace(actionName)) return;
+
+                // Only update if language is swapped
+                if (!isLanguageSwapped) return;
+
+                // Put back target indicator if it was present
+                string displayText = string.IsNullOrWhiteSpace(targetIndicator) ? actionName : actionName + " " + targetIndicator;
+
+                // Update the text node
+                textNode -> SetText(displayText);
+            }
         }
         catch (Exception ex)
         {
@@ -84,42 +129,43 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             // Get object kind
             ObjectKind objectKind = castBarsType == CastBarsType.Allies ? ObjectKind.Player : ObjectKind.BattleNpc;
 
-            // Get current casts for objects in the list
+            // Get current casts for objects
             Dictionary<uint, uint> currentCasts = [];
             foreach (IGameObject obj in ObjectTable)
             {
                 // Filter by object kind and casting status
                 if (obj is not IBattleChara battleCharacter || battleCharacter.ObjectKind != objectKind || !battleCharacter.IsCasting) continue;
 
-                // Add to current casts if we have a valid action ID
+                // Get the action ID
                 uint actionID = (uint)battleCharacter.CastActionId;
                 if (IsValidActionID(actionID))
                 {
+                    // Add to current casts
                     currentCasts[battleCharacter.EntityId] = actionID;
-                    _recentCasts[battleCharacter.EntityId] = actionID;
 
+                    // Cache the action
                     string? clientName = translationCache.GetActionName(actionID, config.ClientLanguage);
-                    if (!string.IsNullOrWhiteSpace(clientName))
-                    {
-                        _seenActionNames[clientName] = actionID;
-                    }
+                    if (!string.IsNullOrWhiteSpace(clientName)) cacheActions[clientName] = actionID;
                 }
             }
 
-            // Cleanup caches
-            if (_recentCasts.Count > 200) _recentCasts.Clear();
+            // Cleanup cache actions
+            if (cacheActions.Count > 100) cacheActions.Clear();
 
-            // Initialize fields based on cast bars type
+            // Initialize fields based on castbars type
             int startField = castBarsType == CastBarsType.Allies ? config.PartyListStartField : config.EnmityListStartField;
             int endField = castBarsType   == CastBarsType.Allies ? config.PartyListEndField   : config.EnmityListEndField;
             int fieldIndex = castBarsType == CastBarsType.Allies ? config.PartyListCastField  : config.EnmityListCastField;
+
+            // Check node list
+            if (addon -> UldManager.NodeList == null || addon -> UldManager.NodeListCount <= endField) return;
 
             // Loop through the list slots
             for (int slotIndex = endField; slotIndex >= startField; slotIndex--)
             {
                 // Get the slot node
                 AtkResNode* slotNode = addon -> UldManager.NodeList[slotIndex];
-                if (slotNode == null || !slotNode -> IsVisible() || (ushort)slotNode -> Type < 1000) break;
+                if (slotNode == null || !slotNode -> IsVisible() || (ushort)slotNode -> Type < 1000) continue;
 
                 // Get the component node
                 AtkComponentNode* componentNode = (AtkComponentNode*)slotNode;
@@ -127,7 +173,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
 
                 // Get the uld manager
                 AtkUldManager* uldManager = &componentNode -> Component -> UldManager;
-                if (uldManager == null || uldManager -> NodeListCount == 0) continue;
+                if (uldManager == null || uldManager -> NodeList == null || uldManager -> NodeListCount <= fieldIndex) continue;
 
                 // Get the field node
                 AtkResNode* fieldNode = uldManager -> NodeList[fieldIndex];
@@ -148,40 +194,62 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
                 if (string.IsNullOrWhiteSpace(currentDisplayName)) continue;
 
                 // Remove any target indicator and store it
-                string[] textParts = RemoveTargetIndicator(currentDisplayName);
-                string targetIndicator = textParts[1];
+                string[] displayParts = RemoveTargetIndicator(currentDisplayName);
+                string targetIndicator = displayParts[1];
 
                 // Remove any ellipsis
-                string cleanText = RemoveEllipsis(textParts[0]);
-
-                // Initialize matching action ID
-                uint matchingActionID = 0;
+                string cleanDisplayName = RemoveEllipsis(displayParts[0]);
 
                 // Try exact match via entity ID
+                uint resolveActionID = 0;
                 if (entityID > 0 && currentCasts.TryGetValue(entityID, out uint matchedActionID))
                 {
-                    matchingActionID = matchedActionID;
+                    // Resolve match via entity ID
+                    resolveActionID = matchedActionID;
                 }
-                // Or try to match in cache of recent casts
-                else if (entityID > 0 && _recentCasts.TryGetValue(entityID, out matchedActionID))
+                else
                 {
-                    matchingActionID = matchedActionID;
+                    // Try fallback match via cached actions
+                    if (cacheActions.TryGetValue(cleanDisplayName, out uint cachedActionID))
+                    {
+                        // Resolve match via cached actions
+                        resolveActionID = cachedActionID;
+                    }
+                    else
+                    {
+                        // Try fallback match via translation cache
+                        foreach (uint actionID in currentCasts.Values)
+                        {
+                            // Get the client action name for this action ID
+                            string? clientName = translationCache.GetActionName(actionID, config.ClientLanguage);
+
+                            // Check for match with the clean display name
+                            if (!string.IsNullOrWhiteSpace(clientName) && clientName.Equals(cleanDisplayName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                // Resolve match via translation cache and update fallback cache
+                                resolveActionID = actionID;
+                                cacheActions[clientName] = actionID;
+                                break;
+                            }
+                        }
+                    }
                 }
 
-                // Try to resolve action name if match found
-                if (matchingActionID > 0)
+                // If action ID is resolved
+                if (resolveActionID > 0)
                 {
                     // Resolve action name
-                    string? actionName = ResolveActionName(matchingActionID, cleanText);
-                    if (actionName.IsNullOrWhitespace()) continue;
+                    string? actionName = ResolveActionName(resolveActionID, cleanDisplayName);
+                    if (string.IsNullOrWhiteSpace(actionName)) return;
 
                     // Only update if language is swapped
                     if (!isLanguageSwapped) return;
 
-                    string newText = targetIndicator.IsNullOrWhitespace() ? actionName : actionName + " " + targetIndicator;
+                    // Put back target indicator if it was present
+                    string displayText = string.IsNullOrWhiteSpace(targetIndicator) ? actionName : actionName + " " + targetIndicator;
 
                     // Update the text node
-                    textNode -> SetText(newText);
+                    textNode -> SetText(displayText);
                 }
             }
         }
@@ -196,38 +264,84 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     }
 
     // ----------------------------
+    // Get cast field
+    // ----------------------------
+    private int GetCastField(AddonType addonType)
+    {
+        return addonType switch
+        {
+            AddonType.CastBar       => config.CastBarField,
+            AddonType.TargetInfo    => config.TargetInfoField,
+            AddonType.TargetCastBar => config.TargetCastBarField,
+            AddonType.FocusCastBar  => config.FocusCastBarField,
+            AddonType.PartyList     => config.PartyListCastField,
+            AddonType.EnmityList    => config.EnmityListCastField,
+            _                       => throw new ArgumentOutOfRangeException(nameof(addonType))
+        };
+    }
+
+    // ----------------------------
+    // Get addon name
+    // ----------------------------
+    private string GetAddonName(AddonType addonType)
+    {
+        return addonType switch
+        {
+            AddonType.CastBar       => config.CastBarName,
+            AddonType.TargetInfo    => config.TargetInfoName,
+            AddonType.TargetCastBar => config.TargetCastBarName,
+            AddonType.FocusCastBar  => config.FocusCastBarName,
+            AddonType.PartyList     => config.PartyListName,
+            AddonType.EnmityList    => config.EnmityListName,
+            _                       => throw new ArgumentOutOfRangeException(nameof(addonType))
+        };
+    }
+
+    // ----------------------------
     // Resolve an action name to display
     // ----------------------------
     private string? ResolveActionName(uint actionID, string currentDisplayName)
     {
-        // Get the action name
-        string? actionName = translationCache.GetActionName(actionID, config.TargetLanguage);
-        if (actionName.IsNullOrWhitespace()) return null;
+        // Get client name
+        string? clientName = translationCache.GetActionName(actionID, config.ClientLanguage);
 
-        // Check if the action name is obfuscated
-        if (actionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
+        // Get the display action name
+        string? displayName = translationCache.GetActionName(actionID, config.TargetLanguage);
+
+        // Check if the client name or display name is obfuscated
+        bool isObfuscatedClient = !string.IsNullOrWhiteSpace(clientName) && clientName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal);
+        bool isObfuscatedTarget = !string.IsNullOrWhiteSpace(displayName) && displayName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal);
+
+        if (isObfuscatedClient || isObfuscatedTarget)
         {
-            // Try to get a resolved name for this obfuscated action ID
+            // The obfuscated key is the one that still contains the prefix
+            string obfuscatedName = isObfuscatedClient ? clientName! : displayName!;
+
+            // Scan it to fill missing field
+            AddObfuscatedTranslation(actionID, obfuscatedName, currentDisplayName, config.ClientLanguage);
+
+            // Try to get a resolved name
             string? resolvedName = GetObfuscatedTranslation(actionID, config.TargetLanguage);
-            if (!resolvedName.IsNullOrWhitespace())
+            if (!string.IsNullOrWhiteSpace(resolvedName))
             {
-                // If we have a resolved name, use it instead of the obfuscated one
-                actionName = resolvedName;
+                displayName = resolvedName;
             }
             else
             {
-                // If we don't have a resolved name, scan it for future reference
-                AddObfuscatedTranslation(actionID, actionName, currentDisplayName, config.ClientLanguage);
+                // Cannot translate
                 return null;
             }
         }
 
-        // Check for alternative translation for this action name
-        string? alternativeName = GetAlternativeTranslation(actionName, config.AlternativeTranslations);
-        if (!alternativeName.IsNullOrWhitespace()) actionName = alternativeName;
+        // Check if we have a valid display name
+        if (string.IsNullOrWhiteSpace(displayName)) return null;
 
-        // Return the final action name to display
-        return actionName;
+        // Check for alternative translation for this action name
+        string? alternativeName = GetAlternativeTranslation(displayName, config.AlternativeTranslations);
+        if (!string.IsNullOrWhiteSpace(alternativeName)) displayName = alternativeName;
+
+        // Return display name
+        return displayName;
     }
 
     // ----------------------------
@@ -253,7 +367,8 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             ObfuscatedTranslation? obfuscatedTranslation = obfuscatedTranslations.FindLast(translation => translation.ID == actionID);
             if (obfuscatedTranslation != null)
             {
-                return targetLanguage switch
+                // Get the name for the target language 
+                string? result = targetLanguage switch
                 {
                     Language.Japanese => obfuscatedTranslation.JapaneseName,
                     Language.English  => obfuscatedTranslation.EnglishName,
@@ -261,13 +376,16 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
                     Language.French   => obfuscatedTranslation.FrenchName,
                     _                 => obfuscatedTranslation.EnglishName,
                 };
+
+                // Return the result if valid
+                if (!string.IsNullOrWhiteSpace(result)) return result;
             }
         }
         return null;
     }
 
     // ----------------------------
-    // Add an obfuscated translation
+    // Add obfuscated translation
     // ----------------------------
     private void AddObfuscatedTranslation(uint actionID, string obfuscatedName, string displayName, Language clientLanguage)
     {
@@ -275,7 +393,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
         if (!IsValidActionID(actionID)) return;
 
         // Check if obfuscated name or display name are invalid
-        if (obfuscatedName.IsNullOrWhitespace() || displayName.IsNullOrWhitespace()) return;
+        if (string.IsNullOrWhiteSpace(obfuscatedName) || string.IsNullOrWhiteSpace(displayName)) return;
 
         // Check if already scanned
         int existingIndex = config.ScannedObfuscatedTranslations.FindIndex(translation => translation.ID == (int)actionID);
@@ -284,7 +402,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             // Already scanned - check if the client language name is missing
             ObfuscatedTranslation existing = config.ScannedObfuscatedTranslations[existingIndex];
 
-            string? currentLanguageName = clientLanguage switch
+            string currentLanguageName = clientLanguage switch
             {
                 Language.Japanese => existing.JapaneseName,
                 Language.English  => existing.EnglishName,
@@ -294,7 +412,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             };
 
             // Skip if the language name is already set
-            if (!currentLanguageName.IsNullOrWhitespace()) return;
+            if (!string.IsNullOrWhiteSpace(currentLanguageName)) return;
 
             // Update the existing entry with the missing language name
             switch (clientLanguage)
@@ -310,32 +428,28 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             config.Save();
 
             // Log
-            Log.Information($"{Class} - Updated scanned obfuscated translation: ID = {actionID}, {clientLanguage} = {displayName}");
-            return;
+            Log.Information($"{Class} - Updated scanned obfuscated translation: ID = {actionID}, {displayName} ({clientLanguage})");
         }
-
-        // Create new scanned entry with the client language display name
-        ObfuscatedTranslation scanned = new()
+        else
         {
-            ID = (int)actionID,
-            ObfuscatedName = obfuscatedName
-        };
+            // Create new scanned entry with the client language display name
+            ObfuscatedTranslation scanned = new()
+            {
+                ID = (int)actionID,
+                ObfuscatedName = obfuscatedName,
+                EnglishName    = clientLanguage == Language.English  ? displayName : string.Empty,
+                JapaneseName   = clientLanguage == Language.Japanese ? displayName : string.Empty,
+                GermanName     = clientLanguage == Language.German   ? displayName : string.Empty,
+                FrenchName     = clientLanguage == Language.French   ? displayName : string.Empty
+            };
 
-        // Set the display name for the client language
-        switch (clientLanguage)
-        {
-            case Language.Japanese: scanned.JapaneseName = displayName; break;
-            case Language.English:  scanned.EnglishName  = displayName; break;
-            case Language.German:   scanned.GermanName   = displayName; break;
-            case Language.French:   scanned.FrenchName   = displayName; break;
+            // Add to scanned translations and save config
+            config.ScannedObfuscatedTranslations.Add(scanned);
+            config.Save();
+
+            // Log
+            Log.Information($"{Class} - Scanned : ID = {actionID}, Obfuscated = {obfuscatedName}, {clientLanguage} = {displayName}");
         }
-
-        // Add to scanned translations and save config
-        config.ScannedObfuscatedTranslations.Add(scanned);
-        config.Save();
-
-        // Log
-        Log.Information($"{Class} - Scanned : ID = {actionID}, Obfuscated = {obfuscatedName}, {clientLanguage} = {displayName}");
     }
 
 
@@ -345,7 +459,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     private static string? GetAlternativeTranslation(string spellName, List<AlternativeTranslation> alternativeTranslations)
     {
         // Check for null, empty spell name or empty translations list
-        if (!spellName.IsNullOrWhitespace() && alternativeTranslations != null && alternativeTranslations.Count > 0)
+        if (!string.IsNullOrWhiteSpace(spellName) && alternativeTranslations != null && alternativeTranslations.Count > 0)
         {
             // Find alternative translation by spell name
             return alternativeTranslations.FindLast(translation => translation.SpellName == spellName)?.AlternativeName ?? string.Empty;
@@ -358,7 +472,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     // ----------------------------
     private bool IsValidActionID(uint actionID)
     {
-        return actionID >= 0 && actionID <= config.MaxValidActionID;
+        return actionID > 0 && actionID <= config.MaxValidActionID;
     }
 
     // ----------------------------
@@ -396,40 +510,6 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     {
         if (!string.IsNullOrWhiteSpace(text)) return text.Replace("...", "").Trim();
         else return text;
-    }
-
-    // ----------------------------
-    // Get cast field
-    // ----------------------------
-    private int GetCastField(AddonType addonType)
-    {
-        return addonType switch
-        {
-            AddonType.CastBar       => config.CastBarField,
-            AddonType.TargetInfo    => config.TargetInfoField,
-            AddonType.TargetCastBar => config.TargetCastBarField,
-            AddonType.FocusCastBar  => config.FocusCastBarField,
-            AddonType.PartyList     => config.PartyListCastField,
-            AddonType.EnmityList    => config.EnmityListCastField,
-            _                       => throw new ArgumentOutOfRangeException(nameof(addonType))
-        };
-    }
-
-    // ----------------------------
-    // Get addon name
-    // ----------------------------
-    private string GetAddonName(AddonType addonType)
-    {
-        return addonType switch
-        {
-            AddonType.CastBar       => config.CastBarName,
-            AddonType.TargetInfo    => config.TargetInfoName,
-            AddonType.TargetCastBar => config.TargetCastBarName,
-            AddonType.FocusCastBar  => config.FocusCastBarName,
-            AddonType.PartyList     => config.PartyListName,
-            AddonType.EnmityList    => config.EnmityListName,
-            _                       => throw new ArgumentOutOfRangeException(nameof(addonType))
-        };
     }
 
 }

@@ -32,8 +32,6 @@ public class CustomizeWindow : Window, IDisposable
 
     // Message
     private string message = string.Empty;
-    private DateTime messageUpdated = DateTime.MinValue;
-    private const int MessageDuration = 5;
 
     // Focus management
     private bool focusedNewRow;
@@ -58,18 +56,18 @@ public class CustomizeWindow : Window, IDisposable
             MinimumSize = new Vector2(WindowWidth, WindowHeight),
             MaximumSize = new Vector2(WindowWidth, WindowHeight)
         };
-
-        // Load alternative translations
-        LoadAlternativeTranslations();
     }
 
     // ----------------------------
-    // On close
+    // On open
     // ----------------------------
-    public override void OnClose()
+    public override void OnOpen()
     {
-        // Reload alternative translations to discard unsaved changes
+        // Load alternative translations
         LoadAlternativeTranslations();
+
+        // Set message
+        message = $"{translations.Count} alternative translations loaded";
     }
 
     // ----------------------------
@@ -121,13 +119,6 @@ public class CustomizeWindow : Window, IDisposable
     {
         // Check if there is an message to display
         if (string.IsNullOrWhiteSpace(message)) return;
-
-        // Check if the message has expired
-        if ((DateTime.Now - messageUpdated).TotalSeconds >= MessageDuration)
-        {
-            message = string.Empty;
-            return;
-        }
 
         // Calculate text position
         Vector2 textSize = ImGui.CalcTextSize(message);
@@ -349,17 +340,14 @@ public class CustomizeWindow : Window, IDisposable
     private void DrawExportPopup()
     {
         // Draw export CSV popup
-        PopupBuilder.DrawExportCSVPopup("Export CSV", "##ExportCSVText", ref exportCSV, new Vector2(400f, 400f), true, () =>
+        PopupBuilder.DrawExportCSVPopup("Export CSV", "##ExportCSVText", ref exportCSV, new Vector2(400f, 400f), () =>
         {
             // Count exported translations
             int count = translations.Count;
 
             // Log
-            string message = $"{count} alternative translations exported";
+            message = $"{count} alternative translations exported";
             Log.Information($"{Class} - {message}");
-
-            // Set message
-            SetMessage(message);
         });
     }
 
@@ -396,11 +384,8 @@ public class CustomizeWindow : Window, IDisposable
                 int count = translations.Count;
 
                 // Log
-                string message = $"{count} alternative translations imported";
+                message = $"{count} alternative translations imported";
                 Log.Information($"{Class} - {message}");
-
-                // Set message
-                SetMessage(message);
 
                 // Reset status
                 return string.Empty;
@@ -443,11 +428,8 @@ public class CustomizeWindow : Window, IDisposable
             config.Save();
 
             // Log
-            string message = $"{count} alternative translations cleared";
+            message = $"{count} alternative translations cleared";
             Log.Information($"{Class} - {message}");
-
-            // Set message
-            SetMessage(message);
         });
     }
 
@@ -611,11 +593,8 @@ public class CustomizeWindow : Window, IDisposable
         config.Save();
 
         // Log
-        string message = $"{translations.Count} alternative translations saved";
+        message = $"{translations.Count} alternative translations saved";
         Log.Information($"{Class} - {message}");
-
-        // Set message
-        SetMessage(message);
     }
 
     // ----------------------------
@@ -685,15 +664,6 @@ public class CustomizeWindow : Window, IDisposable
             if (string.IsNullOrWhiteSpace(translation.SpellName) && string.IsNullOrWhiteSpace(translation.AlternativeName)) return true;
         }
         return false;
-    }
-
-    // ----------------------------
-    // Set message
-    // ----------------------------
-    private void SetMessage(string message)
-    {
-        this.message = message;
-        messageUpdated = DateTime.Now;
     }
 
     // ----------------------------

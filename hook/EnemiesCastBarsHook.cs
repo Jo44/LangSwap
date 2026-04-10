@@ -119,7 +119,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
             uint[] entityIDs = new uint[8];
             for (int i = 0; i < 8 && i < hater -> HaterCount; i++)
             {
-                // Get the entity ID
+                // Store the entity ID
                 entityIDs[i] = ((HaterInfo*)hater)[i].EntityId;
             }
 

@@ -253,8 +253,8 @@ public class ConfigWindow : Window, IDisposable
         PopupBuilder.DrawConfirmationPopup("Confirm clear", "This will clear all translations cache.    Are you sure ?", "Yes, clear all", "Cancel", new Vector2(400f, 0f), () =>
         {
             // Clear translation cache
-            translationCache.Clear();
-            Log.Information($"{Class} - All translation cache cleared");
+            uint count = translationCache.ClearAll();
+            Log.Information($"{Class} - {count} cached translations cleared");
         });
     }
 

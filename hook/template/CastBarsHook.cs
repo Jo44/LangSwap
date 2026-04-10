@@ -41,13 +41,24 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             if (addon == null || !addon -> IsVisible) return;
 
             // Check if we have a valid action ID
-            if (IsValidActionID(actionId))
-            {
-                // Get the action
-                string? clientName = translationCache.GetActionName(actionId, config.ClientLanguage);
+            if (!IsValidActionID(actionId)) return;
 
-                // Cache the action
-                if (!string.IsNullOrWhiteSpace(clientName)) cacheActions[clientName] = actionId;
+            // Get the action name (client language)
+            string? clientName = translationCache.GetActionName(actionId, config.ClientLanguage);
+
+            // Detect obfuscated name
+            if (!string.IsNullOrWhiteSpace(clientName) && clientName.StartsWith(config.ObfuscatedPrefix))
+            {
+                // TODO
+                // Detected obfuscated name - attempt to detect translation
+                Log.Information($"{Class} - Detected obfuscated name for action ID {actionId}: {clientName} (addon: {GetAddonName(addonType)})");
+            }
+
+            // Cache the action
+            if (!string.IsNullOrWhiteSpace(clientName))
+            {
+                // TODO :
+                cacheActions[clientName] = actionId;
             }
 
             // Cleanup cache actions
@@ -127,6 +138,12 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
         {
             // Check if addon is visible
             if (addon == null || !addon -> IsVisible) return;
+
+            // TODO
+            if (addon != null)
+            {
+                return;
+            }   
 
             // Get object kind
             ObjectKind objectKind = castBarsType == CastBarsType.Allies ? ObjectKind.Player : ObjectKind.BattleNpc;
@@ -304,8 +321,8 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     // ----------------------------
     private string? ResolveActionName(uint actionID, string displayName)
     {
-        // Get action name from target language
-        string? targetName = translationCache.GetActionName(actionID, config.TargetLanguage) ?? displayName;
+        // Initialize resolve name
+        string resolveName = displayName;
 
         // Get the action name from a different language
         Language differentLang = config.ClientLanguage == Language.English ? Language.Japanese : Language.English;
@@ -318,20 +335,23 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             DetectObfuscatedTranslation(actionID, checkName, displayName);
 
             // Try to get a resolved name
-            string? resolvedName = GetObfuscatedTranslation(actionID, config.TargetLanguage);
-            if (!string.IsNullOrWhiteSpace(resolvedName))
-            {
-                // Use the resolved name if found
-                targetName = resolvedName;
-            }
+            string? obfusctedName = GetObfuscatedTranslation(actionID, config.TargetLanguage);
+
+            // Use the obfuscated name if found
+            if (!string.IsNullOrWhiteSpace(obfusctedName)) resolveName = obfusctedName;
+        }
+        else
+        {
+            // Get action name from target language
+            resolveName = translationCache.GetActionName(actionID, config.TargetLanguage) ?? string.Empty;
         }
 
-        // Check for alternative translation for this action name
-        string? alternativeName = GetAlternativeTranslation(targetName, config.AlternativeTranslations);
-        if (!string.IsNullOrWhiteSpace(alternativeName))  return alternativeName;
+        // Check for alternative translation
+        string? alternativeName = GetAlternativeTranslation(resolveName, config.AlternativeTranslations);
+        if (!string.IsNullOrWhiteSpace(alternativeName)) resolveName = alternativeName;
 
-        // Return target name
-        return targetName;
+        // Return resolve name
+        return resolveName;
     }
 
     // ----------------------------
@@ -379,11 +399,8 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     // ----------------------------
     private void DetectObfuscatedTranslation(uint actionID, string obfuscatedName, string displayName)
     {
-        // Check for valid action ID
-        if (!IsValidActionID(actionID)) return;
-
-        // Check if obfuscated name or display name are invalid
-        if (string.IsNullOrWhiteSpace(obfuscatedName) || string.IsNullOrWhiteSpace(displayName)) return;
+        // Check if ID, obfuscated name or display name are invalid
+        if (!IsValidActionID(actionID) || string.IsNullOrWhiteSpace(obfuscatedName) || string.IsNullOrWhiteSpace(displayName)) return;
 
         // Get the client language
         Language clientLanguage = config.ClientLanguage;
@@ -422,7 +439,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             config.Save();
 
             // Log
-            Log.Information($"{Class} - Updated scanned obfuscated translation: ID = {actionID}, {displayName} ({clientLanguage})");
+            Log.Information($"{Class} - Updated scanned obfuscation : ID = {actionID}, {displayName} ({clientLanguage})");
         }
         else
         {
@@ -442,7 +459,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             config.Save();
 
             // Log
-            Log.Information($"{Class} - Scanned : ID = {actionID}, Obfuscated = {obfuscatedName}, {clientLanguage} = {displayName}");
+            Log.Information($"{Class} - Added scanned obfuscation : ID = {actionID}, Obfuscated = {obfuscatedName}, {clientLanguage} = {displayName}");
         }
     }
 

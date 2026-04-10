@@ -380,9 +380,9 @@ public class DebugWindow : Window, IDisposable
         }
 
         // Merge obfuscated translations lists
-        // MergeObfuscatedTranslations(config.RemoteObfuscatedTranslations);
-        // MergeObfuscatedTranslations(config.ScannedObfuscatedTranslations);
-        // MergeObfuscatedTranslations(config.LocalObfuscatedTranslations);
+        MergeObfuscatedTranslations(config.RemoteObfuscatedTranslations);
+        MergeObfuscatedTranslations(config.ScannedObfuscatedTranslations);
+        MergeObfuscatedTranslations(config.LocalObfuscatedTranslations);
 
         // Log
         Log.Information($"{Class} - Loaded {translations.Count} obfuscated translations");
@@ -403,8 +403,22 @@ public class DebugWindow : Window, IDisposable
         foreach (ObfuscatedTranslation sourceTranslation in sourceTranslations)
         {
             // Find matching translation in the list
-            ObfuscatedTranslation? targetTranslation = translations.Find(translation => string.Equals(translation.ObfuscatedName, sourceTranslation.ObfuscatedName, StringComparison.Ordinal));
-            if (targetTranslation == null) continue;
+            ObfuscatedTranslation targetTranslation = translations.Find(translation => string.Equals(translation.ObfuscatedName, sourceTranslation.ObfuscatedName, StringComparison.Ordinal))!;
+            
+            // Add if missing
+            if (targetTranslation == null)
+            {
+                translations.Add(new ObfuscatedTranslation
+                {
+                    ID = sourceTranslation.ID,
+                    ObfuscatedName = sourceTranslation.ObfuscatedName,
+                    EnglishName = sourceTranslation.EnglishName,
+                    FrenchName = sourceTranslation.FrenchName,
+                    GermanName = sourceTranslation.GermanName,
+                    JapaneseName = sourceTranslation.JapaneseName
+                });
+                continue;
+            }
 
             // Merge obfuscated translation
             targetTranslation.ID = sourceTranslation.ID;
@@ -415,7 +429,8 @@ public class DebugWindow : Window, IDisposable
         }
 
         // Remove translations without missing fields
-        translations.RemoveAll(translation => string.IsNullOrWhiteSpace(translation.EnglishName) || string.IsNullOrWhiteSpace(translation.FrenchName) || string.IsNullOrWhiteSpace(translation.GermanName) || string.IsNullOrWhiteSpace(translation.JapaneseName));
+        // TODO : remove apres dev
+        //translations.RemoveAll(translation => !string.IsNullOrWhiteSpace(translation.EnglishName) && !string.IsNullOrWhiteSpace(translation.FrenchName) && !string.IsNullOrWhiteSpace(translation.GermanName) && !string.IsNullOrWhiteSpace(translation.JapaneseName));
     }
 
     // ----------------------------

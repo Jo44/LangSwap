@@ -1,3 +1,4 @@
+using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
@@ -9,6 +10,7 @@ using LangSwap.translation.@base;
 using LangSwap.translation.model;
 using System;
 using System.Collections.Generic;
+using static FFXIVClientStructs.FFXIV.Client.UI.AddonRelicNoteBook;
 
 namespace LangSwap.hook.template;
 
@@ -300,48 +302,36 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     // ----------------------------
     // Resolve an action name to display
     // ----------------------------
-    private string? ResolveActionName(uint actionID, string currentDisplayName)
+    private string? ResolveActionName(uint actionID, string displayName)
     {
-        // Get client name
-        string? clientName = translationCache.GetActionName(actionID, config.ClientLanguage);
+        // Get action name from target language
+        string? targetName = translationCache.GetActionName(actionID, config.TargetLanguage) ?? displayName;
 
-        // Get the display action name
-        string? displayName = translationCache.GetActionName(actionID, config.TargetLanguage);
+        // Get the action name from a different language
+        Language differentLang = config.ClientLanguage == Language.English ? Language.Japanese : Language.English;
+        string? checkName = translationCache.GetActionName(actionID, differentLang);
 
-        // Check if the client name or display name is obfuscated
-        bool isObfuscatedClient = !string.IsNullOrWhiteSpace(clientName) && clientName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal);
-        bool isObfuscatedTarget = !string.IsNullOrWhiteSpace(displayName) && displayName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal);
-
-        if (isObfuscatedClient || isObfuscatedTarget)
+        // Check if name is obfuscated
+        if (!string.IsNullOrWhiteSpace(checkName) && checkName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
         {
-            // The obfuscated key is the one that still contains the prefix
-            string obfuscatedName = isObfuscatedClient ? clientName! : displayName!;
-
-            // Scan it to fill missing field
-            AddObfuscatedTranslation(actionID, obfuscatedName, currentDisplayName, config.ClientLanguage);
+            // Detect new obfuscated translation
+            DetectObfuscatedTranslation(actionID, checkName, displayName);
 
             // Try to get a resolved name
             string? resolvedName = GetObfuscatedTranslation(actionID, config.TargetLanguage);
             if (!string.IsNullOrWhiteSpace(resolvedName))
             {
-                displayName = resolvedName;
-            }
-            else
-            {
-                // Cannot translate
-                return null;
+                // Use the resolved name if found
+                targetName = resolvedName;
             }
         }
 
-        // Check if we have a valid display name
-        if (string.IsNullOrWhiteSpace(displayName)) return null;
-
         // Check for alternative translation for this action name
-        string? alternativeName = GetAlternativeTranslation(displayName, config.AlternativeTranslations);
-        if (!string.IsNullOrWhiteSpace(alternativeName)) displayName = alternativeName;
+        string? alternativeName = GetAlternativeTranslation(targetName, config.AlternativeTranslations);
+        if (!string.IsNullOrWhiteSpace(alternativeName))  return alternativeName;
 
-        // Return display name
-        return displayName;
+        // Return target name
+        return targetName;
     }
 
     // ----------------------------
@@ -385,15 +375,18 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     }
 
     // ----------------------------
-    // Add obfuscated translation
+    // Detect obfuscated translation
     // ----------------------------
-    private void AddObfuscatedTranslation(uint actionID, string obfuscatedName, string displayName, Language clientLanguage)
+    private void DetectObfuscatedTranslation(uint actionID, string obfuscatedName, string displayName)
     {
         // Check for valid action ID
         if (!IsValidActionID(actionID)) return;
 
         // Check if obfuscated name or display name are invalid
         if (string.IsNullOrWhiteSpace(obfuscatedName) || string.IsNullOrWhiteSpace(displayName)) return;
+
+        // Get the client language
+        Language clientLanguage = config.ClientLanguage;
 
         // Check if already scanned
         int existingIndex = config.ScannedObfuscatedTranslations.FindIndex(translation => translation.ID == (int)actionID);
@@ -402,7 +395,8 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             // Already scanned - check if the client language name is missing
             ObfuscatedTranslation existing = config.ScannedObfuscatedTranslations[existingIndex];
 
-            string currentLanguageName = clientLanguage switch
+            // Get the current name
+            string currentName = clientLanguage switch
             {
                 Language.Japanese => existing.JapaneseName,
                 Language.English  => existing.EnglishName,
@@ -412,7 +406,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             };
 
             // Skip if the language name is already set
-            if (!string.IsNullOrWhiteSpace(currentLanguageName)) return;
+            if (!string.IsNullOrWhiteSpace(currentName)) return;
 
             // Update the existing entry with the missing language name
             switch (clientLanguage)

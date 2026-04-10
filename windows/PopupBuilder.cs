@@ -35,13 +35,14 @@ public static class PopupBuilder
         if (ImGui.Button("Copy", new Vector2((windowSize.X - 45f) / 2, 0f)))
         {
             // Validate CSV
-            if (string.IsNullOrWhiteSpace(csv)) return;
+            if (!string.IsNullOrWhiteSpace(csv))
+            {
+                // Copy to clipboard
+                ImGui.SetClipboardText(csv);
 
-            // Copy to clipboard
-            ImGui.SetClipboardText(csv);
-
-            // Invoke callback
-            onCopy();
+                // Invoke callback
+                onCopy();
+            }
 
             // Close popup
             ImGui.CloseCurrentPopup();

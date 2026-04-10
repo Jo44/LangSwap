@@ -186,8 +186,11 @@ public class ExcelProvider(Configuration config)
             // Initialize
             HashSet<ObfuscatedTranslation> obfuscatedTranslations = [];
 
-            // Get the english action sheet
-            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(Language.English));
+            // Get a language different from the client language
+            Language differentLang = config.ClientLanguage == Language.English ? Language.Japanese : Language.English;
+
+            // Get the action sheet for the different language
+            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(differentLang));
             if (actionSheet != null)
             {
                 // Loop through actions to find obfuscated ones

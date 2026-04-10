@@ -121,17 +121,8 @@ public unsafe abstract class BaseHook(Configuration config, TranslationCache tra
     public abstract void Disable(string hookName);
 
     // ----------------------------
-    // Dispose the hook
-    // ----------------------------
-    protected abstract void Dispose(string hookName);
-
-    // ----------------------------
     // Dispose
     // ----------------------------
-    public void Dispose()
-    {
-        // Finalize
-        GC.SuppressFinalize(this);
-    }
+    public abstract void Dispose();
 
 }

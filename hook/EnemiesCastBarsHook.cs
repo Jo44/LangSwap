@@ -157,7 +157,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
     // ----------------------------
     // Dispose the hook
     // ----------------------------
-    protected override void Dispose(string hookName)
+    public override void Dispose()
     {
         try
         {
@@ -170,12 +170,12 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
             // Set disabled flag
             isEnabled = false;
 
-            // Dispose base resources
-            Dispose();
+            // Finalize
+            GC.SuppressFinalize(this);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Failed to dispose {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to dispose {GetType().Name} hook");
         }
     }
 

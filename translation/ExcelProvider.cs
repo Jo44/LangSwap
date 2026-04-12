@@ -15,7 +15,7 @@ namespace LangSwap.translation;
 public class ExcelProvider(Configuration config)
 {
     // Log
-    private const string Class = "[ExcelProvider.cs]";
+    private static readonly string Class = $"[{nameof(ExcelProvider)}]";
 
     // Services
     private static IDataManager DataManager => Plugin.DataManager;

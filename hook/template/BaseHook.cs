@@ -12,7 +12,10 @@ namespace LangSwap.hook.template;
 public unsafe abstract class BaseHook(Configuration config, TranslationCache translationCache) : IDisposable
 {
     // Log
-    private const string Class = "[BaseHook.cs]";
+    private readonly string Class = $"[{nameof(BaseHook)}]";
+
+    // Hook name
+    public abstract string Name { get; }
 
     // Services
     private static IGameGui GameGui => Plugin.GameGui;
@@ -29,7 +32,7 @@ public unsafe abstract class BaseHook(Configuration config, TranslationCache tra
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    public abstract void Enable(string hookName);
+    public abstract void Enable();
 
     // ----------------------------
     // Swap to target language
@@ -75,7 +78,7 @@ public unsafe abstract class BaseHook(Configuration config, TranslationCache tra
     // ----------------------------
     // Get addon
     // ----------------------------
-    protected static AtkUnitBase* GetAddon(string addonName)
+    protected AtkUnitBase* GetAddon(string addonName)
     {
         try
         {
@@ -118,7 +121,7 @@ public unsafe abstract class BaseHook(Configuration config, TranslationCache tra
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    public abstract void Disable(string hookName);
+    public abstract void Disable();
 
     // ----------------------------
     // Dispose

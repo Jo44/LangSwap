@@ -15,13 +15,13 @@ namespace LangSwap.hook.template;
 public unsafe abstract class TooltipHook(Configuration config, TranslationCache translationCache) : BaseHook(config, translationCache)
 {
     // Log
-    private const string Class = "[TooltipBaseHook.cs]";
+    private readonly string Class = $"[{nameof(TooltipHook)}]";
 
     // Services
     private static IGameInteropProvider GameInterop => Plugin.GameInterop;
     private static ISigScanner SigScanner => Plugin.SigScanner;
 
-    // Delegate function
+    // Delegate signature for tooltip function
     protected delegate void* TooltipDelegate(AtkUnitBase* actionDetailAddon, NumberArrayData* numberArrayData, StringArrayData* stringArrayData);
 
     // Hook
@@ -33,7 +33,7 @@ public unsafe abstract class TooltipHook(Configuration config, TranslationCache 
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    public override void Enable(string hookName)
+    public override void Enable()
     {
         // Prevent multiple enables
         if (isEnabled) return;
@@ -54,16 +54,16 @@ public unsafe abstract class TooltipHook(Configuration config, TranslationCache 
                 isEnabled = true;
 
                 // Log
-                Log.Information($"{Class} - {hookName} hook enabled at 0x{tooltipAddr:X}");
+                Log.Information($"{Class} - {Name} hook enabled at 0x{tooltipAddr:X}");
             }
             else
             {
-                Log.Error($"{Class} - {hookName} signature not found");
+                Log.Error($"{Class} - {Name} signature not found");
             }
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Failed to enable {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to enable {Name} hook");
         }
     }
 
@@ -198,7 +198,7 @@ public unsafe abstract class TooltipHook(Configuration config, TranslationCache 
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    public override void Disable(string hookName)
+    public override void Disable()
     {
         // Prevent multiple disables
         if (!isEnabled) return;
@@ -210,11 +210,11 @@ public unsafe abstract class TooltipHook(Configuration config, TranslationCache 
 
             // Set disabled flag
             isEnabled = false;
-            Log.Information($"{Class} - {hookName} hook disabled");
+            Log.Information($"{Class} - {Name} hook disabled");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Failed to disable {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to disable {Name} hook");
         }
     }
 
@@ -238,7 +238,7 @@ public unsafe abstract class TooltipHook(Configuration config, TranslationCache 
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Failed to dispose {GetType().Name} hook");
+            Log.Error(ex, $"{Class} - Failed to dispose {Name} hook");
         }
     }
 

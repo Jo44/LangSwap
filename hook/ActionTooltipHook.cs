@@ -12,7 +12,10 @@ namespace LangSwap.hook;
 public unsafe class ActionTooltipHook(Configuration config, TranslationCache translationCache) : TooltipHook(config, translationCache)
 {
     // Log
-    private const string Class = "[ActionTooltipHook.cs]";
+    private readonly string Class = $"[{nameof(ActionTooltipHook)}]";
+
+    // Hook name
+    public override string Name => "Action Tooltip";
 
     // Memory signature
     protected override string MemorySignature => config.ActionTooltipSignature;

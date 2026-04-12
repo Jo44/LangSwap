@@ -14,7 +14,7 @@ namespace LangSwap.windows;
 public class CustomizeWindow : Window, IDisposable
 {
     // Log
-    private const string Class = "[CustomizeWindow.cs]";
+    private readonly string Class = $"[{nameof(CustomizeWindow)}]";
 
     // Service
     private static IPluginLog Log => Plugin.Log;

@@ -24,7 +24,7 @@ namespace LangSwap;
 public sealed class Plugin : IDalamudPlugin
 {
     // Log
-    private const string Class = "[Plugin.cs]";
+    private static readonly string Class = $"[{nameof(Plugin)}]";
 
     // Services
     [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;

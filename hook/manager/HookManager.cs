@@ -12,7 +12,7 @@ namespace LangSwap.hook.manager;
 public class HookManager(Configuration config, TranslationCache translationCache) : IDisposable
 {
     // Log
-    private const string Class = "[HookManager.cs]";
+    private readonly string Class = $"[{nameof(HookManager)}]";
 
     // Service
     private static IPluginLog Log => Plugin.Log;
@@ -27,7 +27,7 @@ public class HookManager(Configuration config, TranslationCache translationCache
     private readonly HashSet<BaseHook> hooks = [];
 
     // ----------------------------
-    // Enable all translation hooks
+    // Enable all active hooks
     // ----------------------------
     public void EnableAll()
     {
@@ -42,26 +42,11 @@ public class HookManager(Configuration config, TranslationCache translationCache
         {
             try
             {
-                // For each hook type
-                switch (hook)
-                {
-                    case AlliesCastBarsHook:
-                        hook.Enable("Allies CastBars");
-                        break;
-                    case EnemiesCastBarsHook:
-                        hook.Enable("Enemies CastBars");
-                        break;
-                    case ActionTooltipHook:
-                        hook.Enable("Action Tooltip");
-                        break;
-                    case ItemTooltipHook:
-                        hook.Enable("Item Tooltip");
-                        break;
-                }
+                hook.Enable();
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"{Class} - Failed to enable {hook.GetType().Name}");
+                Log.Error(ex, $"{Class} - Failed to enable {hook.Name}");
             }
         }
     }
@@ -75,50 +60,50 @@ public class HookManager(Configuration config, TranslationCache translationCache
         bool alliesEnabled = config.AlliesCastBarsTarget || config.AlliesCastBarsFocus || config.AlliesCastBarsPartyList;
         if (alliesEnabled && !hooks.Contains(alliesCastBarsHook))
         {
-            try { alliesCastBarsHook.Enable("Allies CastBars"); hooks.Add(alliesCastBarsHook); }
-            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable Allies CastBars"); }
+            try { alliesCastBarsHook.Enable(); hooks.Add(alliesCastBarsHook); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable {alliesCastBarsHook.Name}"); }
         }
         else if (!alliesEnabled && hooks.Contains(alliesCastBarsHook))
         {
-            try { alliesCastBarsHook.Disable("Allies CastBars"); hooks.Remove(alliesCastBarsHook); }
-            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable Allies CastBars"); }
+            try { alliesCastBarsHook.Disable(); hooks.Remove(alliesCastBarsHook); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable {alliesCastBarsHook.Name}"); }
         }
 
         // Enemies CastBars
         bool enemiesEnabled = config.EnemiesCastBarsTarget || config.EnemiesCastBarsFocus || config.EnemiesCastBarsHateList;
         if (enemiesEnabled && !hooks.Contains(enemiesCastBarsHook))
         {
-            try { enemiesCastBarsHook.Enable("Enemies CastBars"); hooks.Add(enemiesCastBarsHook); }
-            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable Enemies CastBars"); }
+            try { enemiesCastBarsHook.Enable(); hooks.Add(enemiesCastBarsHook); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable {enemiesCastBarsHook.Name}"); }
         }
         else if (!enemiesEnabled && hooks.Contains(enemiesCastBarsHook))
         {
-            try { enemiesCastBarsHook.Disable("Enemies CastBars"); hooks.Remove(enemiesCastBarsHook); }
-            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable Enemies CastBars"); }
+            try { enemiesCastBarsHook.Disable(); hooks.Remove(enemiesCastBarsHook); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable {enemiesCastBarsHook.Name}"); }
         }
 
         // Action Tooltip
         if (config.ActionTooltip && !hooks.Contains(actionTooltipHook))
         {
-            try { actionTooltipHook.Enable("Action Tooltip"); hooks.Add(actionTooltipHook); }
-            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable Action Tooltip"); }
+            try { actionTooltipHook.Enable(); hooks.Add(actionTooltipHook); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable {actionTooltipHook.Name}"); }
         }
         else if (!config.ActionTooltip && hooks.Contains(actionTooltipHook))
         {
-            try { actionTooltipHook.Disable("Action Tooltip"); hooks.Remove(actionTooltipHook); }
-            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable Action Tooltip"); }
+            try { actionTooltipHook.Disable(); hooks.Remove(actionTooltipHook); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable {actionTooltipHook.Name}"); }
         }
 
         // Item Tooltip
         if (config.ItemTooltip && !hooks.Contains(itemTooltipHook))
         {
-            try { itemTooltipHook.Enable("Item Tooltip"); hooks.Add(itemTooltipHook); }
-            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable Item Tooltip"); }
+            try { itemTooltipHook.Enable(); hooks.Add(itemTooltipHook); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to enable {itemTooltipHook.Name}"); }
         }
         else if (!config.ItemTooltip && hooks.Contains(itemTooltipHook))
         {
-            try { itemTooltipHook.Disable("Item Tooltip"); hooks.Remove(itemTooltipHook); }
-            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable Item Tooltip"); }
+            try { itemTooltipHook.Disable(); hooks.Remove(itemTooltipHook); }
+            catch (Exception ex) { Log.Error(ex, $"{Class} - Failed to disable {itemTooltipHook.Name}"); }
         }
     }
 
@@ -136,7 +121,7 @@ public class HookManager(Configuration config, TranslationCache translationCache
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"{Class} - Failed to swap language for {hook.GetType().Name}");
+                Log.Error(ex, $"{Class} - Failed to swap language for {hook.Name}");
             }
         }
     }
@@ -155,13 +140,13 @@ public class HookManager(Configuration config, TranslationCache translationCache
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"{Class} - Failed to restore language for {hook.GetType().Name}");
+                Log.Error(ex, $"{Class} - Failed to restore language for {hook.Name}");
             }
         }
     }
 
     // ----------------------------
-    // Disable all translation hooks
+    // Disable all active hooks
     // ----------------------------
     private void DisableAll()
     {
@@ -170,26 +155,11 @@ public class HookManager(Configuration config, TranslationCache translationCache
         {
             try
             {
-                // For each hook type
-                switch (hook)
-                {
-                    case AlliesCastBarsHook:
-                        hook.Disable("Allies CastBars");
-                        break;
-                    case EnemiesCastBarsHook:
-                        hook.Disable("Enemies CastBars");
-                        break;
-                    case ActionTooltipHook:
-                        hook.Disable("Action Tooltip");
-                        break;
-                    case ItemTooltipHook:
-                        hook.Disable("Item Tooltip");
-                        break;
-                }
+                hook.Disable();
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"{Class} - Failed to disable {hook.GetType().Name}");
+                Log.Error(ex, $"{Class} - Failed to disable {hook.Name}");
             }
         }
     }
@@ -211,7 +181,7 @@ public class HookManager(Configuration config, TranslationCache translationCache
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"{Class} - Failed to dispose {hook.GetType().Name}");
+                Log.Error(ex, $"{Class} - Failed to dispose {hook.Name}");
             }
         }
 

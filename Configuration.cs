@@ -62,7 +62,7 @@ public class Configuration : IPluginConfiguration
     public bool ActionTooltip { get; set; } = true;
     public bool ItemTooltip { get; set; } = true;
 
-    // Common CastBar Addons
+    // Target & Focus CastBar Addons
     public string TargetInfoAddon { get; } = "_TargetInfo";
     public string TargetInfoName { get; } = "target info";
     public int TargetInfoField { get; } = 44;
@@ -73,7 +73,7 @@ public class Configuration : IPluginConfiguration
     public string FocusCastBarName { get; } = "focus castbar";
     public int FocusCastBarField { get; } = 16;
 
-    // Allies CastBar Addons
+    // Player & Allies CastBar Addons
     public string CastBarAddon { get; } = "_CastBar";
     public string CastBarName { get; } = "castbar";
     public int CastBarField { get; } = 11;

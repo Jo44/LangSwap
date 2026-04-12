@@ -16,7 +16,7 @@ namespace LangSwap.windows;
 public class ConfigWindow : Window, IDisposable
 {
     // Log
-    private const string Class = "[ConfigWindow.cs]";
+    private readonly string Class = $"[{nameof(ConfigWindow)}]";
 
     // Service
     private static IPluginLog Log => Plugin.Log;

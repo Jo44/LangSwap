@@ -16,12 +16,15 @@ namespace LangSwap.hook;
 public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache translationCache) : CastBarsHook(config, translationCache)
 {
     // Log
-    private const string Class = "[EnemiesCastBarsHook.cs]";
+    private readonly string Class = $"[{nameof(EnemiesCastBarsHook)}]";
+
+    // Hook name
+    public override string Name => "Enemies CastBars";
 
     // ----------------------------
     // Enable the hook
     // ----------------------------
-    public override void Enable(string hookName)
+    public override void Enable()
     {
         // Prevent multiple enables
         if (isEnabled) return;
@@ -38,11 +41,11 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
             isEnabled = true;
 
             // Log
-            Log.Information($"{Class} - {hookName} hook enabled");
+            Log.Information($"{Class} - {Name} hook enabled");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Failed to enable {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to enable {Name} hook");
         }
     }
 
@@ -131,7 +134,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
     // ----------------------------
     // Disable the hook
     // ----------------------------
-    public override void Disable(string hookName)
+    public override void Disable()
     {
         // Prevent multiple disables
         if (!isEnabled) return;
@@ -146,11 +149,11 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
 
             // Set disabled flag
             isEnabled = false;
-            Log.Information($"{Class} - {hookName} hook disabled");
+            Log.Information($"{Class} - {Name} hook disabled");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Failed to disable {hookName} hook");
+            Log.Error(ex, $"{Class} - Failed to disable {Name} hook");
         }
     }
 
@@ -175,7 +178,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"{Class} - Failed to dispose {GetType().Name} hook");
+            Log.Error(ex, $"{Class} - Failed to dispose {Name} hook");
         }
     }
 

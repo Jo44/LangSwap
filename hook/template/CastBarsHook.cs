@@ -17,7 +17,7 @@ namespace LangSwap.hook.template;
 public unsafe abstract class CastBarsHook(Configuration config, TranslationCache translationCache) : BaseHook(config, translationCache)
 {
     // Log
-    private const string Class = "[CastBarsHook.cs]";
+    private readonly string Class = $"[{nameof(CastBarsHook)}]";
 
     // Services
     protected static IAddonLifecycle AddonLifecycle => Plugin.AddonLifecycle;
@@ -49,14 +49,14 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             // Cleanup cache actions
             if (cacheActions.Count > 100) cacheActions.Clear();
 
-            // Get cast field
-            int castField = GetCastField(addonType);
+            // Get cast field index
+            int castFieldIndex = GetCastFieldIndex(addonType);
 
             // Check node list
-            if (addon -> UldManager.NodeList == null || addon -> UldManager.NodeListCount <= castField) return;
+            if (addon -> UldManager.NodeList == null || addon -> UldManager.NodeListCount <= castFieldIndex) return;
 
             // Get field node
-            AtkResNode* fieldNode = addon -> UldManager.NodeList[castField];
+            AtkResNode* fieldNode = addon -> UldManager.NodeList[castFieldIndex];
             if (fieldNode == null || fieldNode -> Type != NodeType.Text) return;
 
             // Get text node
@@ -98,7 +98,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     }
 
     // ----------------------------
-    // Update list
+    // Update castbars list
     // ----------------------------
     protected void UpdateList(AtkUnitBase* addon, AddonType addonType, CastBarsType castBarsType, uint[] entityIDs)
     {
@@ -136,15 +136,15 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             if (cacheActions.Count > 100) cacheActions.Clear();
 
             // Initialize fields based on castbars type
-            int startField = castBarsType == CastBarsType.Allies ? config.PartyListStartField : config.HateListStartField;
-            int endField = castBarsType   == CastBarsType.Allies ? config.PartyListEndField   : config.HateListEndField;
-            int fieldIndex = castBarsType == CastBarsType.Allies ? config.PartyListCastField  : config.HateListCastField;
+            int startFieldIndex = castBarsType == CastBarsType.Allies ? config.PartyListStartField : config.HateListStartField;
+            int endFieldIndex = castBarsType   == CastBarsType.Allies ? config.PartyListEndField   : config.HateListEndField;
+            int castFieldIndex = castBarsType == CastBarsType.Allies ? config.PartyListCastField  : config.HateListCastField;
 
             // Check node list
-            if (addon -> UldManager.NodeList == null || addon -> UldManager.NodeListCount <= endField) return;
+            if (addon -> UldManager.NodeList == null || addon -> UldManager.NodeListCount <= endFieldIndex) return;
 
             // Loop through the list slots
-            for (int slotIndex = endField; slotIndex >= startField; slotIndex--)
+            for (int slotIndex = endFieldIndex; slotIndex >= startFieldIndex; slotIndex--)
             {
                 // Get the slot node
                 AtkResNode* slotNode = addon -> UldManager.NodeList[slotIndex];
@@ -156,10 +156,10 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
 
                 // Get the uld manager
                 AtkUldManager* uldManager = &componentNode -> Component -> UldManager;
-                if (uldManager == null || uldManager -> NodeList == null || uldManager -> NodeListCount <= fieldIndex) continue;
+                if (uldManager == null || uldManager -> NodeList == null || uldManager -> NodeListCount <= castFieldIndex) continue;
 
                 // Get the field node
-                AtkResNode* fieldNode = uldManager -> NodeList[fieldIndex];
+                AtkResNode* fieldNode = uldManager -> NodeList[castFieldIndex];
                 if (fieldNode == null || fieldNode -> Type != NodeType.Text) continue;
 
                 // Get the text node
@@ -167,7 +167,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
                 if (textNode == null || textNode -> NodeText.Length == 0) continue;
 
                 // Calculate the relative index of the slot within the list
-                int slotRelativeIndex = endField - slotIndex;
+                int slotRelativeIndex = endFieldIndex - slotIndex;
 
                 // Get the entity ID for this slot
                 uint entityID = slotRelativeIndex < entityIDs.Length ? entityIDs[slotRelativeIndex] : 0;
@@ -249,9 +249,9 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     }
 
     // ----------------------------
-    // Get cast field
+    // Get cast field index
     // ----------------------------
-    private int GetCastField(AddonType addonType)
+    private int GetCastFieldIndex(AddonType addonType)
     {
         return addonType switch
         {
@@ -301,10 +301,10 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             DetectObfuscatedTranslation(actionID, checkName, displayName);
 
             // Try to get a resolved name
-            string? obfusctedName = GetObfuscatedTranslation(actionID, config.TargetLanguage);
+            string? obfuscatedName = GetObfuscatedTranslation(actionID, config.TargetLanguage);
 
             // Use the obfuscated name if found
-            if (!string.IsNullOrWhiteSpace(obfusctedName)) resolveName = obfusctedName;
+            if (!string.IsNullOrWhiteSpace(obfuscatedName)) resolveName = obfuscatedName;
         }
         else
         {

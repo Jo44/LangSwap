@@ -19,7 +19,7 @@ public unsafe class AlliesCastBarsHook(Configuration config, TranslationCache tr
     private readonly string Class = $"[{nameof(AlliesCastBarsHook)}]";
 
     // Hook name
-    public override string Name => "Allies CastBars";
+    public override string Name => "Allies castbars";
 
     // ----------------------------
     // Enable the hook

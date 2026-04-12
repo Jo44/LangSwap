@@ -25,7 +25,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     protected static ITargetManager TargetManager => Plugin.TargetManager;
 
     // Cache actions (fallback)
-    private readonly Dictionary<string, uint> cacheActions = [];
+    private readonly Dictionary<string, uint> cacheActions = new(StringComparer.OrdinalIgnoreCase);
 
     // ----------------------------
     // Update cast bar
@@ -67,12 +67,11 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             string currentDisplayName = textNode -> NodeText.ToString();
             if (string.IsNullOrWhiteSpace(currentDisplayName)) return;
 
-            // Remove any target indicator and store it
-            string[] displayParts = RemoveTargetIndicator(currentDisplayName);
-            string targetIndicator = displayParts[1];
+            // Remove any target indicator
+            string currentDisplayPart = RemoveTargetIndicator(currentDisplayName, out string targetIndicator);
 
             // Remove any ellipsis
-            string cleanDisplayName = RemoveEllipsis(displayParts[0]);
+            string cleanDisplayName = RemoveEllipsis(currentDisplayPart);
 
             // Resolve action name
             string? actionName = ResolveActionName(actionID, cleanDisplayName);
@@ -112,10 +111,16 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
 
             // Get current casts
             Dictionary<uint, uint> currentCasts = [];
-            foreach (IGameObject obj in ObjectTable)
+            foreach (uint entityID in entityIDs)
             {
+                // Skip if entity ID is 0
+                if (entityID == 0) continue;
+
+                // Search object by entity ID
+                IGameObject? obj = ObjectTable.SearchById(entityID);
+
                 // Filter by object kind and casting status
-                if (obj is not IBattleChara battleCharacter || battleCharacter.ObjectKind != objectKind || !battleCharacter.IsCasting) continue;
+                if (obj == null || obj is not IBattleChara battleCharacter || battleCharacter.ObjectKind != objectKind || !battleCharacter.IsCasting) continue;
 
                 // Get the action ID
                 uint actionID = (uint)battleCharacter.CastActionId;
@@ -176,12 +181,11 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
                 string currentDisplayName = textNode -> NodeText.ToString();
                 if (string.IsNullOrWhiteSpace(currentDisplayName)) continue;
 
-                // Remove any target indicator and store it
-                string[] displayParts = RemoveTargetIndicator(currentDisplayName);
-                string targetIndicator = displayParts[1];
+                // Remove any target indicator
+                string currentDisplayPart = RemoveTargetIndicator(currentDisplayName, out string targetIndicator);
 
                 // Remove any ellipsis
-                string cleanDisplayName = RemoveEllipsis(displayParts[0]);
+                string cleanDisplayName = RemoveEllipsis(currentDisplayPart);
 
                 // Initialize resolved action ID
                 uint resolveActionID = 0;
@@ -455,29 +459,34 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     // ----------------------------
     // Remove target indicator from text
     // ----------------------------
-    private string[] RemoveTargetIndicator(string text)
+    private string RemoveTargetIndicator(string text, out string indicator)
     {
+        // Initialize indicator
+        indicator = string.Empty;
+
         // Check for null or empty text
-        if (string.IsNullOrWhiteSpace(text)) return [string.Empty, string.Empty];
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
 
         // Get target indicator symbols from config
         char[] targetIndicatorSymbols = config.TargetIndicatorSymbols;
 
-        // Initialize result with original text
-        string[] result = [text, string.Empty];
-
         // Check if text contains any target indicator
         for (int i = 0; i < targetIndicatorSymbols.Length; i++)
         {
-            if (text.Contains(targetIndicatorSymbols[i]))
+            // Get index of target indicator symbol
+            int index = text.IndexOf(targetIndicatorSymbols[i]);
+            if (index >= 0)
             {
-                // Remove target indicator symbol from text and store it
-                result[0] = text.Replace(targetIndicatorSymbols[i].ToString(), "").Trim();
-                result[1] = targetIndicatorSymbols[i].ToString();
-                break;
+                // Set indicator using the character found
+                indicator = targetIndicatorSymbols[i].ToString();
+
+                // Remove target indicator symbol from text
+                return text.Remove(index, 1).Trim();
             }
         }
-        return result;
+
+        // No target indicator found, return original text
+        return text;
     }
 
     // ----------------------------

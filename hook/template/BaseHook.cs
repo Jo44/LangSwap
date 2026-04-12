@@ -45,9 +45,6 @@ public unsafe abstract class BaseHook(Configuration config, TranslationCache tra
         // Set flag
         isLanguageSwapped = true;
 
-        // Log
-        Log.Debug($"{Class} - Swap enabled");
-
         // Call hook-specific behavior
         OnLanguageSwap();
     }
@@ -62,9 +59,6 @@ public unsafe abstract class BaseHook(Configuration config, TranslationCache tra
 
         // Clear flag
         isLanguageSwapped = false;
-
-        // Log
-        Log.Debug($"{Class} - Swap disabled");
 
         // Call hook-specific behavior
         OnLanguageSwap();

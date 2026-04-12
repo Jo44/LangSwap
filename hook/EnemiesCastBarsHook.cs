@@ -19,7 +19,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
     private readonly string Class = $"[{nameof(EnemiesCastBarsHook)}]";
 
     // Hook name
-    public override string Name => "Enemies CastBars";
+    public override string Name => "Enemies castbars";
 
     // ----------------------------
     // Enable the hook

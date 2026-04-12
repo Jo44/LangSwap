@@ -17,7 +17,7 @@ public unsafe partial class ItemTooltipHook(Configuration config, TranslationCac
     private readonly string Class = $"[{nameof(ItemTooltipHook)}]";
 
     // Hook name
-    public override string Name => "Item Tooltip";
+    public override string Name => "Item tooltip";
 
     // Memory signature
     protected override string MemorySignature => config.ItemTooltipSignature;

@@ -15,7 +15,7 @@ public unsafe class ActionTooltipHook(Configuration config, TranslationCache tra
     private readonly string Class = $"[{nameof(ActionTooltipHook)}]";
 
     // Hook name
-    public override string Name => "Action Tooltip";
+    public override string Name => "Action tooltip";
 
     // Memory signature
     protected override string MemorySignature => config.ActionTooltipSignature;

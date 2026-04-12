@@ -30,7 +30,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     // ----------------------------
     // Update cast bar
     // ----------------------------
-    protected virtual void UpdateCastBar(AtkUnitBase* addon, AddonType addonType, uint actionId)
+    protected virtual void UpdateCastBar(AtkUnitBase* addon, AddonType addonType, uint actionID)
     {
         try
         {
@@ -38,14 +38,13 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             if (addon == null || !addon -> IsVisible) return;
 
             // Check if we have a valid action ID
-            if (!IsValidActionID(actionId)) return;
+            if (!IsValidActionID(actionID)) return;
 
-            // Get the action
-            string? clientName = translationCache.GetActionName(actionId, config.ClientLanguage);
+            // Get the client name
+            string? clientName = translationCache.GetActionName(actionID, config.ClientLanguage);
 
-            // Cache the action
-            if (!string.IsNullOrWhiteSpace(clientName)) cacheActions[clientName] = actionId;
-
+            // Cache the client name
+            if (!string.IsNullOrWhiteSpace(clientName)) cacheActions[clientName] = actionID;
 
             // Cleanup cache actions
             if (cacheActions.Count > 100) cacheActions.Clear();
@@ -75,35 +74,18 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             // Remove any ellipsis
             string cleanDisplayName = RemoveEllipsis(displayParts[0]);
 
-            // Try exact match via action ID
-            uint resolveActionID = 0;
-            if (IsValidActionID(actionId))
-            {
-                // Resolve via action ID
-                resolveActionID = actionId;
-            }
-            else if (cacheActions.TryGetValue(cleanDisplayName, out uint cachedActionID))
-            {
-                // Try fallback match via cached actions
-                resolveActionID = cachedActionID;
-            }
+            // Resolve action name
+            string? actionName = ResolveActionName(actionID, cleanDisplayName);
+            if (string.IsNullOrWhiteSpace(actionName)) return;
 
-            // If action ID is resolved
-            if (resolveActionID > 0)
-            {
-                // Resolve action name
-                string? actionName = ResolveActionName(resolveActionID, cleanDisplayName);
-                if (string.IsNullOrWhiteSpace(actionName)) return;
+            // Only update if language is swapped
+            if (!isLanguageSwapped) return;
 
-                // Only update if language is swapped
-                if (!isLanguageSwapped) return;
+            // Put back target indicator if it was present
+            string displayText = string.IsNullOrWhiteSpace(targetIndicator) ? actionName : actionName + " " + targetIndicator;
 
-                // Put back target indicator if it was present
-                string displayText = string.IsNullOrWhiteSpace(targetIndicator) ? actionName : actionName + " " + targetIndicator;
-
-                // Update the text node
-                textNode -> SetText(displayText);
-            }
+            // Update the text node
+            textNode -> SetText(displayText);
         }
         catch (Exception ex)
         {
@@ -128,7 +110,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             // Get object kind
             ObjectKind objectKind = castBarsType == CastBarsType.Allies ? ObjectKind.Player : ObjectKind.BattleNpc;
 
-            // Get current casts for objects
+            // Get current casts
             Dictionary<uint, uint> currentCasts = [];
             foreach (IGameObject obj in ObjectTable)
             {
@@ -142,8 +124,10 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
                     // Add to current casts
                     currentCasts[battleCharacter.EntityId] = actionID;
 
-                    // Cache the action
+                    // Get the client name
                     string? clientName = translationCache.GetActionName(actionID, config.ClientLanguage);
+
+                    // Cache the client name
                     if (!string.IsNullOrWhiteSpace(clientName)) cacheActions[clientName] = actionID;
                 }
             }
@@ -199,8 +183,10 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
                 // Remove any ellipsis
                 string cleanDisplayName = RemoveEllipsis(displayParts[0]);
 
-                // Try exact match via entity ID
+                // Initialize resolved action ID
                 uint resolveActionID = 0;
+
+                // Try exact match via entity ID
                 if (entityID > 0 && currentCasts.TryGetValue(entityID, out uint matchedActionID))
                 {
                     // Resolve match via entity ID
@@ -428,8 +414,8 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             {
                 ID = (int)actionID,
                 ObfuscatedName = obfuscatedName,
+                JapaneseName = clientLanguage == Language.Japanese ? displayName : string.Empty,
                 EnglishName    = clientLanguage == Language.English  ? displayName : string.Empty,
-                JapaneseName   = clientLanguage == Language.Japanese ? displayName : string.Empty,
                 GermanName     = clientLanguage == Language.German   ? displayName : string.Empty,
                 FrenchName     = clientLanguage == Language.French   ? displayName : string.Empty
             };

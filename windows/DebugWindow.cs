@@ -87,6 +87,10 @@ public class DebugWindow : Window, IDisposable
         DrawExportScannedButton();
         DrawExportScannedPopup();
 
+        // Reset scanned
+        DrawResetScannedButton();
+        DrawResetScannedPopup();
+
         // Import local
         DrawImportLocalButton();
         DrawImportLocalPopup();
@@ -243,7 +247,7 @@ public class DebugWindow : Window, IDisposable
     {
         // Draw export scanned button
         ImGui.Spacing();
-        ImGui.SameLine(0, 990f);
+        ImGui.SameLine(0, 825f);
         if (ImGui.Button("Export scanned", new Vector2(150f, 0f)))
         {
             // Export scanned obfuscated translations to CSV
@@ -268,6 +272,46 @@ public class DebugWindow : Window, IDisposable
             // Log
             message = $"{count} scanned obfuscated translations exported";
             Log.Information($"{Class} - {message}");
+        });
+    }
+
+    // ----------------------------
+    // Draw reset scanned button
+    // ----------------------------
+    private static void DrawResetScannedButton()
+    {
+        // Draw reset scanned button
+        ImGui.SameLine(0, 15f);
+        if (ImGui.Button("Reset scanned", new Vector2(150f, 0f)))
+        {
+            // Open popup
+            ImGui.OpenPopup("Reset scanned");
+        }
+    }
+
+    // ----------------------------
+    // Draw reset scanned popup
+    // ----------------------------
+    private void DrawResetScannedPopup()
+    {
+        // Draw confirmation popup
+        PopupBuilder.DrawConfirmationPopup("Reset scanned", "This will clear all scanned obfuscated translations.    Are you sure ?", "Yes, reset all", "Cancel", new Vector2(490f, 0f), () =>
+        {
+            // Count removed translations
+            int count = config.ScannedObfuscatedTranslations.Count;
+
+            // Clear scanned obfuscated translations
+            config.ScannedObfuscatedTranslations.Clear();
+
+            // Save configuration
+            config.Save();
+
+            // Log
+            message = $"{count} scanned obfuscated translations cleared";
+            Log.Information($"{Class} - {message}");
+
+            // Reload obfuscated translations
+            LoadObfuscatedTranslations();
         });
     }
 

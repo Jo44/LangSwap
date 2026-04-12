@@ -53,7 +53,7 @@ You can also :
   - Added the ability to scan, import, export, and reset local obfuscated translations via CSV
   - Overall UI polish and stability improvements
 - **v1.5** : 
-  - Added the ability to reset scanned obfuscated translations via CSV
+  - Added the ability to reset scanned obfuscated translations
 
 ## Development / build
 - Target: .NET 10

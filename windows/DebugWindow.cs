@@ -384,6 +384,9 @@ public class DebugWindow : Window, IDisposable
         MergeObfuscatedTranslations(config.ScannedObfuscatedTranslations);
         MergeObfuscatedTranslations(config.LocalObfuscatedTranslations);
 
+        // Sort translations by ID
+        translations.Sort((a, b) => a.ID.CompareTo(b.ID));
+
         // Log
         Log.Information($"{Class} - Loaded {translations.Count} obfuscated translations");
 

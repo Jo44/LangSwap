@@ -5,6 +5,7 @@ using LangSwap.translation;
 using LangSwap.translation.model;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Numerics;
 
 namespace LangSwap.windows;
@@ -27,6 +28,12 @@ public class DebugWindow : Window, IDisposable
     // Obfuscated translations
     private readonly List<ObfuscatedTranslation> translations = [];
 
+    // Compare info for language sorting
+    private static readonly CompareInfo JapaneseCompare = CultureInfo.GetCultureInfo("ja-JP").CompareInfo;
+    private static readonly CompareInfo EnglishCompare = CultureInfo.GetCultureInfo("en-US").CompareInfo;
+    private static readonly CompareInfo GermanCompare = CultureInfo.GetCultureInfo("de-DE").CompareInfo;
+    private static readonly CompareInfo FrenchCompare = CultureInfo.GetCultureInfo("fr-FR").CompareInfo;
+
     // CSV export/import
     private string exportCSV = string.Empty;
     private string importCSV = string.Empty;
@@ -36,7 +43,7 @@ public class DebugWindow : Window, IDisposable
     private string message = string.Empty;
 
     // Window size
-    private const int WindowHeight = 818;
+    private const int WindowHeight = 805;
     private const int WindowWidth = 1500;
 
     // ----------------------------
@@ -139,42 +146,21 @@ public class DebugWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
-        ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY;
+        ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Sortable;
         if (!ImGui.BeginTable("##ObfuscatedTranslationsTable", 6, tableFlags, new Vector2(WindowWidth - 45, WindowHeight - 104))) return;
 
         // Setup columns
         ImGui.TableSetupScrollFreeze(0, 1);
-        ImGui.TableSetupColumn("Spell ID", ImGuiTableColumnFlags.WidthFixed, 65f);
-        ImGui.TableSetupColumn("Obfuscation", ImGuiTableColumnFlags.WidthFixed, 320f);
-        ImGui.TableSetupColumn("Japanese", ImGuiTableColumnFlags.WidthStretch, 1.0f);
-        ImGui.TableSetupColumn("English", ImGuiTableColumnFlags.WidthStretch, 1.0f);
-        ImGui.TableSetupColumn("German", ImGuiTableColumnFlags.WidthStretch, 1.0f);
-        ImGui.TableSetupColumn("French", ImGuiTableColumnFlags.WidthStretch, 1.0f);
-        ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
+        ImGui.TableSetupColumn("Spell ID", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.DefaultSort, 65f, 0);
+        ImGui.TableSetupColumn("Obfuscation", ImGuiTableColumnFlags.WidthFixed, 320f, 1);
+        ImGui.TableSetupColumn("Japanese", ImGuiTableColumnFlags.WidthStretch, 1.0f, 2);
+        ImGui.TableSetupColumn("English", ImGuiTableColumnFlags.WidthStretch, 1.0f, 3);
+        ImGui.TableSetupColumn("German", ImGuiTableColumnFlags.WidthStretch, 1.0f, 4);
+        ImGui.TableSetupColumn("French", ImGuiTableColumnFlags.WidthStretch, 1.0f, 5);
+        ImGui.TableHeadersRow();
 
-        // ID
-        ImGui.TableSetColumnIndex(0);
-        DrawTextCell("Spell ID");
-
-        // Obfuscation
-        ImGui.TableSetColumnIndex(1);
-        DrawTextCell("Obfuscation");
-
-        // Japanese
-        ImGui.TableSetColumnIndex(2);
-        DrawTextCell("Japanese");
-
-        // English
-        ImGui.TableSetColumnIndex(3);
-        DrawTextCell("English");
-
-        // German
-        ImGui.TableSetColumnIndex(4);
-        DrawTextCell("German");
-
-        // French
-        ImGui.TableSetColumnIndex(5);
-        DrawTextCell("French");
+        // Apply sorting
+        ApplyTableSorting();
 
         // No entries
         if (translations.Count == 0)
@@ -474,6 +460,55 @@ public class DebugWindow : Window, IDisposable
             if (!string.IsNullOrWhiteSpace(sourceTranslation.GermanName)) targetTranslation.GermanName = sourceTranslation.GermanName;
             if (!string.IsNullOrWhiteSpace(sourceTranslation.FrenchName)) targetTranslation.FrenchName = sourceTranslation.FrenchName;
         }
+    }
+
+    // ----------------------------
+    // Apply table sorting
+    // ----------------------------
+    private void ApplyTableSorting()
+    {
+        // Get current sort specs
+        ImGuiTableSortSpecsPtr sortSpecs = ImGui.TableGetSortSpecs();
+        if (!sortSpecs.SpecsDirty || sortSpecs.SpecsCount == 0) return;
+
+        // Get sort specs for the first sorted column
+        ImGuiTableColumnSortSpecs spec = sortSpecs.Specs[0];
+        int columnID = (int)spec.ColumnUserID;
+        bool ascending = spec.SortDirection != ImGuiSortDirection.Descending;
+
+        // Sort translations based on the column and direction
+        translations.Sort((left, right) =>
+        {
+            // Compare text (with blank values last)
+            static int CompareTextBlankLast(string leftValue, string rightValue, bool isAscending, CompareInfo compareInfo, CompareOptions compareOptions)
+            {
+                // Sort blank values last
+                bool leftBlank = string.IsNullOrWhiteSpace(leftValue);
+                bool rightBlank = string.IsNullOrWhiteSpace(rightValue);
+                if (leftBlank && !rightBlank) return 1;
+                if (!leftBlank && rightBlank) return -1;
+                if (leftBlank && rightBlank) return 0;
+
+                // Compare text with locale-specific rules
+                int textCompare = compareInfo.Compare(leftValue, rightValue, compareOptions);
+                return isAscending ? textCompare : -textCompare;
+            }
+
+            // Determine sort order based on column
+            return columnID switch
+            {
+                0 => ascending ? left.ID.CompareTo(right.ID) : right.ID.CompareTo(left.ID),
+                1 => CompareTextBlankLast(left.ObfuscatedName, right.ObfuscatedName, ascending, EnglishCompare, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
+                2 => CompareTextBlankLast(left.JapaneseName, right.JapaneseName, ascending, JapaneseCompare, CompareOptions.IgnoreCase | CompareOptions.IgnoreKanaType | CompareOptions.IgnoreWidth),
+                3 => CompareTextBlankLast(left.EnglishName, right.EnglishName, ascending, EnglishCompare, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
+                4 => CompareTextBlankLast(left.GermanName, right.GermanName, ascending, GermanCompare, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
+                5 => CompareTextBlankLast(left.FrenchName, right.FrenchName, ascending, FrenchCompare, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
+                _ => ascending ? left.ID.CompareTo(right.ID) : right.ID.CompareTo(left.ID)
+            };
+        });
+
+        // Mark sort specs as applied
+        sortSpecs.SpecsDirty = false;
     }
 
     // ----------------------------

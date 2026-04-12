@@ -54,6 +54,9 @@ You can also :
   - Overall UI polish and stability improvements
 - **v1.5** : 
   - Added the ability to reset scanned obfuscated translations
+- **v1.6** : 
+  - Fixed fallback match via cached actions (truncated)
+  - Added sorting into Customize and Debug UI tables
 
 ## Development / build
 - Target: .NET 10

@@ -4,6 +4,7 @@ using Dalamud.Plugin.Services;
 using LangSwap.translation.model;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Numerics;
 
 namespace LangSwap.windows;
@@ -25,6 +26,9 @@ public class CustomizeWindow : Window, IDisposable
     // Alternative translations
     private readonly List<AlternativeTranslation> translations = [];
 
+    // Compare info for language sorting
+    private static readonly CompareInfo FrenchCompare = CultureInfo.GetCultureInfo("fr-FR").CompareInfo;
+
     // CSV export/import
     private string exportCSV = string.Empty;
     private string importCSV = string.Empty;
@@ -38,8 +42,8 @@ public class CustomizeWindow : Window, IDisposable
     private int focusNewRowIndex = -1;
 
     // Window size
-    private const int WindowHeight = 478;
-    private const int WindowWidth = 690;
+    private const int WindowHeight = 465;
+    private const int WindowWidth = 855;
 
     // ----------------------------
     // Constructor
@@ -83,6 +87,9 @@ public class CustomizeWindow : Window, IDisposable
 
         // Alternative translations table
         DrawAlternativeTranslationsTable();
+
+        // Add button
+        DrawAddButton();
 
         // Export CSV
         DrawExportButton();
@@ -139,38 +146,19 @@ public class CustomizeWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
-        ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY;
+        ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Sortable;
         if (!ImGui.BeginTable("##AlternativeTranslationsTable", 4, tableFlags, new Vector2(WindowWidth - 45, WindowHeight - 104))) return;
 
         // Setup columns
         ImGui.TableSetupScrollFreeze(0, 1);
-        ImGui.TableSetupColumn("##AddOrIndex", ImGuiTableColumnFlags.WidthFixed, 40f);
-        ImGui.TableSetupColumn("Spell", ImGuiTableColumnFlags.WidthStretch, 1.0f);
-        ImGui.TableSetupColumn("Replacement", ImGuiTableColumnFlags.WidthStretch, 1.0f);
-        ImGui.TableSetupColumn("##Remove", ImGuiTableColumnFlags.WidthFixed, 60f);
-        ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
+        ImGui.TableSetupColumn(" ", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort, 40f, 0);
+        ImGui.TableSetupColumn("Spell", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.DefaultSort, 1.0f, 1);
+        ImGui.TableSetupColumn("Replacement", ImGuiTableColumnFlags.WidthStretch, 1.0f, 2);
+        ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort, 60f, 3);
+        ImGui.TableHeadersRow();
 
-        // Add
-        ImGui.TableSetColumnIndex(0);
-        bool addClicked = DrawActionCell("##AddCell", "Add");
-        if (addClicked && !HasPendingEmptyRow())
-        {
-            translations.Add(new AlternativeTranslation());
-            focusNewRowIndex = translations.Count - 1;
-            focusedNewRow = true;
-        }
-
-        // Spell
-        ImGui.TableSetColumnIndex(1);
-        DrawTextCell("Spell");
-
-        // Replacement
-        ImGui.TableSetColumnIndex(2);
-        DrawTextCell("Replacement");
-
-        // Remove
-        ImGui.TableSetColumnIndex(3);
-        DrawTextCell(" ");
+        // Apply sorting
+        ApplyTableSorting();
 
         // No entries
         if (translations.Count == 0)
@@ -223,7 +211,7 @@ public class CustomizeWindow : Window, IDisposable
 
                 // Remove cell
                 ImGui.TableSetColumnIndex(3);
-                if (DrawActionCell($"##RemoveCell_{i}", "Remove"))
+                if (DrawRemoveCell($"##RemoveCell_{i}"))
                 {
                     removeIndex = i;
                 }
@@ -279,9 +267,9 @@ public class CustomizeWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Draw action cell
+    // Draw remove cell
     // ----------------------------
-    private bool DrawActionCell(string id, string text)
+    private bool DrawRemoveCell(string id)
     {
         // Calculate cell position and size
         Vector2 pos = ImGui.GetCursorScreenPos();
@@ -306,6 +294,7 @@ public class CustomizeWindow : Window, IDisposable
         ImGui.GetWindowDrawList().AddRectFilled(drawMin, drawMax, backgroundColor);
 
         // Calculate text position and size
+        string text = "Remove";
         Vector2 textSize = ImGui.CalcTextSize(text);
         Vector2 textPos = new(drawMin.X + (drawMax.X - drawMin.X - textSize.X) * 0.5f, drawMin.Y + (drawMax.Y - drawMin.Y - textSize.Y) * 0.5f);
 
@@ -317,12 +306,34 @@ public class CustomizeWindow : Window, IDisposable
     }
 
     // ----------------------------
+    // Draw add button
+    // ----------------------------
+    private void DrawAddButton()
+    {
+        // Draw add button
+        ImGui.Spacing();
+        ImGui.SameLine(0, 15f);
+        if (ImGui.Button("Add", new Vector2(150f, 0f)))
+        {
+            // Check if there is no pending empty row
+            if (!HasPendingEmptyRow())
+            {
+                // Add new empty alternative translation
+                translations.Add(new AlternativeTranslation());
+                
+                // Set focus to new row
+                focusNewRowIndex = translations.Count - 1;
+                focusedNewRow = true;
+            }
+        }
+    }
+
+    // ----------------------------
     // Draw export CSV button
     // ----------------------------
     private void DrawExportButton()
     {
         // Draw export CSV button
-        ImGui.Spacing();
         ImGui.SameLine(0, 15f);
         if (ImGui.Button("Export CSV", new Vector2(150f, 0f)))
         {
@@ -475,6 +486,35 @@ public class CustomizeWindow : Window, IDisposable
     }
 
     // ----------------------------
+    // Apply table sorting
+    // ----------------------------
+    private void ApplyTableSorting()
+    {
+        // Get current sort specs
+        ImGuiTableSortSpecsPtr sortSpecs = ImGui.TableGetSortSpecs();
+        if (!sortSpecs.SpecsDirty || sortSpecs.SpecsCount == 0) return;
+
+        // Get sort specs for the first sorted column
+        ImGuiTableColumnSortSpecs spec = sortSpecs.Specs[0];
+        int columnID = (int)spec.ColumnUserID;
+        bool ascending = spec.SortDirection != ImGuiSortDirection.Descending;
+
+        // Sort translations based on the column and direction
+        translations.Sort((left, right) =>
+        {
+            // Determine sort order based on column
+            return columnID switch
+            {
+                2 => CompareText(left.AlternativeName, right.AlternativeName, ascending),
+                _ => CompareText(left.SpellName, right.SpellName, ascending)
+            };
+        });
+
+        // Mark sort specs as applied
+        sortSpecs.SpecsDirty = false;
+    }
+
+    // ----------------------------
     // Export alternative translations CSV
     // ----------------------------
     private static string ExportAlternativeTranslationsCSV(List<AlternativeTranslation> exportedTranslations)
@@ -613,25 +653,6 @@ public class CustomizeWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Has changes
-    // ----------------------------
-    private bool HasChanges()
-    {
-        // Check for count differences
-        if (translations.Count != config.AlternativeTranslations.Count) return true;
-
-        // Check for differences in memory vs persisted values
-        for (int i = 0; i < translations.Count; i++)
-        {
-            AlternativeTranslation inMemory = translations[i];
-            AlternativeTranslation persisted = config.AlternativeTranslations[i];
-            if (!string.Equals(inMemory.SpellName, persisted.SpellName, StringComparison.Ordinal)) return true;
-            if (!string.Equals(inMemory.AlternativeName, persisted.AlternativeName, StringComparison.Ordinal)) return true;
-        }
-        return false;
-    }
-
-    // ----------------------------
     // Has invalid entries
     // ----------------------------
     private bool HasInvalidEntries()
@@ -654,6 +675,42 @@ public class CustomizeWindow : Window, IDisposable
     }
 
     // ----------------------------
+    // Has changes
+    // ----------------------------
+    private bool HasChanges()
+    {
+        // Check for count differences
+        if (translations.Count != config.AlternativeTranslations.Count) return true;
+
+        // Compare normalized values to ignore view-only sorting changes
+        List<AlternativeTranslation> inMemoryTranslations = [.. translations];
+        List<AlternativeTranslation> persistedTranslations = [.. config.AlternativeTranslations];
+        inMemoryTranslations.Sort(CompareAlternativeTranslations);
+        persistedTranslations.Sort(CompareAlternativeTranslations);
+
+        // Check for differences in memory vs persisted values
+        for (int i = 0; i < inMemoryTranslations.Count; i++)
+        {
+            AlternativeTranslation inMemory = inMemoryTranslations[i];
+            AlternativeTranslation persisted = persistedTranslations[i];
+            if (!string.Equals(inMemory.SpellName, persisted.SpellName, StringComparison.Ordinal)) return true;
+            if (!string.Equals(inMemory.AlternativeName, persisted.AlternativeName, StringComparison.Ordinal)) return true;
+        }
+        return false;
+    }
+
+    // ----------------------------
+    // Compare alternative translations
+    // ----------------------------
+    private static int CompareAlternativeTranslations(AlternativeTranslation left, AlternativeTranslation right)
+    {
+        int spellCompare = CompareText(left.SpellName, right.SpellName, true);
+        if (spellCompare != 0) return spellCompare;
+
+        return CompareText(left.AlternativeName, right.AlternativeName, true);
+    }
+
+    // ----------------------------
     // Has pending empty row
     // ----------------------------
     private bool HasPendingEmptyRow()
@@ -664,6 +721,16 @@ public class CustomizeWindow : Window, IDisposable
             if (string.IsNullOrWhiteSpace(translation.SpellName) && string.IsNullOrWhiteSpace(translation.AlternativeName)) return true;
         }
         return false;
+    }
+
+    // ----------------------------
+    // Compare text
+    // ----------------------------
+    private static int CompareText(string leftValue, string rightValue, bool isAscending)
+    {
+        // Compare text with locale-specific rules
+        int textCompare = FrenchCompare.Compare(leftValue, rightValue, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase);
+        return isAscending ? textCompare : -textCompare;
     }
 
     // ----------------------------

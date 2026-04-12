@@ -199,10 +199,11 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
                 else
                 {
                     // Try fallback match via cached actions
-                    if (cacheActions.TryGetValue(cleanDisplayName, out uint cachedActionID))
+                    uint? cachedActionID = FindActionByPrefix(cacheActions, cleanDisplayName);
+                    if (cachedActionID.HasValue)
                     {
                         // Resolve match via cached actions
-                        resolveActionID = cachedActionID;
+                        resolveActionID = cachedActionID.Value;
                     }
                     else
                     {
@@ -213,7 +214,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
                             string? clientName = translationCache.GetActionName(actionID, config.ClientLanguage);
 
                             // Check for match with the clean display name
-                            if (!string.IsNullOrWhiteSpace(clientName) && clientName.Equals(cleanDisplayName, StringComparison.OrdinalIgnoreCase))
+                            if (!string.IsNullOrWhiteSpace(clientName) && clientName.StartsWith(cleanDisplayName, StringComparison.OrdinalIgnoreCase))
                             {
                                 // Resolve match via translation cache and update fallback cache
                                 resolveActionID = actionID;
@@ -284,6 +285,33 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             AddonType.HateList      => config.HateListName,
             _                       => throw new ArgumentOutOfRangeException(nameof(addonType))
         };
+    }
+
+    // ----------------------------
+    // Find action ID by prefix match
+    // ----------------------------
+    private static uint? FindActionByPrefix(Dictionary<string, uint> cache, string displayName)
+    {
+        // Check for null cache
+        if (cache == null) return null;
+
+        // Check for null or empty display name
+        if (string.IsNullOrWhiteSpace(displayName)) return null;
+
+        // Try exact match first for performance
+        if (cache.TryGetValue(displayName, out uint exactMatch)) return exactMatch;
+
+        // Try prefix match for truncated names
+        foreach (var kvp in cache)
+        {
+            // Check if the cached name starts with the display name
+            if (kvp.Key.StartsWith(displayName, StringComparison.OrdinalIgnoreCase))
+                // Return the action ID
+                return kvp.Value;
+        }
+
+        // No match found
+        return null;
     }
 
     // ----------------------------

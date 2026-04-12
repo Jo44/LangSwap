@@ -1,8 +1,6 @@
-using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
-using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.hook.@base;
 using LangSwap.translation;
@@ -10,7 +8,6 @@ using LangSwap.translation.@base;
 using LangSwap.translation.model;
 using System;
 using System.Collections.Generic;
-using static FFXIVClientStructs.FFXIV.Client.UI.AddonRelicNoteBook;
 
 namespace LangSwap.hook.template;
 
@@ -43,23 +40,12 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             // Check if we have a valid action ID
             if (!IsValidActionID(actionId)) return;
 
-            // Get the action name (client language)
+            // Get the action
             string? clientName = translationCache.GetActionName(actionId, config.ClientLanguage);
 
-            // Detect obfuscated name
-            if (!string.IsNullOrWhiteSpace(clientName) && clientName.StartsWith(config.ObfuscatedPrefix))
-            {
-                // TODO
-                // Detected obfuscated name - attempt to detect translation
-                Log.Information($"{Class} - Detected obfuscated name for action ID {actionId}: {clientName} (addon: {GetAddonName(addonType)})");
-            }
-
             // Cache the action
-            if (!string.IsNullOrWhiteSpace(clientName))
-            {
-                // TODO :
-                cacheActions[clientName] = actionId;
-            }
+            if (!string.IsNullOrWhiteSpace(clientName)) cacheActions[clientName] = actionId;
+
 
             // Cleanup cache actions
             if (cacheActions.Count > 100) cacheActions.Clear();
@@ -139,12 +125,6 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             // Check if addon is visible
             if (addon == null || !addon -> IsVisible) return;
 
-            // TODO
-            if (addon != null)
-            {
-                return;
-            }   
-
             // Get object kind
             ObjectKind objectKind = castBarsType == CastBarsType.Allies ? ObjectKind.Player : ObjectKind.BattleNpc;
 
@@ -172,9 +152,9 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             if (cacheActions.Count > 100) cacheActions.Clear();
 
             // Initialize fields based on castbars type
-            int startField = castBarsType == CastBarsType.Allies ? config.PartyListStartField : config.EnmityListStartField;
-            int endField = castBarsType   == CastBarsType.Allies ? config.PartyListEndField   : config.EnmityListEndField;
-            int fieldIndex = castBarsType == CastBarsType.Allies ? config.PartyListCastField  : config.EnmityListCastField;
+            int startField = castBarsType == CastBarsType.Allies ? config.PartyListStartField : config.HateListStartField;
+            int endField = castBarsType   == CastBarsType.Allies ? config.PartyListEndField   : config.HateListEndField;
+            int fieldIndex = castBarsType == CastBarsType.Allies ? config.PartyListCastField  : config.HateListCastField;
 
             // Check node list
             if (addon -> UldManager.NodeList == null || addon -> UldManager.NodeListCount <= endField) return;
@@ -294,7 +274,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             AddonType.TargetCastBar => config.TargetCastBarField,
             AddonType.FocusCastBar  => config.FocusCastBarField,
             AddonType.PartyList     => config.PartyListCastField,
-            AddonType.EnmityList    => config.EnmityListCastField,
+            AddonType.HateList      => config.HateListCastField,
             _                       => throw new ArgumentOutOfRangeException(nameof(addonType))
         };
     }
@@ -311,7 +291,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             AddonType.TargetCastBar => config.TargetCastBarName,
             AddonType.FocusCastBar  => config.FocusCastBarName,
             AddonType.PartyList     => config.PartyListName,
-            AddonType.EnmityList    => config.EnmityListName,
+            AddonType.HateList      => config.HateListName,
             _                       => throw new ArgumentOutOfRangeException(nameof(addonType))
         };
     }
@@ -439,7 +419,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             config.Save();
 
             // Log
-            Log.Information($"{Class} - Updated scanned obfuscation : ID = {actionID}, {displayName} ({clientLanguage})");
+            Log.Information($"{Class} - Updated scanned obfuscation : ID = {actionID}, {displayName} ({clientLanguage}), {obfuscatedName}");
         }
         else
         {
@@ -459,7 +439,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             config.Save();
 
             // Log
-            Log.Information($"{Class} - Added scanned obfuscation : ID = {actionID}, Obfuscated = {obfuscatedName}, {clientLanguage} = {displayName}");
+            Log.Information($"{Class} - Added scanned obfuscation : ID = {actionID}, {displayName} ({clientLanguage}), {obfuscatedName}");
         }
     }
 

@@ -456,13 +456,13 @@ public class ConfigWindow : Window, IDisposable
             UIComponentChange("Enemies Focus", enemiesCastBarsFocus, () => config.EnemiesCastBarsFocus = enemiesCastBarsFocus);
         }
 
-        // Enmity list
-        bool enemiesCastBarsEnmityList = config.EnemiesCastBarsEnmityList;
+        // Hate list
+        bool enemiesCastBarsHateList = config.EnemiesCastBarsHateList;
         ImGui.SameLine(0, 15f);
-        if (ImGui.Checkbox(" Enmity list", ref enemiesCastBarsEnmityList))
+        if (ImGui.Checkbox(" Hate list", ref enemiesCastBarsHateList))
         {
-            // Change enmity list castbars
-            UIComponentChange("Enemies Enmity List", enemiesCastBarsEnmityList, () => config.EnemiesCastBarsEnmityList = enemiesCastBarsEnmityList);
+            // Change hate list castbars
+            UIComponentChange("Enemies Hate List", enemiesCastBarsHateList, () => config.EnemiesCastBarsHateList = enemiesCastBarsHateList);
         }
         ImGui.Spacing();
         ImGui.Spacing();

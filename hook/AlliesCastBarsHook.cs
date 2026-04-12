@@ -67,7 +67,7 @@ public unsafe class AlliesCastBarsHook(Configuration config, TranslationCache tr
     {
         if (config.AlliesCastBarsTarget || config.AlliesCastBarsFocus || config.AlliesCastBarsPartyList)
         {
-            // Get the action ID
+            // Get the action ID for the player
             uint actionID = ObjectTable.LocalPlayer is IBattleChara player && player.IsCasting ? (uint)player.CastActionId : 0;
 
             // Update the cast bar
@@ -82,7 +82,7 @@ public unsafe class AlliesCastBarsHook(Configuration config, TranslationCache tr
     {
         if (config.AlliesCastBarsTarget)
         {
-            // Get the action ID
+            // Get the action ID for the target 
             uint actionID = TargetManager.Target is IBattleChara target && target.ObjectKind == ObjectKind.Player && target.IsCasting ? (uint)target.CastActionId : 0;
 
             // Update the cast bar
@@ -97,7 +97,7 @@ public unsafe class AlliesCastBarsHook(Configuration config, TranslationCache tr
     {
         if (config.AlliesCastBarsTarget)
         {
-            // Get the action ID
+            // Get the action ID for the target
             uint actionID = TargetManager.Target is IBattleChara target && target.ObjectKind == ObjectKind.Player && target.IsCasting ? (uint)target.CastActionId : 0;
 
             // Update the cast bar
@@ -112,7 +112,7 @@ public unsafe class AlliesCastBarsHook(Configuration config, TranslationCache tr
     {
         if (config.AlliesCastBarsFocus)
         {
-            // Get the action ID
+            // Get the action ID for the focus
             uint actionID = TargetManager.FocusTarget is IBattleChara focus && focus.ObjectKind == ObjectKind.Player && focus.IsCasting ? (uint)focus.CastActionId : 0;
 
             // Update the cast bar

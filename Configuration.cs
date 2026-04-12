@@ -58,7 +58,7 @@ public class Configuration : IPluginConfiguration
     public bool AlliesCastBarsPartyList { get; set; } = true;
     public bool EnemiesCastBarsTarget { get; set; } = true;
     public bool EnemiesCastBarsFocus { get; set; } = true;
-    public bool EnemiesCastBarsEnmityList { get; set; } = true;
+    public bool EnemiesCastBarsHateList { get; set; } = true;
     public bool ActionTooltip { get; set; } = true;
     public bool ItemTooltip { get; set; } = true;
 
@@ -84,11 +84,11 @@ public class Configuration : IPluginConfiguration
     public int PartyListCastField { get; } = 30;
 
     // Enemies CastBar Addons
-    public string EnmityListAddon { get; } = "_EnemyList";
-    public string EnmityListName { get; } = "enmity list";
-    public int EnmityListStartField { get; } = 4;
-    public int EnmityListEndField { get; } = 11;
-    public int EnmityListCastField { get; } = 16;
+    public string HateListAddon { get; } = "_EnemyList";
+    public string HateListName { get; } = "hate list";
+    public int HateListStartField { get; } = 4;
+    public int HateListEndField { get; } = 11;
+    public int HateListCastField { get; } = 16;
 
     // Action Detail Addon
     public string ActionTooltipSignature { get; } = "E8 ?? ?? ?? ?? 48 8B 43 28 48 8B AF";

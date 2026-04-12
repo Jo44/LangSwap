@@ -2,7 +2,7 @@
   "version": 3,
   "targets": {
     "net10.0-windows7.0": {
-      "DalamudPackager/14.0.1": {
+      "DalamudPackager/14.0.2": {
         "type": "package",
         "build": {
           "build/DalamudPackager.props": {},
@@ -12,7 +12,7 @@
           "buildMultiTargeting/DalamudPackager.props": {}
         }
       },
-      "DotNet.ReproducibleBuilds/1.2.39": {
+      "DotNet.ReproducibleBuilds/2.0.2": {
         "type": "package",
         "build": {
           "buildTransitive/DotNet.ReproducibleBuilds.props": {},
@@ -26,17 +26,17 @@
     }
   },
   "libraries": {
-    "DalamudPackager/14.0.1": {
-      "sha512": "y0WWyUE6dhpGdolK3iKgwys05/nZaVf4ZPtIjpLhJBZvHxkkiE23zYRo7K7uqAgoK/QvK5cqF6l3VG5AbgC6KA==",
+    "DalamudPackager/14.0.2": {
+      "sha512": "dQJeq+8eyHzra4Cg5eZ/3LAeS3/UpvvLriYJGSncMK9LqJ7Q4B6jwcOsxo3PfxVd15xj+IzVFxkPqIBmPQu8/w==",
       "type": "package",
-      "path": "dalamudpackager/14.0.1",
+      "path": "dalamudpackager/14.0.2",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "build/DalamudPackager.props",
         "build/DalamudPackager.targets",
         "buildMultiTargeting/DalamudPackager.props",
-        "dalamudpackager.14.0.1.nupkg.sha512",
+        "dalamudpackager.14.0.2.nupkg.sha512",
         "dalamudpackager.nuspec",
         "tasks/net48/DalamudPackager.dll",
         "tasks/net48/Newtonsoft.Json.dll",
@@ -46,10 +46,10 @@
         "tasks/netstandard2.1/YamlDotNet.dll"
       ]
     },
-    "DotNet.ReproducibleBuilds/1.2.39": {
-      "sha512": "fcFN01tDTIQqDuTwr1jUQK/geofiwjG5DycJQOnC72i1SsLAk1ELe+apBOuZ11UMQG8YKFZG1FgvjZPbqHyatg==",
+    "DotNet.ReproducibleBuilds/2.0.2": {
+      "sha512": "VaHoEN6YHp0jXucxm67vfuRy8zo9ufiKSuaZ4ZudRi8xmWcEFMKxfCsg2nvYNvdISFTURDu+IHqADGh53+Bamw==",
       "type": "package",
-      "path": "dotnet.reproduciblebuilds/1.2.39",
+      "path": "dotnet.reproduciblebuilds/2.0.2",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -60,15 +60,15 @@
         "buildMultiTargeting/DotNet.ReproducibleBuilds.targets",
         "buildTransitive/DotNet.ReproducibleBuilds.props",
         "buildTransitive/DotNet.ReproducibleBuilds.targets",
-        "dotnet.reproduciblebuilds.1.2.39.nupkg.sha512",
+        "dotnet.reproduciblebuilds.2.0.2.nupkg.sha512",
         "dotnet.reproduciblebuilds.nuspec"
       ]
     }
   },
   "projectFileDependencyGroups": {
     "net10.0-windows7.0": [
-      "DalamudPackager >= 14.0.1",
-      "DotNet.ReproducibleBuilds >= 1.2.39"
+      "DalamudPackager >= 14.0.2",
+      "DotNet.ReproducibleBuilds >= 2.0.2"
     ]
   },
   "packageFolders": {
@@ -127,12 +127,12 @@
         "dependencies": {
           "DalamudPackager": {
             "target": "Package",
-            "version": "[14.0.1, )"
+            "version": "[14.0.2, )"
           },
           "DotNet.ReproducibleBuilds": {
             "suppressParent": "All",
             "target": "Package",
-            "version": "[1.2.39, )"
+            "version": "[2.0.2, )"
           }
         },
         "imports": [

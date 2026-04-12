@@ -36,8 +36,8 @@ public class DebugWindow : Window, IDisposable
     private string message = string.Empty;
 
     // Window size
-    private const int WindowHeight = 478;
-    private const int WindowWidth = 1200;
+    private const int WindowHeight = 818;
+    private const int WindowWidth = 1500;
 
     // ----------------------------
     // Constructor
@@ -137,49 +137,49 @@ public class DebugWindow : Window, IDisposable
         ImGui.SameLine(0, 15f);
         ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY;
         if (!ImGui.BeginTable("##ObfuscatedTranslationsTable", 6, tableFlags, new Vector2(WindowWidth - 45, WindowHeight - 104))) return;
-            
+
         // Setup columns
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableSetupColumn("Spell ID", ImGuiTableColumnFlags.WidthFixed, 65f);
         ImGui.TableSetupColumn("Obfuscation", ImGuiTableColumnFlags.WidthFixed, 320f);
-        ImGui.TableSetupColumn("English", ImGuiTableColumnFlags.WidthStretch, 1.0f);
-        ImGui.TableSetupColumn("French", ImGuiTableColumnFlags.WidthStretch, 1.0f);
-        ImGui.TableSetupColumn("German", ImGuiTableColumnFlags.WidthStretch, 1.0f);
         ImGui.TableSetupColumn("Japanese", ImGuiTableColumnFlags.WidthStretch, 1.0f);
+        ImGui.TableSetupColumn("English", ImGuiTableColumnFlags.WidthStretch, 1.0f);
+        ImGui.TableSetupColumn("German", ImGuiTableColumnFlags.WidthStretch, 1.0f);
+        ImGui.TableSetupColumn("French", ImGuiTableColumnFlags.WidthStretch, 1.0f);
         ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
 
         // ID
         ImGui.TableSetColumnIndex(0);
-        DrawCellText("Spell ID");
+        DrawTextCell("Spell ID");
 
         // Obfuscation
         ImGui.TableSetColumnIndex(1);
-        DrawCellText("Obfuscation");
+        DrawTextCell("Obfuscation");
+
+        // Japanese
+        ImGui.TableSetColumnIndex(2);
+        DrawTextCell("Japanese");
 
         // English
-        ImGui.TableSetColumnIndex(2);
-        DrawCellText("English");
-
-        // French
         ImGui.TableSetColumnIndex(3);
-        DrawCellText("French");
+        DrawTextCell("English");
 
         // German
         ImGui.TableSetColumnIndex(4);
-        DrawCellText("German");
+        DrawTextCell("German");
 
-        // Japanese
+        // French
         ImGui.TableSetColumnIndex(5);
-        DrawCellText("Japanese");
+        DrawTextCell("French");
 
         // No entries
         if (translations.Count == 0)
         {
             ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
             ImGui.TableSetColumnIndex(0);
-            DrawCellText(" ");
+            DrawTextCell(" ");
             ImGui.TableSetColumnIndex(1);
-            DrawCellText("No remaining obfuscated names found");
+            DrawTextCell("No obfuscated names found");
         }
         else
         {
@@ -192,27 +192,27 @@ public class DebugWindow : Window, IDisposable
                 // ID
                 ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
                 ImGui.TableSetColumnIndex(0);
-                DrawCellText(translation.ID.ToString());
+                DrawTextCell(translation.ID.ToString());
 
                 // Obfuscation
                 ImGui.TableSetColumnIndex(1);
-                DrawCellText(translation.ObfuscatedName);
+                DrawTextCell(translation.ObfuscatedName);
+
+                // Japanese
+                ImGui.TableSetColumnIndex(2);
+                DrawTextCell(translation.JapaneseName);
 
                 // English
-                ImGui.TableSetColumnIndex(2);
-                DrawCellText(translation.EnglishName);
-
-                // French
                 ImGui.TableSetColumnIndex(3);
-                DrawCellText(translation.FrenchName);
+                DrawTextCell(translation.EnglishName);
 
                 // German
                 ImGui.TableSetColumnIndex(4);
-                DrawCellText(translation.GermanName);
+                DrawTextCell(translation.GermanName);
 
-                // Japanese
+                // French
                 ImGui.TableSetColumnIndex(5);
-                DrawCellText(translation.JapaneseName);
+                DrawTextCell(translation.FrenchName);
             }
         }
         ImGui.EndTable();
@@ -221,9 +221,9 @@ public class DebugWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Draw cell text
+    // Draw text cell
     // ----------------------------
-    private static void DrawCellText(string text)
+    private static void DrawTextCell(string text)
     {
         // Calculate text position
         Vector2 pos = ImGui.GetCursorScreenPos();
@@ -243,7 +243,7 @@ public class DebugWindow : Window, IDisposable
     {
         // Draw export scanned button
         ImGui.Spacing();
-        ImGui.SameLine(0, 690f);
+        ImGui.SameLine(0, 990f);
         if (ImGui.Button("Export scanned", new Vector2(150f, 0f)))
         {
             // Export scanned obfuscated translations to CSV
@@ -412,25 +412,21 @@ public class DebugWindow : Window, IDisposable
                 {
                     ID = sourceTranslation.ID,
                     ObfuscatedName = sourceTranslation.ObfuscatedName,
+                    JapaneseName = sourceTranslation.JapaneseName,
                     EnglishName = sourceTranslation.EnglishName,
-                    FrenchName = sourceTranslation.FrenchName,
                     GermanName = sourceTranslation.GermanName,
-                    JapaneseName = sourceTranslation.JapaneseName
+                    FrenchName = sourceTranslation.FrenchName
                 });
                 continue;
             }
 
             // Merge obfuscated translation
             targetTranslation.ID = sourceTranslation.ID;
-            if (!string.IsNullOrWhiteSpace(sourceTranslation.EnglishName)) targetTranslation.EnglishName = sourceTranslation.EnglishName;
-            if (!string.IsNullOrWhiteSpace(sourceTranslation.FrenchName)) targetTranslation.FrenchName = sourceTranslation.FrenchName;
-            if (!string.IsNullOrWhiteSpace(sourceTranslation.GermanName)) targetTranslation.GermanName = sourceTranslation.GermanName;
             if (!string.IsNullOrWhiteSpace(sourceTranslation.JapaneseName)) targetTranslation.JapaneseName = sourceTranslation.JapaneseName;
+            if (!string.IsNullOrWhiteSpace(sourceTranslation.EnglishName)) targetTranslation.EnglishName = sourceTranslation.EnglishName;
+            if (!string.IsNullOrWhiteSpace(sourceTranslation.GermanName)) targetTranslation.GermanName = sourceTranslation.GermanName;
+            if (!string.IsNullOrWhiteSpace(sourceTranslation.FrenchName)) targetTranslation.FrenchName = sourceTranslation.FrenchName;
         }
-
-        // Remove translations without missing fields
-        // TODO : remove apres dev
-        //translations.RemoveAll(translation => !string.IsNullOrWhiteSpace(translation.EnglishName) && !string.IsNullOrWhiteSpace(translation.FrenchName) && !string.IsNullOrWhiteSpace(translation.GermanName) && !string.IsNullOrWhiteSpace(translation.JapaneseName));
     }
 
     // ----------------------------
@@ -448,13 +444,13 @@ public class DebugWindow : Window, IDisposable
             // Get fields
             string ID = exportedTranslation.ID.ToString();
             string obfuscatedName = SanitizeCSVField(exportedTranslation.ObfuscatedName);
-            string englishName = SanitizeCSVField(exportedTranslation.EnglishName);
-            string frenchName = SanitizeCSVField(exportedTranslation.FrenchName);
-            string germanName = SanitizeCSVField(exportedTranslation.GermanName);
             string japaneseName = SanitizeCSVField(exportedTranslation.JapaneseName);
+            string englishName = SanitizeCSVField(exportedTranslation.EnglishName);
+            string germanName = SanitizeCSVField(exportedTranslation.GermanName);
+            string frenchName = SanitizeCSVField(exportedTranslation.FrenchName);
 
             // Add line to CSV
-            lines.Add($"{ID};{obfuscatedName};{englishName};{frenchName};{germanName};{japaneseName}");
+            lines.Add($"{ID};{obfuscatedName};{japaneseName};{englishName};{germanName};{frenchName}");
         }
 
         // Join lines
@@ -503,10 +499,10 @@ public class DebugWindow : Window, IDisposable
             // Extract fields
             string idStr = parts[0].Trim();
             string obfuscatedName = parts[1].Trim();
-            string englishName = parts[2].Trim();
-            string frenchName = parts[3].Trim();
+            string japaneseName = parts[2].Trim();
+            string englishName = parts[3].Trim();
             string germanName = parts[4].Trim();
-            string japaneseName = parts[5].Trim();
+            string frenchName = parts[5].Trim();
 
             // Validate required fields
             if (!int.TryParse(idStr, out int ID) || ID < 0 || string.IsNullOrWhiteSpace(obfuscatedName))
@@ -520,10 +516,10 @@ public class DebugWindow : Window, IDisposable
             {
                 ID = ID,
                 ObfuscatedName = obfuscatedName,
+                JapaneseName = japaneseName,
                 EnglishName = englishName,
-                FrenchName = frenchName,
                 GermanName = germanName,
-                JapaneseName = japaneseName
+                FrenchName = frenchName
             });
         }
 

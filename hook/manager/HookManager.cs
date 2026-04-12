@@ -33,7 +33,7 @@ public class HookManager(Configuration config, TranslationCache translationCache
     {
         // Add hooks based on configuration
         if (config.AlliesCastBarsTarget || config.AlliesCastBarsFocus || config.AlliesCastBarsPartyList) hooks.Add(alliesCastBarsHook);
-        if (config.EnemiesCastBarsTarget || config.EnemiesCastBarsFocus || config.EnemiesCastBarsEnmityList) hooks.Add(enemiesCastBarsHook);
+        if (config.EnemiesCastBarsTarget || config.EnemiesCastBarsFocus || config.EnemiesCastBarsHateList) hooks.Add(enemiesCastBarsHook);
         if (config.ActionTooltip) hooks.Add(actionTooltipHook);
         if (config.ItemTooltip) hooks.Add(itemTooltipHook);
 
@@ -85,7 +85,7 @@ public class HookManager(Configuration config, TranslationCache translationCache
         }
 
         // Enemies CastBars
-        bool enemiesEnabled = config.EnemiesCastBarsTarget || config.EnemiesCastBarsFocus || config.EnemiesCastBarsEnmityList;
+        bool enemiesEnabled = config.EnemiesCastBarsTarget || config.EnemiesCastBarsFocus || config.EnemiesCastBarsHateList;
         if (enemiesEnabled && !hooks.Contains(enemiesCastBarsHook))
         {
             try { enemiesCastBarsHook.Enable("Enemies CastBars"); hooks.Add(enemiesCastBarsHook); }

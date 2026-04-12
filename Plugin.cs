@@ -98,7 +98,7 @@ public sealed class Plugin : IDalamudPlugin
             Log.Information($"{Class} - Allies CastBars - Party List = {config.AlliesCastBarsPartyList}");
             Log.Information($"{Class} - Enemies CastBars - Target = {config.EnemiesCastBarsTarget}");
             Log.Information($"{Class} - Enemies CastBars - Focus = {config.EnemiesCastBarsFocus}");
-            Log.Information($"{Class} - Enemies CastBars - Enmity List = {config.EnemiesCastBarsEnmityList}");
+            Log.Information($"{Class} - Enemies CastBars - Hate List = {config.EnemiesCastBarsHateList}");
             Log.Information($"{Class} - Tooltip - Action = {config.ActionTooltip}");
             Log.Information($"{Class} - Tooltip - Item = {config.ItemTooltip}");
 

@@ -10,6 +10,6 @@
         TargetCastBar,
         FocusCastBar,
         PartyList,
-        EnmityList
+        HateList
     }
 }

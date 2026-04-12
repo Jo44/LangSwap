@@ -162,24 +162,24 @@ public class CustomizeWindow : Window, IDisposable
 
         // Spell
         ImGui.TableSetColumnIndex(1);
-        DrawCellText("Spell");
+        DrawTextCell("Spell");
 
         // Replacement
         ImGui.TableSetColumnIndex(2);
-        DrawCellText("Replacement");
+        DrawTextCell("Replacement");
 
         // Remove
         ImGui.TableSetColumnIndex(3);
-        DrawCellText(" ");
+        DrawTextCell(" ");
 
         // No entries
         if (translations.Count == 0)
         {
             ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
             ImGui.TableSetColumnIndex(0);
-            DrawCellText(" ");
+            DrawTextCell(" ");
             ImGui.TableSetColumnIndex(1);
-            DrawCellText("No alternative translations");
+            DrawTextCell("No alternative translations");
         }
         else
         {
@@ -198,13 +198,13 @@ public class CustomizeWindow : Window, IDisposable
 
                 // Index
                 ImGui.TableSetColumnIndex(0);
-                DrawCellText($"#{i + 1}");
+                DrawTextCell($"#{i + 1}");
 
                 // Spell name input
                 ImGui.TableSetColumnIndex(1);
                 string spellName = translation.SpellName;
                 bool focused = focusedNewRow && i == focusNewRowIndex;
-                DrawInputText("##Spell", ref spellName, focused);
+                DrawInputCell("##Spell", ref spellName, focused);
                 translation.SpellName = spellName;
                    
                 // Set focus
@@ -218,7 +218,7 @@ public class CustomizeWindow : Window, IDisposable
                 // Alternative name input
                 ImGui.TableSetColumnIndex(2);
                 string alternativeName = translation.AlternativeName;
-                DrawInputText("##Replacement", ref alternativeName);
+                DrawInputCell("##Replacement", ref alternativeName);
                 translation.AlternativeName = alternativeName;
 
                 // Remove cell
@@ -244,9 +244,9 @@ public class CustomizeWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Draw cell text
+    // Draw text cell
     // ----------------------------
-    private static void DrawCellText(string text)
+    private static void DrawTextCell(string text)
     {
         // Calculate text position
         Vector2 pos = ImGui.GetCursorScreenPos();
@@ -260,9 +260,9 @@ public class CustomizeWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Draw input text
+    // Draw input cell
     // ----------------------------
-    private static void DrawInputText(string id, ref string value, bool focused = false)
+    private static void DrawInputCell(string id, ref string value, bool focused = false)
     {
         // Calculate input position
         float width = MathF.Max(1f, ImGui.GetContentRegionAvail().X);

@@ -32,7 +32,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
             AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
+            AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, config.HateListAddon, OnHateListUpdate);
 
             // Set enabled flag
             isEnabled = true;
@@ -55,7 +55,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
         RefreshAddon(GetAddon(config.TargetInfoAddon), config.TargetInfoName);
         RefreshAddon(GetAddon(config.TargetCastBarAddon), config.TargetCastBarName);
         RefreshAddon(GetAddon(config.FocusCastBarAddon), config.FocusCastBarName);
-        RefreshAddon(GetAddon(config.EnmityListAddon), config.EnmityListName);
+        RefreshAddon(GetAddon(config.HateListAddon), config.HateListName);
     }
 
     // ----------------------------
@@ -65,7 +65,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
     {
         if (config.EnemiesCastBarsTarget)
         {
-            // Get the action ID
+            // Get the action ID for the target
             uint actionID = TargetManager.Target is IBattleChara target && target.ObjectKind == ObjectKind.BattleNpc && target.IsCasting ? (uint)target.CastActionId : 0;
 
             // Update the cast bar
@@ -80,7 +80,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
     {
         if (config.EnemiesCastBarsTarget)
         {
-            // Get the action ID
+            // Get the action ID for the target
             uint actionID = TargetManager.Target is IBattleChara target && target.ObjectKind == ObjectKind.BattleNpc && target.IsCasting ? (uint)target.CastActionId : 0;
 
             // Update the cast bar
@@ -95,7 +95,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
     {
         if (config.EnemiesCastBarsFocus)
         {
-            // Get the action ID
+            // Get the action ID for the focus
             uint actionID = TargetManager.FocusTarget is IBattleChara focus && focus.ObjectKind == ObjectKind.BattleNpc && focus.IsCasting ? (uint)focus.CastActionId : 0;
 
             // Update the cast bar
@@ -104,18 +104,18 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
     }
 
     // ----------------------------
-    // On enmity list update
+    // On hate list update
     // ----------------------------
-    private void OnEnmityListUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
+    private void OnHateListUpdate(AddonEvent addonEvent, AddonArgs addonArgs)
     {
-        if (config.EnemiesCastBarsEnmityList)
+        if (config.EnemiesCastBarsHateList)
         {
             // Get the hater
             UIState* uiState = UIState.Instance();
             Hater* hater = uiState != null ? &uiState -> Hater : null;
             if (hater == null) return;
 
-            // Get the entity IDs from the enmity list
+            // Get the entity IDs from the hate list
             uint[] entityIDs = new uint[8];
             for (int i = 0; i < 8 && i < hater -> HaterCount; i++)
             {
@@ -123,8 +123,8 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
                 entityIDs[i] = ((HaterInfo*)hater)[i].EntityId;
             }
 
-            // Update the enmity list
-            UpdateList(GetAddon(config.EnmityListAddon), AddonType.EnmityList, CastBarsType.Ennemies, entityIDs);
+            // Update the hate list
+            UpdateList(GetAddon(config.HateListAddon), AddonType.HateList, CastBarsType.Ennemies, entityIDs);
         }
     }
 
@@ -142,7 +142,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
             AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.HateListAddon, OnHateListUpdate);
 
             // Set disabled flag
             isEnabled = false;
@@ -165,7 +165,7 @@ public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache t
             AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetInfoAddon, OnTargetInfoUpdate);
             AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.TargetCastBarAddon, OnTargetCastBarUpdate);
             AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.FocusCastBarAddon, OnFocusCastBarUpdate);
-            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.EnmityListAddon, OnEnmityListUpdate);
+            AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, config.HateListAddon, OnHateListUpdate);
 
             // Set disabled flag
             isEnabled = false;

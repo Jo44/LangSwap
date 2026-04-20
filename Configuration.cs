@@ -15,7 +15,7 @@ namespace LangSwap;
 public class Configuration : IPluginConfiguration
 {
     // Version
-    public int Version { get; set; } = 2;
+    public int Version { get; set; } = 3;
 
     // Language
     public Language ClientLanguage { get; set; } = Language.English;
@@ -38,8 +38,11 @@ public class Configuration : IPluginConfiguration
     // Alternative translations
     public List<AlternativeTranslation> AlternativeTranslations { get; set; } = [];
 
-    // Startup behavior
-    public bool AutoStartup { get; set; } = false;
+    // Auto swap language
+    public bool AutoSwapLanguage { get; set; } = false;
+
+    // Auto send scanned data
+    public bool AutoSendScannedData { get; set; } = true;
 
     // Shortcut
     public bool ShortcutEnabled { get; set; } = true;

@@ -87,7 +87,8 @@ public sealed class Plugin : IDalamudPlugin
             Log.Information($"{Class} === LangSwap : Configuration ===");
             Log.Information($"{Class} - Client Language = {config.ClientLanguage}");
             Log.Information($"{Class} - Target Language = {config.TargetLanguage}");
-            Log.Information($"{Class} - Auto Startup = {config.AutoStartup}");
+            Log.Information($"{Class} - Auto Swap Language = {config.AutoSwapLanguage}");
+            Log.Information($"{Class} - Auto Send Scanned Data = {config.AutoSendScannedData}");
             Log.Information($"{Class} - Shortcut Enabled = {config.ShortcutEnabled}");
             Log.Information($"{Class} - Primary Key = {config.PrimaryKey}");
             Log.Information($"{Class} - Ctrl = {config.Ctrl}");
@@ -143,8 +144,8 @@ public sealed class Plugin : IDalamudPlugin
             // Log loaded
             Log.Information($"{Class} === LangSwap : Loaded ===");
 
-            // Auto startup swap if enabled
-            if (config.AutoStartup) ToggleLanguageSwap();
+            // Auto swap language if enabled
+            if (config.AutoSwapLanguage) ToggleLanguageSwap();
         }
         catch (Exception ex)
         {

@@ -77,12 +77,18 @@ public class ConfigWindow : Window, IDisposable
         // Customize button
         DrawCustomizeButton();
 
-        // Auto Startup
-        DrawAutoStartup();
+        // Auto swap language
+        DrawAutoSwapLanguage();
 
         // Clear cache
         DrawClearCacheButton();
         DrawClearCachePopup();
+
+        // Auto send scanned data
+        DrawAutoSendScannedData();
+
+        // Advanced button
+        DrawAdvancedButton();
 
         // Information
         DrawInformation();
@@ -207,19 +213,19 @@ public class ConfigWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Draw auto startup
+    // Draw auto swap language
     // ----------------------------
-    private void DrawAutoStartup()
+    private void DrawAutoSwapLanguage()
     {
-        // Draw auto startup
-        bool autoStartup = config.AutoStartup;
+        // Draw auto swap language
+        bool autoSwapLanguage = config.AutoSwapLanguage;
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
-        if (ImGui.Checkbox(" Automatically swap at startup##AutoStartup", ref autoStartup))
+        if (ImGui.Checkbox(" Automatically swap at startup##AutoSwapLanguage", ref autoSwapLanguage))
         {
-            // Change auto startup
-            CommonSettingChange("AutoStartup", autoStartup, () => config.AutoStartup = autoStartup);
+            // Change auto swap language
+            CommonSettingChange("AutoSwapLanguage", autoSwapLanguage, () => config.AutoSwapLanguage = autoSwapLanguage);
         }
     }
 
@@ -239,9 +245,6 @@ public class ConfigWindow : Window, IDisposable
             // Open popup
             ImGui.OpenPopup("Confirm clear");
         }
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Separator();
     }
 
     // ----------------------------
@@ -259,48 +262,60 @@ public class ConfigWindow : Window, IDisposable
     }
 
     // ----------------------------
+    // Draw auto send scanned data
+    // ----------------------------
+    private void DrawAutoSendScannedData()
+    {
+        // Draw auto send scanned data
+        bool autoSendScannedData = config.AutoSendScannedData;
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.SameLine(0, 15f);
+        if (ImGui.Checkbox(" Automatically send scanned data##AutoSendScannedData", ref autoSendScannedData))
+        {
+            // Change auto send scanned data
+            CommonSettingChange("AutoSendScannedData", autoSendScannedData, () => config.AutoSendScannedData = autoSendScannedData);
+        }
+    }
+
+    // ----------------------------
+    // Draw advanced button
+    // ----------------------------
+    private void DrawAdvancedButton()
+    {
+        // Calculate button position
+        float buttonX = ImGui.GetWindowContentRegionMax().X - ButtonWidth - ButtonPadding;
+
+        // Draw advanced button
+        ImGui.SameLine(0);
+        ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), buttonX));
+        if (ImGui.Button("Advanced", new Vector2(ButtonWidth, 0)))
+        {
+            // Open debug window
+            plugin.ToggleDebugUI();
+        }
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.Separator();
+    }
+
+    // ----------------------------
     // Draw information
     // ----------------------------
-    private void DrawInformation()
+    private static void DrawInformation()
     {
         // Draw information
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
-
-        // Draw debug button
-        DrawDebugButton("Press the keyboard shortcut to toogle language swap", "Press the keyboard sh");
-
-        // Draw information text
+        ImGui.TextUnformatted("Press the keyboard shortcut to toogle language swap");
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
         ImGui.TextUnformatted("Press again to restore original language");
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
-    }
-
-    // ----------------------------
-    // Draw debug button (invisible button over 'o' in "shortcut")
-    // ----------------------------
-    private void DrawDebugButton(string lineText, string prefixText)
-    {
-        // Get position and sizes
-        Vector2 linePos = ImGui.GetCursorScreenPos();
-        Vector2 prefixSize = ImGui.CalcTextSize(prefixText);
-        Vector2 letterSize = ImGui.CalcTextSize("o");
-
-        // Draw text
-        ImGui.TextUnformatted(lineText);
-
-        // Draw invisible button
-        ImGui.SetCursorScreenPos(new Vector2(linePos.X + prefixSize.X, linePos.Y));
-        if (ImGui.InvisibleButton("##DebugLetter", letterSize))
-        {
-            // Open debug window
-            plugin.ToggleDebugUI();
-        }
     }
 
     // ----------------------------

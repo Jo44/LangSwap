@@ -12,6 +12,10 @@ namespace LangSwap.windows;
 
 // ----------------------------
 // Config Window
+//
+// @author Jo44
+// @version 1.7 (21/04/2026)
+// @since 01/01/2026
 // ----------------------------
 public class ConfigWindow : Window, IDisposable
 {
@@ -208,7 +212,7 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.Button("Customize", new Vector2(ButtonWidth, 0f)))
         {
             // Open customize window
-            plugin.ToggleCustomizeUI();
+            plugin.ToggleCustomizeWindow();
         }
     }
 
@@ -291,8 +295,8 @@ public class ConfigWindow : Window, IDisposable
         ImGui.SetCursorPosX(MathF.Max(ImGui.GetCursorPosX(), buttonX));
         if (ImGui.Button("Advanced", new Vector2(ButtonWidth, 0)))
         {
-            // Open debug window
-            plugin.ToggleDebugUI();
+            // Open advanced window
+            plugin.ToggleAdvancedWindow();
         }
         ImGui.Spacing();
         ImGui.Spacing();

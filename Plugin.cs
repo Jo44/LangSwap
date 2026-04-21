@@ -20,6 +20,10 @@ namespace LangSwap;
 
 // ----------------------------
 // Plugin : LangSwap
+//
+// @author Jo44
+// @version 1.7 (21/04/2026)
+// @since 01/01/2026
 // ----------------------------
 public sealed class Plugin : IDalamudPlugin
 {
@@ -51,7 +55,7 @@ public sealed class Plugin : IDalamudPlugin
     // UI windows
     private readonly ConfigWindow configWindow = null!;
     private readonly CustomizeWindow customizeWindow = null!;
-    private readonly DebugWindow debugWindow = null!;
+    private readonly AdvancedWindow advancedWindow = null!;
     private readonly WindowSystem windowSystem = new("LangSwap");
 
     // Toggle states
@@ -122,17 +126,17 @@ public sealed class Plugin : IDalamudPlugin
             Log.Information($"{Class} === LangSwap : Windows ===");
             configWindow = new(config, this, translationCache);
             customizeWindow = new(config);
-            debugWindow = new(config, excelProvider);
+            advancedWindow = new(config, excelProvider);
 
             // Register windows
             windowSystem.AddWindow(configWindow);
             windowSystem.AddWindow(customizeWindow);
-            windowSystem.AddWindow(debugWindow);
+            windowSystem.AddWindow(advancedWindow);
 
             // Register UI callbacks
             DalamudPluginInterface.UiBuilder.Draw += windowSystem.Draw;
             DalamudPluginInterface.UiBuilder.Draw += OnDraw;
-            DalamudPluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
+            DalamudPluginInterface.UiBuilder.OpenConfigUi += ToggleConfigWindow;
 
             // Register command
             CommandManager.AddHandler("/langswap", new CommandInfo(OnCommand) { HelpMessage = "Opens the configuration window" });
@@ -323,7 +327,7 @@ public sealed class Plugin : IDalamudPlugin
 
             // Import CSV content into a temporary list
             List<ObfuscatedTranslation> importedTranslations = [];
-            if (!DebugWindow.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
+            if (!AdvancedWindow.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
             {
                 Log.Warning($"{Class} - Failed to import remote obfuscated translations CSV: {status}");
                 return;
@@ -355,7 +359,7 @@ public sealed class Plugin : IDalamudPlugin
         // Log each translation
         foreach (ObfuscatedTranslation translation in translations)
         {
-            Log.Debug($"{Class} - ID = {translation.ID}, Obfuscated = {translation.ObfuscatedName}, English = {translation.EnglishName}, French = {translation.FrenchName}, German = {translation.GermanName}, Japanese = {translation.JapaneseName}");
+            Log.Debug($"{Class} - Action ID = {translation.ActionID}, Obfuscated = {translation.ObfuscatedName}, Language = {translation.LanguageID}, Spell = {translation.DeobfuscatedName}");
         }
     }
 
@@ -532,19 +536,19 @@ public sealed class Plugin : IDalamudPlugin
     public void ToggleTranslation() => ToggleLanguageSwap();
 
     // ----------------------------
-    // Toggle config UI
+    // Toggle config window
     // ----------------------------
-    public void ToggleConfigUI() => configWindow.Toggle();
+    public void ToggleConfigWindow() => configWindow.Toggle();
 
     // ----------------------------
-    // Toggle customize UI
+    // Toggle customize window
     // ----------------------------
-    public void ToggleCustomizeUI() => customizeWindow.Toggle();
+    public void ToggleCustomizeWindow() => customizeWindow.Toggle();
 
     // ----------------------------
-    // Toggle debug UI
+    // Toggle advanced window
     // ----------------------------
-    public void ToggleDebugUI() => debugWindow.Toggle();
+    public void ToggleAdvancedWindow() => advancedWindow.Toggle();
 
     // ----------------------------
     // Dispose
@@ -572,10 +576,10 @@ public sealed class Plugin : IDalamudPlugin
         // Unregister UI callbacks
         DalamudPluginInterface.UiBuilder.Draw -= windowSystem.Draw;
         DalamudPluginInterface.UiBuilder.Draw -= OnDraw;
-        DalamudPluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUI;
+        DalamudPluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigWindow;
 
         // Dispose windows
-        debugWindow.Dispose();
+        advancedWindow.Dispose();
         customizeWindow.Dispose();
         configWindow.Dispose();
         windowSystem.RemoveAllWindows();

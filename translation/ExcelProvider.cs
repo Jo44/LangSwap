@@ -11,6 +11,10 @@ namespace LangSwap.translation;
 
 // ----------------------------
 // Excel Provider
+//
+// @author Jo44
+// @version 1.7 (21/04/2026)
+// @since 01/01/2026
 // ----------------------------
 public class ExcelProvider(Configuration config)
 {
@@ -206,14 +210,14 @@ public class ExcelProvider(Configuration config)
                     if (!string.IsNullOrWhiteSpace(actionName) && actionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
                     {
                         // Add to the set of obfuscated translations
-                        obfuscatedTranslations.Add(new ObfuscatedTranslation { ID = actionID, ObfuscatedName = actionName });
+                        obfuscatedTranslations.Add(new ObfuscatedTranslation { ActionID = actionID, ObfuscatedName = actionName });
                     }
                 }
             }
 
-            // Convert to list and sort by ID
+            // Convert to list and sort by obfuscated name
             List<ObfuscatedTranslation> list = [.. obfuscatedTranslations];
-            list.Sort((a, b) => a.ID.CompareTo(b.ID));
+            list.Sort((a, b) => string.Compare(a.ObfuscatedName, b.ObfuscatedName, StringComparison.Ordinal));
 
             // Return obfuscated translations
             return list;

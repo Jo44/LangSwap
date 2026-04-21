@@ -2,6 +2,7 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using LangSwap.translation;
+using LangSwap.translation.@base;
 using LangSwap.translation.model;
 using System;
 using System.Collections.Generic;
@@ -11,12 +12,16 @@ using System.Numerics;
 namespace LangSwap.windows;
 
 // ----------------------------
-// Debug Window
+// Advanced Window
+//
+// @author Jo44
+// @version 1.7 (21/04/2026)
+// @since 01/01/2026
 // ----------------------------
-public class DebugWindow : Window, IDisposable
+public class AdvancedWindow : Window, IDisposable
 {
     // Log
-    private readonly string Class = $"[{nameof(DebugWindow)}]";
+    private readonly string Class = $"[{nameof(AdvancedWindow)}]";
 
     // Service
     private static IPluginLog Log => Plugin.Log;
@@ -49,7 +54,7 @@ public class DebugWindow : Window, IDisposable
     // ----------------------------
     // Constructor
     // ----------------------------
-    public DebugWindow(Configuration config, ExcelProvider excelProvider) : base("LangSwap - Debug###LangSwapDebug")
+    public AdvancedWindow(Configuration config, ExcelProvider excelProvider) : base("LangSwap - Debug###LangSwapDebug")
     {
         // Initialize core components
         this.config = config;
@@ -147,16 +152,14 @@ public class DebugWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
         ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Sortable;
-        if (!ImGui.BeginTable("##ObfuscatedTranslationsTable", 6, tableFlags, new Vector2(WindowWidth - 45, WindowHeight - 104))) return;
+        if (!ImGui.BeginTable("##ObfuscatedTranslationsTable", 4, tableFlags, new Vector2(WindowWidth - 45, WindowHeight - 104))) return;
 
         // Setup columns
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableSetupColumn("Spell ID", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.DefaultSort, 65f, 0);
-        ImGui.TableSetupColumn("Obfuscation", ImGuiTableColumnFlags.WidthFixed, 320f, 1);
-        ImGui.TableSetupColumn("Japanese", ImGuiTableColumnFlags.WidthStretch, 1.0f, 2);
-        ImGui.TableSetupColumn("English", ImGuiTableColumnFlags.WidthStretch, 1.0f, 3);
-        ImGui.TableSetupColumn("German", ImGuiTableColumnFlags.WidthStretch, 1.0f, 4);
-        ImGui.TableSetupColumn("French", ImGuiTableColumnFlags.WidthStretch, 1.0f, 5);
+        ImGui.TableSetupColumn("Obfuscated Name", ImGuiTableColumnFlags.WidthFixed, 320f, 1);
+        ImGui.TableSetupColumn("Language", ImGuiTableColumnFlags.WidthStretch, 1.0f, 2);
+        ImGui.TableSetupColumn("Spell Name", ImGuiTableColumnFlags.WidthStretch, 1.0f, 3);
         ImGui.TableHeadersRow();
 
         // Apply sorting
@@ -179,30 +182,22 @@ public class DebugWindow : Window, IDisposable
                 // Get obfuscated translation
                 ObfuscatedTranslation translation = translations[i];
 
-                // ID
+                // Action ID
                 ImGui.TableNextRow(ImGuiTableRowFlags.None, 30f);
                 ImGui.TableSetColumnIndex(0);
-                DrawTextCell(translation.ID.ToString());
+                DrawTextCell(translation.ActionID.ToString());
 
-                // Obfuscation
+                // Obfuscated name
                 ImGui.TableSetColumnIndex(1);
                 DrawTextCell(translation.ObfuscatedName);
 
-                // Japanese
+                // Language
                 ImGui.TableSetColumnIndex(2);
-                DrawTextCell(translation.JapaneseName);
+                DrawTextCell(((Language)translation.LanguageID).ToString());
 
-                // English
+                // Deobfuscated name
                 ImGui.TableSetColumnIndex(3);
-                DrawTextCell(translation.EnglishName);
-
-                // German
-                ImGui.TableSetColumnIndex(4);
-                DrawTextCell(translation.GermanName);
-
-                // French
-                ImGui.TableSetColumnIndex(5);
-                DrawTextCell(translation.FrenchName);
+                DrawTextCell(translation.DeobfuscatedName);
             }
         }
         ImGui.EndTable();
@@ -404,7 +399,7 @@ public class DebugWindow : Window, IDisposable
         {
             translations.Add(new ObfuscatedTranslation
             {
-                ID = obfuscatedTranslation.ID,
+                ActionID = obfuscatedTranslation.ActionID,
                 ObfuscatedName = obfuscatedTranslation.ObfuscatedName
             });
         }
@@ -414,8 +409,8 @@ public class DebugWindow : Window, IDisposable
         MergeObfuscatedTranslations(config.ScannedObfuscatedTranslations);
         MergeObfuscatedTranslations(config.LocalObfuscatedTranslations);
 
-        // Sort translations by ID
-        translations.Sort((a, b) => a.ID.CompareTo(b.ID));
+        // Sort translations by obfuscated name
+        translations.Sort((a, b) => EnglishCompare.Compare(a.ObfuscatedName, b.ObfuscatedName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase));
 
         // Log
         Log.Information($"{Class} - Loaded {translations.Count} obfuscated translations");
@@ -443,22 +438,19 @@ public class DebugWindow : Window, IDisposable
             {
                 translations.Add(new ObfuscatedTranslation
                 {
-                    ID = sourceTranslation.ID,
+                    ActionID = sourceTranslation.ActionID,
                     ObfuscatedName = sourceTranslation.ObfuscatedName,
-                    JapaneseName = sourceTranslation.JapaneseName,
-                    EnglishName = sourceTranslation.EnglishName,
-                    GermanName = sourceTranslation.GermanName,
-                    FrenchName = sourceTranslation.FrenchName
+                    DeobfuscatedName = sourceTranslation.DeobfuscatedName,
+                    LanguageID = sourceTranslation.LanguageID
                 });
                 continue;
             }
 
             // Merge obfuscated translation
-            targetTranslation.ID = sourceTranslation.ID;
-            if (!string.IsNullOrWhiteSpace(sourceTranslation.JapaneseName)) targetTranslation.JapaneseName = sourceTranslation.JapaneseName;
-            if (!string.IsNullOrWhiteSpace(sourceTranslation.EnglishName)) targetTranslation.EnglishName = sourceTranslation.EnglishName;
-            if (!string.IsNullOrWhiteSpace(sourceTranslation.GermanName)) targetTranslation.GermanName = sourceTranslation.GermanName;
-            if (!string.IsNullOrWhiteSpace(sourceTranslation.FrenchName)) targetTranslation.FrenchName = sourceTranslation.FrenchName;
+            targetTranslation.ActionID = sourceTranslation.ActionID;
+            targetTranslation.ObfuscatedName = sourceTranslation.ObfuscatedName;
+            targetTranslation.DeobfuscatedName = sourceTranslation.DeobfuscatedName;
+            targetTranslation.LanguageID = sourceTranslation.LanguageID;
         }
     }
 
@@ -497,13 +489,11 @@ public class DebugWindow : Window, IDisposable
             // Determine sort order based on column
             return columnID switch
             {
-                0 => ascending ? left.ID.CompareTo(right.ID) : right.ID.CompareTo(left.ID),
+                0 => ascending ? left.ActionID.CompareTo(right.ActionID) : right.ActionID.CompareTo(left.ActionID),
                 1 => CompareTextBlankLast(left.ObfuscatedName, right.ObfuscatedName, ascending, EnglishCompare, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
-                2 => CompareTextBlankLast(left.JapaneseName, right.JapaneseName, ascending, JapaneseCompare, CompareOptions.IgnoreCase | CompareOptions.IgnoreKanaType | CompareOptions.IgnoreWidth),
-                3 => CompareTextBlankLast(left.EnglishName, right.EnglishName, ascending, EnglishCompare, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
-                4 => CompareTextBlankLast(left.GermanName, right.GermanName, ascending, GermanCompare, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
-                5 => CompareTextBlankLast(left.FrenchName, right.FrenchName, ascending, FrenchCompare, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
-                _ => ascending ? left.ID.CompareTo(right.ID) : right.ID.CompareTo(left.ID)
+                2 => ascending ? left.LanguageID.CompareTo(right.LanguageID) : right.LanguageID.CompareTo(left.LanguageID),
+                3 => CompareTextBlankLast(left.DeobfuscatedName, right.DeobfuscatedName, ascending, EnglishCompare, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
+                _ => ascending ? left.ActionID.CompareTo(right.ActionID) : right.ActionID.CompareTo(left.ActionID)
             };
         });
 
@@ -524,15 +514,13 @@ public class DebugWindow : Window, IDisposable
         foreach (ObfuscatedTranslation exportedTranslation in exportedTranslations)
         {
             // Get fields
-            string ID = exportedTranslation.ID.ToString();
+            string actionID = exportedTranslation.ActionID.ToString();
             string obfuscatedName = SanitizeCSVField(exportedTranslation.ObfuscatedName);
-            string japaneseName = SanitizeCSVField(exportedTranslation.JapaneseName);
-            string englishName = SanitizeCSVField(exportedTranslation.EnglishName);
-            string germanName = SanitizeCSVField(exportedTranslation.GermanName);
-            string frenchName = SanitizeCSVField(exportedTranslation.FrenchName);
+            string languageID = exportedTranslation.ActionID.ToString();
+            string deobfuscatedName = SanitizeCSVField(exportedTranslation.DeobfuscatedName);
 
             // Add line to CSV
-            lines.Add($"{ID};{obfuscatedName};{japaneseName};{englishName};{germanName};{frenchName}");
+            lines.Add($"{actionID};{obfuscatedName};{languageID};{deobfuscatedName}");
         }
 
         // Join lines
@@ -570,24 +558,22 @@ public class DebugWindow : Window, IDisposable
             string line = lines[i].Trim();
             if (string.IsNullOrWhiteSpace(line)) continue;
 
-            // Validate line format (must contain exactly 5 ';' separators)
+            // Validate line format (must contain exactly 3 ';' separators)
             string[] parts = line.Split(';');
-            if (parts.Length != 6)
+            if (parts.Length != 4)
             {
                 status = $"Invalid CSV at line {i + 1}";
                 return false;
             }
 
             // Extract fields
-            string idStr = parts[0].Trim();
+            string actionIDStr = parts[0].Trim();
             string obfuscatedName = parts[1].Trim();
-            string japaneseName = parts[2].Trim();
-            string englishName = parts[3].Trim();
-            string germanName = parts[4].Trim();
-            string frenchName = parts[5].Trim();
+            string languageIDStr = parts[2].Trim();
+            string deobfuscatedName = parts[3].Trim();
 
             // Validate required fields
-            if (!int.TryParse(idStr, out int ID) || ID < 0 || string.IsNullOrWhiteSpace(obfuscatedName))
+            if (!int.TryParse(actionIDStr, out int actionID) || actionID < 0 || string.IsNullOrWhiteSpace(obfuscatedName) || !int.TryParse(languageIDStr, out int languageID) || languageID < 0 || languageID > 3 || string.IsNullOrWhiteSpace(deobfuscatedName))
             {
                 status = $"Invalid value at line {i + 1}";
                 return false;
@@ -596,12 +582,10 @@ public class DebugWindow : Window, IDisposable
             // Add to imported list
             importedTranslations.Add(new ObfuscatedTranslation
             {
-                ID = ID,
+                ActionID = actionID,
                 ObfuscatedName = obfuscatedName,
-                JapaneseName = japaneseName,
-                EnglishName = englishName,
-                GermanName = germanName,
-                FrenchName = frenchName
+                LanguageID = languageID,
+                DeobfuscatedName = deobfuscatedName
             });
         }
 

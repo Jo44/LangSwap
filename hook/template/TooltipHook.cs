@@ -11,6 +11,10 @@ namespace LangSwap.hook.template;
 
 // ----------------------------
 // Base class for all tooltips hooks
+//
+// @author Jo44
+// @version 1.7 (21/04/2026)
+// @since 01/01/2026
 // ----------------------------
 public unsafe abstract class TooltipHook(Configuration config, TranslationCache translationCache) : BaseHook(config, translationCache)
 {

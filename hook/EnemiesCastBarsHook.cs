@@ -12,6 +12,10 @@ namespace LangSwap.hook;
 
 // ----------------------------
 // Enemies CastBars Hook
+//
+// @author Jo44
+// @version 1.7 (21/04/2026)
+// @since 01/01/2026
 // ----------------------------
 public unsafe class EnemiesCastBarsHook(Configuration config, TranslationCache translationCache) : CastBarsHook(config, translationCache)
 {

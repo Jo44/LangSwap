@@ -8,6 +8,10 @@ namespace LangSwap.hook.template;
 
 // ----------------------------
 // Base class for all hooks
+//
+// @author Jo44
+// @version 1.7 (21/04/2026)
+// @since 01/01/2026
 // ----------------------------
 public unsafe abstract class BaseHook(Configuration config, TranslationCache translationCache) : IDisposable
 {

@@ -516,7 +516,7 @@ public class AdvancedWindow : Window, IDisposable
             // Get fields
             string actionID = exportedTranslation.ActionID.ToString();
             string obfuscatedName = SanitizeCSVField(exportedTranslation.ObfuscatedName);
-            string languageID = exportedTranslation.ActionID.ToString();
+            string languageID = exportedTranslation.LanguageID.ToString();
             string deobfuscatedName = SanitizeCSVField(exportedTranslation.DeobfuscatedName);
 
             // Add line to CSV

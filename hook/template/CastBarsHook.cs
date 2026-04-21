@@ -364,6 +364,9 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
         // Check for valid action ID
         if (!IsValidActionID(actionID)) return null;
 
+        // Get target language ID
+        int targetLanguageID = (int)targetLanguage;
+
         // Obfuscated translations sources in priority order
         List<ObfuscatedTranslation>[] obfuscatedTranslationsSources =
         [
@@ -375,23 +378,12 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
         // Search for translation in each source
         foreach (List<ObfuscatedTranslation> obfuscatedTranslations in obfuscatedTranslationsSources)
         {
-            // Find obfuscated translation by action ID
-            ObfuscatedTranslation? obfuscatedTranslation = obfuscatedTranslations.FindLast(translation => translation.ActionID == actionID);
-            if (obfuscatedTranslation != null)
-            {
-                // Get the name for the target language 
-                string? result = targetLanguage switch
-                {
-                    Language.Japanese => obfuscatedTranslation.JapaneseName,
-                    Language.English  => obfuscatedTranslation.EnglishName,
-                    Language.German   => obfuscatedTranslation.GermanName,
-                    Language.French   => obfuscatedTranslation.FrenchName,
-                    _                 => obfuscatedTranslation.EnglishName,
-                };
+            // Find obfuscated translation by action ID and language ID
+            ObfuscatedTranslation? obfuscatedTranslation = obfuscatedTranslations.FindLast(t => t.ActionID == actionID && t.LanguageID == targetLanguageID);
 
-                // Return the result if valid
-                if (!string.IsNullOrWhiteSpace(result)) return result;
-            }
+            // Return the deobfuscated name if found and valid
+            if (obfuscatedTranslation != null && !string.IsNullOrWhiteSpace(obfuscatedTranslation.DeobfuscatedName))
+                return obfuscatedTranslation.DeobfuscatedName;
         }
         return null;
     }
@@ -404,56 +396,39 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
         // Check if ID, obfuscated name or display name are invalid
         if (!IsValidActionID(actionID) || string.IsNullOrWhiteSpace(obfuscatedName) || string.IsNullOrWhiteSpace(displayName)) return;
 
-        // Get the client language
-        Language clientLanguage = config.ClientLanguage;
+        // Skip if display name is itself obfuscated
+        if (displayName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal)) return;
 
-        // Check if already scanned
-        int existingIndex = config.ScannedObfuscatedTranslations.FindIndex(translation => translation.ID == (int)actionID);
+        // Get the client language ID
+        int clientLanguageID = (int)config.ClientLanguage;
+
+        // Check if already scanned (unique key = obfuscated name, which encodes action + language)
+        int existingIndex = config.ScannedObfuscatedTranslations.FindIndex(t => t.ObfuscatedName == obfuscatedName);
         if (existingIndex >= 0)
         {
-            // Already scanned - check if the client language name is missing
+            // Already scanned - skip if deobfuscated name is already set
             ObfuscatedTranslation existing = config.ScannedObfuscatedTranslations[existingIndex];
+            if (!string.IsNullOrWhiteSpace(existing.DeobfuscatedName)) return;
 
-            // Get the current name
-            string currentName = clientLanguage switch
-            {
-                Language.Japanese => existing.JapaneseName,
-                Language.English  => existing.EnglishName,
-                Language.German   => existing.GermanName,
-                Language.French   => existing.FrenchName,
-                _                 => existing.EnglishName,
-            };
-
-            // Skip if the language name is already set
-            if (!string.IsNullOrWhiteSpace(currentName)) return;
-
-            // Update the existing entry with the missing language name
-            switch (clientLanguage)
-            {
-                case Language.Japanese: existing.JapaneseName = displayName; break;
-                case Language.English:  existing.EnglishName  = displayName; break;
-                case Language.German:   existing.GermanName   = displayName; break;
-                case Language.French:   existing.FrenchName   = displayName; break;
-            }
+            // Update the existing entry with the missing deobfuscated name
+            existing.DeobfuscatedName = displayName;
 
             // Update the scanned translations and save config
             config.ScannedObfuscatedTranslations[existingIndex] = existing;
             config.Save();
 
             // Log
-            Log.Information($"{Class} - Updated scanned obfuscation : ID = {actionID}, {displayName} ({clientLanguage}), {obfuscatedName}");
+            Log.Information($"{Class} - Updated scanned obfuscation : Action ID = {actionID}, Obfuscated = {obfuscatedName}, Language = {clientLanguageID}, Spell = {displayName}");
         }
         else
         {
-            // Create new scanned entry with the client language display name
+            // Create new scanned entry
             ObfuscatedTranslation scanned = new()
             {
-                ID = (int)actionID,
+                ActionID = (int)actionID,
                 ObfuscatedName = obfuscatedName,
-                JapaneseName = clientLanguage == Language.Japanese ? displayName : string.Empty,
-                EnglishName    = clientLanguage == Language.English  ? displayName : string.Empty,
-                GermanName     = clientLanguage == Language.German   ? displayName : string.Empty,
-                FrenchName     = clientLanguage == Language.French   ? displayName : string.Empty
+                LanguageID = clientLanguageID,
+                DeobfuscatedName = displayName
             };
 
             // Add to scanned translations and save config
@@ -461,7 +436,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             config.Save();
 
             // Log
-            Log.Information($"{Class} - Added scanned obfuscation : ID = {actionID}, {displayName} ({clientLanguage}), {obfuscatedName}");
+            Log.Information($"{Class} - Added scanned obfuscation : Action ID = {actionID}, Obfuscated = {obfuscatedName}, Language = {clientLanguageID}, Spell = {displayName}");
         }
     }
 

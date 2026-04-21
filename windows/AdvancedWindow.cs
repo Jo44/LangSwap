@@ -34,7 +34,6 @@ public class AdvancedWindow : Window, IDisposable
     private readonly List<ObfuscatedTranslation> translations = [];
 
     // Compare info for language sorting
-    // TODO : clean
     private static readonly CompareInfo JapaneseCompare = CultureInfo.GetCultureInfo("ja-JP").CompareInfo;
     private static readonly CompareInfo EnglishCompare = CultureInfo.GetCultureInfo("en-US").CompareInfo;
     private static readonly CompareInfo GermanCompare = CultureInfo.GetCultureInfo("de-DE").CompareInfo;
@@ -339,6 +338,9 @@ public class AdvancedWindow : Window, IDisposable
                 message = $"{count} local obfuscated translations imported";
                 Log.Information($"{Class} - {message}");
 
+                // Reload obfuscated translations
+                LoadObfuscatedTranslations();
+
                 // Reset status
                 return string.Empty;
             }
@@ -494,7 +496,7 @@ public class AdvancedWindow : Window, IDisposable
                     () => EnglishCompare.Compare(left.ObfuscatedName, right.ObfuscatedName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase)
                 ),
 
-                // Column 3: Sort by Spell Name (blanks always last), then by Obfuscated Name
+                // Column 3: Sort by Spell Name, then by Obfuscated Name
                 3 => CompareSpellNameWithSecondary(
                     left,
                     right,
@@ -520,16 +522,12 @@ public class AdvancedWindow : Window, IDisposable
             return result != 0 ? result : secondaryCompare();
         }
 
-        // Helper: Compare spell names with blanks always last
+        // Helper: Compare spell names
         int CompareSpellNameWithSecondary(ObfuscatedTranslation left, ObfuscatedTranslation right, Func<int> secondaryCompare)
         {
-            bool leftBlank = string.IsNullOrWhiteSpace(left.DeobfuscatedName);
-            bool rightBlank = string.IsNullOrWhiteSpace(right.DeobfuscatedName);
-
-            // Blanks always go last regardless of sort direction
-            if (leftBlank && !rightBlank) return 1;
-            if (!leftBlank && rightBlank) return -1;
-            if (leftBlank && rightBlank) return secondaryCompare();
+            // Treat empty values as empty strings
+            string leftName = left.DeobfuscatedName ?? string.Empty;
+            string rightName = right.DeobfuscatedName ?? string.Empty;
 
             // Get appropriate CompareInfo based on language
             CompareInfo compareInfo = left.LanguageID switch
@@ -541,8 +539,8 @@ public class AdvancedWindow : Window, IDisposable
                 _ => EnglishCompare
             };
 
-            // Compare non-blank values with sort direction
-            int textCompare = compareInfo.Compare(left.DeobfuscatedName, right.DeobfuscatedName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase);
+            // Compare values with sort direction
+            int textCompare = compareInfo.Compare(leftName, rightName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase);
             if (ascending)
             {
                 return textCompare != 0 ? textCompare : secondaryCompare();

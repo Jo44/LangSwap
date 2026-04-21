@@ -1,6 +1,7 @@
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using LangSwap.hook.@base;
 using LangSwap.translation;
@@ -379,7 +380,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
         foreach (List<ObfuscatedTranslation> obfuscatedTranslations in obfuscatedTranslationsSources)
         {
             // Find obfuscated translation by action ID and language ID
-            ObfuscatedTranslation? obfuscatedTranslation = obfuscatedTranslations.FindLast(t => t.ActionID == actionID && t.LanguageID == targetLanguageID);
+            ObfuscatedTranslation? obfuscatedTranslation = obfuscatedTranslations.FindLast(translation => translation.ActionID == actionID && translation.LanguageID == targetLanguageID);
 
             // Return the deobfuscated name if found and valid
             if (obfuscatedTranslation != null && !string.IsNullOrWhiteSpace(obfuscatedTranslation.DeobfuscatedName))
@@ -391,7 +392,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
     // ----------------------------
     // Detect obfuscated translation
     // ----------------------------
-    private void DetectObfuscatedTranslation(uint actionID, string obfuscatedName, string displayName)
+    private void DetectObfuscatedTranslation(uint actionID, string? obfuscatedName, string displayName)
     {
         // Check if ID, obfuscated name or display name are invalid
         if (!IsValidActionID(actionID) || string.IsNullOrWhiteSpace(obfuscatedName) || string.IsNullOrWhiteSpace(displayName)) return;
@@ -402,19 +403,23 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
         // Get the client language ID
         int clientLanguageID = (int)config.ClientLanguage;
 
-        // Check if already scanned (unique key = obfuscated name, which encodes action + language)
-        int existingIndex = config.ScannedObfuscatedTranslations.FindIndex(t => t.ObfuscatedName == obfuscatedName);
+        // Ensure the obfuscated name has the correct language ID part
+        obfuscatedName = EnsureObfuscatedNameLanguage(clientLanguageID, obfuscatedName);
+        if (obfuscatedName == null) return;
+
+        // Check if already scanned
+        int existingIndex = config.ScannedObfuscatedTranslations.FindIndex(translation => translation.ObfuscatedName == obfuscatedName);
         if (existingIndex >= 0)
         {
             // Already scanned - skip if deobfuscated name is already set
-            ObfuscatedTranslation existing = config.ScannedObfuscatedTranslations[existingIndex];
-            if (!string.IsNullOrWhiteSpace(existing.DeobfuscatedName)) return;
+            ObfuscatedTranslation existingTranslation = config.ScannedObfuscatedTranslations[existingIndex];
+            if (!string.IsNullOrWhiteSpace(existingTranslation.DeobfuscatedName)) return;
 
             // Update the existing entry with the missing deobfuscated name
-            existing.DeobfuscatedName = displayName;
+            existingTranslation.DeobfuscatedName = displayName;
 
             // Update the scanned translations and save config
-            config.ScannedObfuscatedTranslations[existingIndex] = existing;
+            config.ScannedObfuscatedTranslations[existingIndex] = existingTranslation;
             config.Save();
 
             // Log
@@ -423,7 +428,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
         else
         {
             // Create new scanned entry
-            ObfuscatedTranslation scanned = new()
+            ObfuscatedTranslation scannedTranslation = new()
             {
                 ActionID = (int)actionID,
                 ObfuscatedName = obfuscatedName,
@@ -432,7 +437,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             };
 
             // Add to scanned translations and save config
-            config.ScannedObfuscatedTranslations.Add(scanned);
+            config.ScannedObfuscatedTranslations.Add(scannedTranslation);
             config.Save();
 
             // Log
@@ -440,6 +445,30 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
         }
     }
 
+    // ----------------------------
+    // Ensure obfuscated name language
+    // ----------------------------
+    private static string? EnsureObfuscatedNameLanguage(int clientLanguageID, string obfuscatedName)
+    {
+        // Get language index from the obfuscated name
+        // Expected format: _rsv_{actionID}_-1_{language}_0_{revision}_{suffix}...
+        int languageIndex = obfuscatedName.IndexOf("-1_");
+        
+        // Check if we have a valid language index
+        if (languageIndex < 0) return null;
+
+        // Get language ID part
+        string languagePart = obfuscatedName.Substring(languageIndex + 3, 1);
+
+        // Check if we have correct language ID part
+        if (languagePart.IsNullOrWhitespace() || clientLanguageID == int.Parse(languagePart)) return obfuscatedName;
+
+        // Reconstruct the obfuscated name
+        obfuscatedName = obfuscatedName.Remove(languageIndex + 3, 1).Insert(languageIndex + 3, clientLanguageID.ToString());
+
+        // Return obfuscated name with corrected language ID
+        return obfuscatedName;
+    }
 
     // ----------------------------
     // Get alternative translation

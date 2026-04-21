@@ -33,7 +33,7 @@ public class Configuration : IPluginConfiguration
     public Vector4 LighterRedDalamud { get; } = new Vector4(0.42f, 0.23f, 0.23f, 1.00f); // Lighter Red Dalamud
 
     // Obfuscated translations
-    public string ObfuscatedPrefix { get; } = "_rsv";
+    public string ObfuscatedPrefix { get; } = "_rsv_";
     public string RemoteUrl { get; } = "https://raw.githubusercontent.com/Jo44/LangSwap/refs/heads/main/data/obfuscated_translations.csv";
     public List<ObfuscatedTranslation> RemoteObfuscatedTranslations { get; set; } = [];
     public List<ObfuscatedTranslation> ScannedObfuscatedTranslations { get; set; } = [];

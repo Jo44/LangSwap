@@ -14,6 +14,6 @@ public class ObfuscatedTranslation
 {
     public int ActionID { get; set; } = 0;
     public string ObfuscatedName { get; set; } = string.Empty;
-    public string DeobfuscatedName { get; set; } = string.Empty;
     public int LanguageID { get; set; } = 0;
+    public string DeobfuscatedName { get; set; } = string.Empty;
 }

@@ -190,27 +190,31 @@ public class ExcelProvider(Configuration config)
             // Initialize
             HashSet<ObfuscatedTranslation> obfuscatedTranslations = [];
 
-            // Get a language different from the client language
-            Language differentLang = config.ClientLanguage == Language.English ? Language.Japanese : Language.English;
+            // Get all languages
+            List<Language> allLanguages = [.. Enum.GetValues<Language>()];
 
-            // Get the action sheet for the different language
-            ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(differentLang));
-            if (actionSheet != null)
+            // Loop through all languages to find obfuscated action names
+            foreach (Language language in allLanguages)
             {
-                // Loop through actions to find obfuscated ones
-                foreach (Lumina.Excel.Sheets.Action action in actionSheet)
+                // Get the action sheet for the different language
+                ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(language));
+                if (actionSheet != null)
                 {
-                    // Get action ID
-                    int actionID = (int)action.RowId;
-
-                    // Get action name
-                    string actionName = action.Name.ToString();
-
-                    // Check if the name is obfuscated (starts with "_rsv_")
-                    if (!string.IsNullOrWhiteSpace(actionName) && actionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
+                    // Loop through actions to find obfuscated ones
+                    foreach (Lumina.Excel.Sheets.Action action in actionSheet)
                     {
-                        // Add to the set of obfuscated translations
-                        obfuscatedTranslations.Add(new ObfuscatedTranslation { ActionID = actionID, ObfuscatedName = actionName });
+                        // Get action ID
+                        int actionID = (int)action.RowId;
+
+                        // Get action name
+                        string actionName = action.Name.ToString();
+
+                        // Check if the name is obfuscated (starts with "_rsv_")
+                        if (!string.IsNullOrWhiteSpace(actionName) && actionName.StartsWith(config.ObfuscatedPrefix, StringComparison.Ordinal))
+                        {
+                            // Add to the set of obfuscated translations
+                            obfuscatedTranslations.Add(new ObfuscatedTranslation { ActionID = actionID, ObfuscatedName = actionName, LanguageID = (int)language });
+                        }
                     }
                 }
             }

@@ -34,6 +34,7 @@ public class AdvancedWindow : Window, IDisposable
     private readonly List<ObfuscatedTranslation> translations = [];
 
     // Compare info for language sorting
+    // TODO : clean
     private static readonly CompareInfo JapaneseCompare = CultureInfo.GetCultureInfo("ja-JP").CompareInfo;
     private static readonly CompareInfo EnglishCompare = CultureInfo.GetCultureInfo("en-US").CompareInfo;
     private static readonly CompareInfo GermanCompare = CultureInfo.GetCultureInfo("de-DE").CompareInfo;
@@ -49,12 +50,12 @@ public class AdvancedWindow : Window, IDisposable
 
     // Window size
     private const int WindowHeight = 805;
-    private const int WindowWidth = 1500;
+    private const int WindowWidth = 900;
 
     // ----------------------------
     // Constructor
     // ----------------------------
-    public AdvancedWindow(Configuration config, ExcelProvider excelProvider) : base("LangSwap - Debug###LangSwapDebug")
+    public AdvancedWindow(Configuration config, ExcelProvider excelProvider) : base("LangSwap - Advanced###LangSwapAdvanced")
     {
         // Initialize core components
         this.config = config;
@@ -156,9 +157,9 @@ public class AdvancedWindow : Window, IDisposable
 
         // Setup columns
         ImGui.TableSetupScrollFreeze(0, 1);
-        ImGui.TableSetupColumn("Spell ID", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.DefaultSort, 65f, 0);
-        ImGui.TableSetupColumn("Obfuscated Name", ImGuiTableColumnFlags.WidthFixed, 320f, 1);
-        ImGui.TableSetupColumn("Language", ImGuiTableColumnFlags.WidthStretch, 1.0f, 2);
+        ImGui.TableSetupColumn("Spell ID", ImGuiTableColumnFlags.WidthFixed, 65f, 0);
+        ImGui.TableSetupColumn("Obfuscated Name", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.DefaultSort, 320f, 1);
+        ImGui.TableSetupColumn("Language", ImGuiTableColumnFlags.WidthFixed, 85f, 2);
         ImGui.TableSetupColumn("Spell Name", ImGuiTableColumnFlags.WidthStretch, 1.0f, 3);
         ImGui.TableHeadersRow();
 
@@ -228,7 +229,7 @@ public class AdvancedWindow : Window, IDisposable
     {
         // Draw export scanned button
         ImGui.Spacing();
-        ImGui.SameLine(0, 825f);
+        ImGui.SameLine(0, 225f);
         if (ImGui.Button("Export scanned", new Vector2(150f, 0f)))
         {
             // Export scanned obfuscated translations to CSV
@@ -400,6 +401,7 @@ public class AdvancedWindow : Window, IDisposable
             translations.Add(new ObfuscatedTranslation
             {
                 ActionID = obfuscatedTranslation.ActionID,
+                LanguageID = obfuscatedTranslation.LanguageID,
                 ObfuscatedName = obfuscatedTranslation.ObfuscatedName
             });
         }
@@ -440,8 +442,8 @@ public class AdvancedWindow : Window, IDisposable
                 {
                     ActionID = sourceTranslation.ActionID,
                     ObfuscatedName = sourceTranslation.ObfuscatedName,
-                    DeobfuscatedName = sourceTranslation.DeobfuscatedName,
-                    LanguageID = sourceTranslation.LanguageID
+                    LanguageID = sourceTranslation.LanguageID,
+                    DeobfuscatedName = sourceTranslation.DeobfuscatedName
                 });
                 continue;
             }
@@ -449,8 +451,8 @@ public class AdvancedWindow : Window, IDisposable
             // Merge obfuscated translation
             targetTranslation.ActionID = sourceTranslation.ActionID;
             targetTranslation.ObfuscatedName = sourceTranslation.ObfuscatedName;
-            targetTranslation.DeobfuscatedName = sourceTranslation.DeobfuscatedName;
             targetTranslation.LanguageID = sourceTranslation.LanguageID;
+            targetTranslation.DeobfuscatedName = sourceTranslation.DeobfuscatedName;
         }
     }
 
@@ -471,34 +473,85 @@ public class AdvancedWindow : Window, IDisposable
         // Sort translations based on the column and direction
         translations.Sort((left, right) =>
         {
-            // Compare text (with blank values last)
-            static int CompareTextBlankLast(string leftValue, string rightValue, bool isAscending, CompareInfo compareInfo, CompareOptions compareOptions)
+            int primaryCompare = columnID switch
             {
-                // Sort blank values last
-                bool leftBlank = string.IsNullOrWhiteSpace(leftValue);
-                bool rightBlank = string.IsNullOrWhiteSpace(rightValue);
-                if (leftBlank && !rightBlank) return 1;
-                if (!leftBlank && rightBlank) return -1;
-                if (leftBlank && rightBlank) return 0;
+                // Column 0: Sort by Action ID, then by Obfuscated Name
+                0 => CompareWithSecondary(
+                    left.ActionID.CompareTo(right.ActionID),
+                    ascending,
+                    () => EnglishCompare.Compare(left.ObfuscatedName, right.ObfuscatedName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase)
+                ),
 
-                // Compare text with locale-specific rules
-                int textCompare = compareInfo.Compare(leftValue, rightValue, compareOptions);
-                return isAscending ? textCompare : -textCompare;
-            }
+                // Column 1: Sort by Obfuscated Name only
+                1 => ascending
+                    ? EnglishCompare.Compare(left.ObfuscatedName, right.ObfuscatedName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase)
+                    : EnglishCompare.Compare(right.ObfuscatedName, left.ObfuscatedName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
 
-            // Determine sort order based on column
-            return columnID switch
-            {
-                0 => ascending ? left.ActionID.CompareTo(right.ActionID) : right.ActionID.CompareTo(left.ActionID),
-                1 => CompareTextBlankLast(left.ObfuscatedName, right.ObfuscatedName, ascending, EnglishCompare, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
-                2 => ascending ? left.LanguageID.CompareTo(right.LanguageID) : right.LanguageID.CompareTo(left.LanguageID),
-                3 => CompareTextBlankLast(left.DeobfuscatedName, right.DeobfuscatedName, ascending, EnglishCompare, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase),
-                _ => ascending ? left.ActionID.CompareTo(right.ActionID) : right.ActionID.CompareTo(left.ActionID)
+                // Column 2: Sort by Language, then by Obfuscated Name
+                2 => CompareWithSecondary(
+                    left.LanguageID.CompareTo(right.LanguageID),
+                    ascending,
+                    () => EnglishCompare.Compare(left.ObfuscatedName, right.ObfuscatedName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase)
+                ),
+
+                // Column 3: Sort by Spell Name (blanks always last), then by Obfuscated Name
+                3 => CompareSpellNameWithSecondary(
+                    left,
+                    right,
+                    () => EnglishCompare.Compare(left.ObfuscatedName, right.ObfuscatedName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase)
+                ),
+
+                // Default: Sort by Obfuscated Name only
+                _ => ascending
+                    ? EnglishCompare.Compare(left.ObfuscatedName, right.ObfuscatedName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase)
+                    : EnglishCompare.Compare(right.ObfuscatedName, left.ObfuscatedName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase)
             };
+
+            return primaryCompare;
         });
 
         // Mark sort specs as applied
         sortSpecs.SpecsDirty = false;
+
+        // Helper: Compare with secondary sort
+        int CompareWithSecondary(int primaryResult, bool isAscending, Func<int> secondaryCompare)
+        {
+            int result = isAscending ? primaryResult : -primaryResult;
+            return result != 0 ? result : secondaryCompare();
+        }
+
+        // Helper: Compare spell names with blanks always last
+        int CompareSpellNameWithSecondary(ObfuscatedTranslation left, ObfuscatedTranslation right, Func<int> secondaryCompare)
+        {
+            bool leftBlank = string.IsNullOrWhiteSpace(left.DeobfuscatedName);
+            bool rightBlank = string.IsNullOrWhiteSpace(right.DeobfuscatedName);
+
+            // Blanks always go last regardless of sort direction
+            if (leftBlank && !rightBlank) return 1;
+            if (!leftBlank && rightBlank) return -1;
+            if (leftBlank && rightBlank) return secondaryCompare();
+
+            // Get appropriate CompareInfo based on language
+            CompareInfo compareInfo = left.LanguageID switch
+            {
+                0 => JapaneseCompare,
+                1 => EnglishCompare,
+                2 => GermanCompare,
+                3 => FrenchCompare,
+                _ => EnglishCompare
+            };
+
+            // Compare non-blank values with sort direction
+            int textCompare = compareInfo.Compare(left.DeobfuscatedName, right.DeobfuscatedName, CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase);
+            if (ascending)
+            {
+                return textCompare != 0 ? textCompare : secondaryCompare();
+            }
+            else
+            {
+                return textCompare != 0 ? -textCompare : secondaryCompare();
+            }
+        }
     }
 
     // ----------------------------

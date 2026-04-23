@@ -1,6 +1,6 @@
 # LangSwap
 
-A Dalamud plugin for Final Fantasy XIV that allows you to change the language of castbars and tooltips in FFXIV
+A Dalamud plugin for Final Fantasy XIV that allows you to change the language of castbars and tooltips
 
 ## Features
 - Swap castbars and tooltips language on the fly (no game restart required)
@@ -17,8 +17,8 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 
 ## Default values
 - Target language : `English`
-- Automatically swap at startup : `Off`
-- Automatically upload scanned data : `On`
+- Automatically swap at startup : `Disable`
+- Automatically upload scanned data : `Enable`
 - Toggle shortcut : `Enable`
 - Keyboard shortcut : `Shift + Y`
 - UI Components : `Ally target` / `Ally focus` / `Party list` / `Enemy target` / `Enemy focus` / `Enmity list` / `Action tooltip` / `Item tooltip`

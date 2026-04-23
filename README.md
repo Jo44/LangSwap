@@ -73,4 +73,4 @@ You can also :
 - Deploy as a Dalamud plugin following the normal deployment instructions for Dalamud plugins
 
 ## Logs & debugging
-- Logs use Dalamud's `IPluginLog`; filter by plugin to view messages
+- Logs use Dalamud's `IPluginLog`; filter by plugin to view messages 

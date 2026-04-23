@@ -10,8 +10,8 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 - Spell names can only be translated in some UI components, and not in chat or floating actions on enemies
 - Spell names can only be translated when character is in combat
 - Some spell names are obfuscated by Square Enix to prevent early data-mining 
-  -> The plugin can learn on its own or be updated remotely to resolve obfuscated translations 
-  -> Users can automatically send new scanned obfuscated translations (if feature is authorized) 
+  - The plugin can learn on its own or be updated remotely to resolve obfuscated translations 
+  - Users can automatically send new scanned obfuscated translations (if feature is authorized) 
 - Action tooltip only translate : `Name` / `Description`
 - Item tooltip only translate : `Name` / `Glamour` / `Description` / `Effects` / `Bonuses` / `Materias`
 
@@ -35,11 +35,11 @@ You can also :
 - Enable the toggle shortcut then select the keyboard shortcut : Primary key and modifier keys (`Ctrl`, `Alt`, `Shift`)
 - Press the toogle shortcut to swap language; press again to restore the original language
 - Click the `Customize` button to set alternative translations that will be used when translation is activated 
-  -> Current alternative translations can be exported to CSV 
-  -> New alternative translations can be imported from CSV 
+  - Current alternative translations can be exported to CSV 
+  - New alternative translations can be imported from CSV 
 - Click the `Advanced` button to display obfuscated translations list 
-  -> Scanned obfuscated translations can be exported to CSV 
-  -> Local obfuscated translations can be imported from CSV (for debug)
+  - Scanned obfuscated translations can be exported to CSV 
+  - Local obfuscated translations can be imported from CSV (for debug)
 - Click the `Clear cache` button to clear all translation caches
 
 ## Updates

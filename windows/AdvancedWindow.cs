@@ -15,7 +15,7 @@ namespace LangSwap.windows;
 // Advanced Window
 //
 // @author Jo44
-// @version 1.7 (21/04/2026)
+// @version 1.7 (23/04/2026)
 // @since 01/01/2026
 // ----------------------------
 public class AdvancedWindow : Window, IDisposable
@@ -609,7 +609,7 @@ public class AdvancedWindow : Window, IDisposable
             string line = lines[i].Trim();
             if (string.IsNullOrWhiteSpace(line)) continue;
 
-            // Validate line format (must contain exactly 3 ';' separators)
+            // Check line format (must contain exactly 3 ';' separators)
             string[] parts = line.Split(';');
             if (parts.Length != 4)
             {
@@ -623,7 +623,7 @@ public class AdvancedWindow : Window, IDisposable
             string languageIDStr = parts[2].Trim();
             string deobfuscatedName = parts[3].Trim();
 
-            // Validate required fields
+            // Check required fields
             if (!int.TryParse(actionIDStr, out int actionID) || actionID < 0 || string.IsNullOrWhiteSpace(obfuscatedName) || !int.TryParse(languageIDStr, out int languageID) || languageID < 0 || languageID > 3 || string.IsNullOrWhiteSpace(deobfuscatedName))
             {
                 status = $"Invalid value at line {i + 1}";

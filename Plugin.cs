@@ -10,11 +10,9 @@ using Dalamud.Plugin.Services;
 using LangSwap.hook.manager;
 using LangSwap.translation;
 using LangSwap.translation.@base;
-using LangSwap.translation.model;
 using LangSwap.windows;
+using LangSwap.sync;
 using System;
-using System.Collections.Generic;
-using System.Net.Http;
 
 namespace LangSwap;
 
@@ -22,7 +20,7 @@ namespace LangSwap;
 // Plugin : LangSwap
 //
 // @author Jo44
-// @version 1.7 (21/04/2026)
+// @version 1.7 (23/04/2026)
 // @since 01/01/2026
 // ----------------------------
 public sealed class Plugin : IDalamudPlugin
@@ -35,6 +33,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+    [PluginService] internal static ICondition Condition { get; private set; } = null!;
     [PluginService] internal static IDalamudPluginInterface DalamudPluginInterface { get; private set; } = null!;
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
@@ -42,15 +41,18 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
     [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
-    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     
     // Core components
     private readonly Configuration config = null!;
     private readonly ExcelProvider excelProvider = null!;
     private readonly HookManager hookManager = null!;
     private readonly TranslationCache translationCache = null!;
+
+    // Sync service
+    private readonly SyncService syncService = null!;
 
     // UI windows
     private readonly ConfigWindow configWindow = null!;
@@ -79,20 +81,23 @@ public sealed class Plugin : IDalamudPlugin
             // Load configuration
             config = DalamudPluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
+            // Detect client language
+            DetectClientLanguage();
+
             // Initialize core components
             excelProvider = new(config);
             translationCache = new(config, excelProvider);
             hookManager = new(config, translationCache);
 
-            // Detect client language
-            DetectClientLanguage();
+            // Initialize sync service
+            syncService = new(config);
 
             // Log configuration
             Log.Information($"{Class} === LangSwap : Configuration ===");
             Log.Information($"{Class} - Client Language = {config.ClientLanguage}");
             Log.Information($"{Class} - Target Language = {config.TargetLanguage}");
             Log.Information($"{Class} - Auto Swap Language = {config.AutoSwapLanguage}");
-            Log.Information($"{Class} - Auto Send Scanned Data = {config.AutoSendScannedData}");
+            Log.Information($"{Class} - Auto Upload Data = {config.AutoUploadData}");
             Log.Information($"{Class} - Shortcut Enabled = {config.ShortcutEnabled}");
             Log.Information($"{Class} - Primary Key = {config.PrimaryKey}");
             Log.Information($"{Class} - Ctrl = {config.Ctrl}");
@@ -107,23 +112,7 @@ public sealed class Plugin : IDalamudPlugin
             Log.Information($"{Class} - Tooltip - Action = {config.ActionTooltip}");
             Log.Information($"{Class} - Tooltip - Item = {config.ItemTooltip}");
 
-            // Log obfuscated translations
-            Log.Information($"{Class} === LangSwap : Obfuscated Translations ===");
-
-            // Get remote
-            GetRemoteObfuscatedTranslations();
-
-            // Log remote / scanned / local
-            LogObfuscatedTranslations("Remote", config.RemoteObfuscatedTranslations);
-            LogObfuscatedTranslations("Scanned", config.ScannedObfuscatedTranslations);
-            LogObfuscatedTranslations("Local", config.LocalObfuscatedTranslations);
-
-            // Log alternative translations
-            Log.Information($"{Class} === LangSwap : Alternative Translations ===");
-            LogAlternativeTranslations("Alternative", config.AlternativeTranslations);
-
             // Initialize windows
-            Log.Information($"{Class} === LangSwap : Windows ===");
             configWindow = new(config, this, translationCache);
             customizeWindow = new(config);
             advancedWindow = new(config, excelProvider);
@@ -307,82 +296,6 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ----------------------------
-    // Get remote obfuscated translations
-    // ----------------------------
-    private void GetRemoteObfuscatedTranslations()
-    {
-        try
-        {
-            // Validate URL
-            if (string.IsNullOrWhiteSpace(config.RemoteUrl)) return;
-
-            // Download remote CSV
-            using HttpClient httpClient = new();
-            string csv = httpClient.GetStringAsync(config.RemoteUrl).GetAwaiter().GetResult();
-            if (string.IsNullOrWhiteSpace(csv))
-            {
-                Log.Warning($"{Class} - Remote obfuscated translations CSV is empty");
-                return;
-            }
-
-            // Import CSV content into a temporary list
-            List<ObfuscatedTranslation> importedTranslations = [];
-            if (!AdvancedWindow.ImportObfuscatedTranslationsCSV(csv, importedTranslations, out string status))
-            {
-                Log.Warning($"{Class} - Failed to import remote obfuscated translations CSV: {status}");
-                return;
-            }
-
-            // Replace current remote translations and persist
-            config.RemoteObfuscatedTranslations.Clear();
-            config.RemoteObfuscatedTranslations.AddRange(importedTranslations);
-            config.Save();
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, $"{Class} - Failed to download remote obfuscated translations CSV");
-        }
-    }
-
-    // ----------------------------
-    // Log obfuscated translations
-    // ----------------------------
-    private static void LogObfuscatedTranslations(string listName, List<ObfuscatedTranslation> translations)
-    {
-        // Count translations
-        int count = translations?.Count ?? 0;
-        Log.Information($"{Class} - {listName} ({count})");
-
-        // Check for empty list
-        if (translations == null || translations.Count == 0) return;
-
-        // Log each translation
-        foreach (ObfuscatedTranslation translation in translations)
-        {
-            Log.Debug($"{Class} - Action ID = {translation.ActionID}, Obfuscated = {translation.ObfuscatedName}, Language = {translation.LanguageID}, Spell = {translation.DeobfuscatedName}");
-        }
-    }
-
-    // ----------------------------
-    // Log alternative translations
-    // ----------------------------
-    private static void LogAlternativeTranslations(string listName, List<AlternativeTranslation> translations)
-    {
-        // Count translations
-        int count = translations?.Count ?? 0;
-        Log.Information($"{Class} - {listName} ({count})");
-
-        // Check for empty list
-        if (translations == null || translations.Count == 0) return;
-
-        // Log each translation
-        foreach (AlternativeTranslation translation in translations)
-        {
-            Log.Debug($"{Class} - Spell = {translation.SpellName}, Alternative = {translation.AlternativeName}");
-        }
-    }
-
-    // ----------------------------
     // Check if the shortcut is currently pressed
     // ----------------------------
     private bool IsShortcutPressed()
@@ -436,7 +349,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         catch (Exception ex)
         {
-            Log.Warning($"{Class} - IsKeyDown exception for vk = {vkCode} : {ex.Message}");
+            Log.Error($"{Class} - IsKeyDown exception for vk = {vkCode} : {ex.Message}");
             return false;
         }
     }
@@ -569,6 +482,9 @@ public sealed class Plugin : IDalamudPlugin
 
         // Dispose hook manager
         hookManager.Dispose();
+
+        // Dispose sync service
+        syncService.Dispose();
 
         // Remove command
         CommandManager.RemoveHandler("/langswap");

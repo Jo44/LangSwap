@@ -16,7 +16,7 @@ namespace LangSwap.hook.template;
 // Base class for all castbars hooks
 //
 // @author Jo44
-// @version 1.7 (21/04/2026)
+// @version 1.7 (23/04/2026)
 // @since 01/01/2026
 // ----------------------------
 public unsafe abstract class CastBarsHook(Configuration config, TranslationCache translationCache) : BaseHook(config, translationCache)
@@ -93,11 +93,8 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
         }
         catch (Exception ex)
         {
-            // Get the addon name
-            string addonName = GetAddonName(addonType);
-
             // Log
-            Log.Error(ex, $"{Class} - Error updating {addonName} addon");
+            Log.Error(ex, $"{Class} - Error updating {GetAddonName(addonType)} addon");
         }
     }
 
@@ -250,11 +247,8 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
         }
         catch (Exception ex)
         {
-            // Get the addon name
-            string addonName = GetAddonName(addonType);
-
             // Log
-            Log.Error(ex, $"{Class} - Error updating {addonName} addon");
+            Log.Error(ex, $"{Class} - Error updating {GetAddonName(addonType)} addon");
         }
     }
 

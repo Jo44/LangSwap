@@ -14,7 +14,7 @@ namespace LangSwap.windows;
 // Config Window
 //
 // @author Jo44
-// @version 1.7 (21/04/2026)
+// @version 1.7 (23/04/2026)
 // @since 01/01/2026
 // ----------------------------
 public class ConfigWindow : Window, IDisposable
@@ -88,8 +88,8 @@ public class ConfigWindow : Window, IDisposable
         DrawClearCacheButton();
         DrawClearCachePopup();
 
-        // Auto send scanned data
-        DrawAutoSendScannedData();
+        // Auto upload data
+        DrawAutoUploadData();
 
         // Advanced button
         DrawAdvancedButton();
@@ -266,19 +266,19 @@ public class ConfigWindow : Window, IDisposable
     }
 
     // ----------------------------
-    // Draw auto send scanned data
+    // Draw auto upload data
     // ----------------------------
-    private void DrawAutoSendScannedData()
+    private void DrawAutoUploadData()
     {
-        // Draw auto send scanned data
-        bool autoSendScannedData = config.AutoSendScannedData;
+        // Draw auto upload data
+        bool autoUploadData = config.AutoUploadData;
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.SameLine(0, 15f);
-        if (ImGui.Checkbox(" Automatically send scanned data##AutoSendScannedData", ref autoSendScannedData))
+        if (ImGui.Checkbox(" Automatically upload scanned data##AutoUploadData", ref autoUploadData))
         {
-            // Change auto send scanned data
-            CommonSettingChange("AutoSendScannedData", autoSendScannedData, () => config.AutoSendScannedData = autoSendScannedData);
+            // Change auto upload data
+            CommonSettingChange("AutoUploadData", autoUploadData, () => config.AutoUploadData = autoUploadData);
         }
     }
 

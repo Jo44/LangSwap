@@ -8,7 +8,7 @@ namespace LangSwap.windows;
 // Popup Builder
 //
 // @author Jo44
-// @version 1.7 (21/04/2026)
+// @version 1.7 (23/04/2026)
 // @since 01/01/2026
 // ----------------------------
 public static class PopupBuilder
@@ -38,7 +38,7 @@ public static class PopupBuilder
         ImGui.SameLine(15f);
         if (ImGui.Button("Copy", new Vector2((windowSize.X - 45f) / 2, 0f)))
         {
-            // Validate CSV
+            // Check CSV
             if (!string.IsNullOrWhiteSpace(csv))
             {
                 // Copy to clipboard

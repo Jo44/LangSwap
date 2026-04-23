@@ -13,7 +13,7 @@ namespace LangSwap.translation;
 // Excel Provider
 //
 // @author Jo44
-// @version 1.7 (21/04/2026)
+// @version 1.7 (23/04/2026)
 // @since 01/01/2026
 // ----------------------------
 public class ExcelProvider(Configuration config)
@@ -40,7 +40,7 @@ public class ExcelProvider(Configuration config)
             ExcelSheet<BaseParam> clientSheet = DataManager.GetExcelSheet<BaseParam>(EnumToClientLang(clientLang));
             if (clientSheet == null)
             {
-                Log.Warning($"{Class} - BaseParam sheet is not available for language {clientLang}");
+                Log.Error($"{Class} - BaseParam sheet is not available for language {clientLang}");
                 return null;
             }
 
@@ -92,7 +92,7 @@ public class ExcelProvider(Configuration config)
             ExcelSheet<Lumina.Excel.Sheets.Action> actionSheet = DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>(EnumToClientLang(targetLang));
             if (actionSheet == null)
             {
-                Log.Warning($"{Class} - Action sheet is not available for language {targetLang}");
+                Log.Error($"{Class} - Action sheet is not available for language {targetLang}");
                 return null;
             }
 
@@ -127,7 +127,7 @@ public class ExcelProvider(Configuration config)
             ExcelSheet<ActionTransient> actionTransientSheet = DataManager.GetExcelSheet<ActionTransient>(EnumToClientLang(targetLang));
             if (actionTransientSheet == null)
             {
-                Log.Warning($"{Class} - Action transient sheet is not available for language {targetLang}");
+                Log.Error($"{Class} - Action transient sheet is not available for language {targetLang}");
                 return null;
             }
 
@@ -251,7 +251,7 @@ public class ExcelProvider(Configuration config)
             ExcelSheet<Item> itemSheet = DataManager.GetExcelSheet<Item>(EnumToClientLang(targetLang));
             if (itemSheet == null)
             {
-                Log.Warning($"{Class} - Item sheet is not available for language {targetLang}");
+                Log.Error($"{Class} - Item sheet is not available for language {targetLang}");
                 return null;
             }
 
@@ -316,14 +316,14 @@ public class ExcelProvider(Configuration config)
     {
         try
         {
-            // Validate input
+            // Check input
             if (string.IsNullOrWhiteSpace(name)) return null;
 
             // Get the sheet for the specified language
             ExcelSheet<TSheet> sheet = DataManager.GetExcelSheet<TSheet>(EnumToClientLang(clientLang));
             if (sheet == null)
             {
-                Log.Warning($"{Class} - Sheet {typeof(TSheet).Name} is not available for language {clientLang}");
+                Log.Error($"{Class} - Sheet {typeof(TSheet).Name} is not available for language {clientLang}");
                 return null;
             }
 

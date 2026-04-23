@@ -5,17 +5,20 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 ## Features
 - Swap castbars and tooltips language on the fly (no game restart required)
 - Customize spell alternative names
-- Some spell names are obfuscated by Square Enix to prevent early data-mining  
-	-> The plugin can learn on its own or be updated remotely to resolve this issue
 
-## Limitations
+## Limitationsaaaa
 - Spell names can only be translated in some UI components, and not in chat or floating actions on enemies
 - Spell names can only be translated when character is in combat
+- Some spell names are obfuscated by Square Enix to prevent early data-mining 
+  -> The plugin can learn on its own or be updated remotely to resolve obfuscated translations 
+  -> Users can automatically send new scanned obfuscated translations (if feature is authorized) 
 - Action tooltip only translate : `Name` / `Description`
 - Item tooltip only translate : `Name` / `Glamour` / `Description` / `Effects` / `Bonuses` / `Materias`
 
 ## Default values
 - Target language : `English`
+- Automatically swap at startup : `Off`
+- Automatically upload scanned data : `On`
 - Toggle shortcut : `Enable`
 - Keyboard shortcut : `Shift + Y`
 - UI Components : `Ally target` / `Ally focus` / `Party list` / `Enemy target` / `Enemy focus` / `Enmity list` / `Action tooltip` / `Item tooltip`
@@ -31,10 +34,13 @@ You can also :
 - Open the settings window via the slash command : `/langswap`
 - Enable the toggle shortcut then select the keyboard shortcut : Primary key and modifier keys (`Ctrl`, `Alt`, `Shift`)
 - Press the toogle shortcut to swap language; press again to restore the original language
-- Click the `Customize` button to set alternative translations that will be used when translation is activated
-- New alternative translations can be imported from CSV
-- Current alternative translations can be exported to CSV
-- Click the `Clear cache` button to clear all translation cache
+- Click the `Customize` button to set alternative translations that will be used when translation is activated 
+  -> Current alternative translations can be exported to CSV 
+  -> New alternative translations can be imported from CSV 
+- Click the `Advanced` button to display obfuscated translations list 
+  -> Scanned obfuscated translations can be exported to CSV 
+  -> Local obfuscated translations can be imported from CSV (for debug)
+- Click the `Clear cache` button to clear all translation caches
 
 ## Updates
 - **v1.0** : 
@@ -56,7 +62,10 @@ You can also :
   - Added the ability to reset scanned obfuscated translations
 - **v1.6** : 
   - Fixed fallback match via cached actions (truncated)
-  - Added sorting into Customize and Debug UI tables
+  - Added sorting into Customize and Advanced UI tables
+- **v1.7** : 
+  - Added automated sync service that fetches remote translations and uploads scanned translations
+  - Improved global UI
 
 ## Development / build
 - Target: .NET 10
@@ -65,6 +74,3 @@ You can also :
 
 ## Logs & debugging
 - Logs use Dalamud's `IPluginLog`; filter by plugin to view messages
-- Hidden debug menu allows to :  
-	-> Import obfuscation resolutions from CSV  
-	-> Export obfuscation resolutions to CSV  

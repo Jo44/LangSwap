@@ -12,7 +12,7 @@ namespace LangSwap;
 // Configuration
 //
 // @author Jo44
-// @version 1.7 (21/04/2026)
+// @version 1.7 (23/04/2026)
 // @since 01/01/2026
 // ----------------------------
 [Serializable]
@@ -34,7 +34,9 @@ public class Configuration : IPluginConfiguration
 
     // Obfuscated translations
     public string ObfuscatedPrefix { get; } = "_rsv_";
-    public string RemoteUrl { get; } = "https://raw.githubusercontent.com/Jo44/LangSwap/refs/heads/main/data/obfuscated_translations.csv";
+    public string DownloadURL { get; } = "https://raw.githubusercontent.com/Jo44/LangSwap/refs/heads/main/data/obfuscated_translations.csv";
+    public string UploadURL { get; } = "https://my-home.ovh/LangSwap-WS/api/obfuscated-translations";
+    public string APIKey { get; set; } = "3f9c7d9a-8e2b-4040-9f6a-2b7d5c1e8a73";
     public List<ObfuscatedTranslation> RemoteObfuscatedTranslations { get; set; } = [];
     public List<ObfuscatedTranslation> ScannedObfuscatedTranslations { get; set; } = [];
     public List<ObfuscatedTranslation> LocalObfuscatedTranslations { get; set; } = [];
@@ -45,8 +47,8 @@ public class Configuration : IPluginConfiguration
     // Auto swap language
     public bool AutoSwapLanguage { get; set; } = false;
 
-    // Auto send scanned data
-    public bool AutoSendScannedData { get; set; } = true;
+    // Auto upload data
+    public bool AutoUploadData { get; set; } = true;
 
     // Shortcut
     public bool ShortcutEnabled { get; set; } = true;

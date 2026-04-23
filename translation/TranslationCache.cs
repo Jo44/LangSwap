@@ -8,7 +8,7 @@ namespace LangSwap.translation;
 // Translation Cache
 //
 // @author Jo44
-// @version 1.7 (21/04/2026)
+// @version 1.7 (23/04/2026)
 // @since 01/01/2026
 // ----------------------------
 public class TranslationCache(Configuration config, ExcelProvider excelProvider)

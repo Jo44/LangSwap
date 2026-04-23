@@ -13,7 +13,7 @@ namespace LangSwap.windows;
 // Customize Window
 //
 // @author Jo44
-// @version 1.7 (21/04/2026)
+// @version 1.7 (23/04/2026)
 // @since 01/01/2026
 // ----------------------------
 public class CustomizeWindow : Window, IDisposable
@@ -573,7 +573,7 @@ public class CustomizeWindow : Window, IDisposable
             string line = lines[i].Trim();
             if (string.IsNullOrWhiteSpace(line)) continue;
 
-            // Validate line format (must contain exactly one ';' separator)
+            // Check line format (must contain exactly one ';' separator)
             string[] parts = line.Split(';');
             if (parts.Length != 2)
             {
@@ -585,7 +585,7 @@ public class CustomizeWindow : Window, IDisposable
             string spellName = parts[0].Trim();
             string alternativeName = parts[1].Trim();
 
-            // Validate required fields
+            // Check required fields
             if (string.IsNullOrWhiteSpace(spellName) || string.IsNullOrWhiteSpace(alternativeName))
             {
                 status = $"Invalid value at line {i + 1}";

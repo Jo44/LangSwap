@@ -67,6 +67,11 @@ You can also :
   - Added automated sync service that fetches remote translations and uploads scanned translations
   - Improved global UI
 
+## WebService
+A webservice is associated to collect scanned obfuscated translations automatically sent by users of this plugin
+
+LangSwap-WS project : https://github.com/Jo44/LangSwap-WS
+
 ## Development / build
 - Target: .NET 10
 - Open the project in Visual Studio, restore packages, build

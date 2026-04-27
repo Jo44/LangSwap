@@ -9,7 +9,7 @@ A Dalamud plugin for Final Fantasy XIV that allows you to change the language of
 ## Limitations
 - Spell names can only be translated in some UI components, and not in chat or floating actions on enemies
 - Spell names can only be translated when character is in combat
-- Some spell names are obfuscated by Square Enix to prevent early data-mining 
+- Some spell names are obfuscated by Square Enix to prevent early data-mining, but :
   - The plugin can learn on its own or be updated remotely to resolve obfuscated translations 
   - Users can automatically upload new scanned obfuscated translations (if feature is authorized) 
 - Action tooltip only translate : `Name` / `Description`

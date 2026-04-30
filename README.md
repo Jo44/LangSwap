@@ -68,6 +68,8 @@ You can also :
 - **v1.7** : 
   - Added automated sync service that fetches remote translations and uploads scanned translations
   - Improved global UI
+- **v1.7.5** : 
+  - Game update v7.5
 
 ## WebService
 A webservice is associated to collect scanned obfuscated translations automatically uploaded by users of this plugin

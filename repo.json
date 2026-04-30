@@ -16,12 +16,12 @@
     "CategoryTags": [],
     "DownloadLinkInstall": "https://github.com/Jo44/LangSwap/releases/download/1.7.5/latest.zip",
     "DownloadLinkUpdate": "https://github.com/Jo44/LangSwap/releases/download/1.7.5/latest.zip",
-    "LastUpdate": 1777569607,
+    "LastUpdate": 1777570116,
     "DownloadCount": 0,
     "LoadRequiredState": 0,
     "LoadSync": false,
     "LoadPriority": 0,
-    "DalamudApiLevel": 14,
+    "DalamudApiLevel": 15,
     "AcceptsFeedback": true
   }
 ]

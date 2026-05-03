@@ -109,7 +109,7 @@ public unsafe abstract class CastBarsHook(Configuration config, TranslationCache
             if (addon == null || !addon -> IsVisible) return;
 
             // Get object kind
-            ObjectKind objectKind = castBarsType == CastBarsType.Allies ? ObjectKind.Player : ObjectKind.BattleNpc;
+            ObjectKind objectKind = castBarsType == CastBarsType.Allies ? ObjectKind.Pc : ObjectKind.BattleNpc;
 
             // Get current casts
             Dictionary<uint, uint> currentCasts = [];
